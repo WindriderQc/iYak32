@@ -6,9 +6,13 @@ This project is to control a Minn Kota 30 trolling motor at the back of an OldTo
 
 
 
+-------------------------------------------------------------------------------
+
+
+
 Available features:
 - BMP280/BME280 supported on I2C channel
-- OLED display supported on I2C channel to display wifi IP address, speed, direction and atmospherical pressure.
+- OLED display supported on I2C channel to display wifi IP address, speed, direction and atmospherical pressure
 - Async web server to provide interface with atmospheric data and controls in addition to physical controller
 - WifiManager trying to connect to a list of preferred SSID, launching access Point server if no wifi connections are available.  
     a) config.txt file must be added to /data folder to list your preferred SSID:password 
@@ -16,10 +20,13 @@ Available features:
 - ACS712 Current sensor library implemented
 - 4 digits 7-segments Display library based on TM1637Display to show String, Char and Int implemented  
 - Over The Air programming capabilities with platform.io implemented
+    a) ESP IP address must be configured in platformio.ini and ESP must be connected a preferred wifi to be on the same network as the intended programming computer.  A first USB connection is obviously required  
 
+
+-------------------------------------------------------------------------------
 
 
 Upcoming intentions:
 - Add directions and speed control from webInterface
 - Autolock button on webInterface to Use cellphone GPS via the Javascript within the webServer to send auto command to motor to stay in position 
-- Add SEALEVELPRESSURE_HPA variable on webInterface to allow for proper altitude detection.  Possibly get it from meteorological API if internet access is available otherwise fall back on manual entry.
+- Add SEALEVELPRESSURE_HPA variable on webInterface to allow for proper altitude detection.  Possibly get it from meteorological API if internet access is available otherwise fall back on manual entry
