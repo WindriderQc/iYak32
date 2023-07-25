@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Web Server</title>
+  <!-- Include p5.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <style>
+    /* Define styles for the display frame */
+    #canvasDiv {
+      border: 2px solid #ccc;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: -1; /* Set z-index to be below other elements */
+    }
+    /* Styles for the rest of the content */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      color: white;
+      background: #333;
+    }
+
+    #content {
+      /* Add any styles you need for the content div here */
+      padding: 20px;
+    }
+  </style>
+<link rel="stylesheet" type="text/css" href="style.css">
+<!-- jQuery first, then Popper.js, then Bootstrap JS & CSS-->
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body class='fixed-nav sticky-footer bg-transparent sidenav-toggled ' id='page-top'>
+  <!-- The display frame div -->
+  <div id="canvasDiv"></div> 
+    <div class='content-wrapper bg-transparent'>
+    <div class='container-fluid text-center '>  
+
+
+  <h1>ESP32 Web Server</h1>
+
+  <form class = 'card'>
+    <h3>Weather</h3>
+    <p>Temperature: <strong> %TEMP%</strong></p>
+    <p>Pression: <strong> %PRESSION%</strong></p>
+    <h3>Boat Stats</h3>
+    <p>Speed: <strong> %SPEED%</strong></p>
+    <p>Direction: <strong> %DIR%</strong></p>
+    <p><a href="/speedUp"><button class="button button2">Speed Up</button></a></p>
+    <p><a href="/slowDown"><button class="button ">Slow Down</button></a></p>
+ 
+ </form>
+
+  <p>GPIO state: <strong> %STATE%</strong></p>
+  <p>
+    <a href="/on"><button class="button">ON</button></a>
+    <a href="/off"><button class="button button2">OFF</button></a>
+</p>
+</br>
+</br>
+
+<p>
+
+
+
+<script>
+async function changeSSID() 
+{
+    let ssid = document.getElementById("ssid").value
+    let pass = document.getElementById("pass").value
+
+    const data = { ssid, pass };
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    };
+    const response = await fetch('/ssid', options);
+    const respjson = await response.json();
+    console.log(respjson);
+}
+
+
+async function changeIP() 
+{
+    let ip0 = document.getElementById("IP0mqtt").value
+    let ip1 = document.getElementById("IP1mqtt").value
+    let ip2 = document.getElementById("IP2mqtt").value
+    let ip3 = document.getElementById("IP3mqtt").value
+
+    let port = document.getElementById("mqttport").value
+    const data = { ip0, ip1, ip2, ip3, port };
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    };
+    const response = await fetch('/mqttip', options);
+    const respjson = await response.json();
+    console.log(respjson);
+}
+
+</script>
+
+ 
+</p>
+</br>
+
+<p><a href="/data"><button class="button">GetData</button></a></p>
+</br>
+<p>Current Time   --   Local IP</p>
+<p>%TIME%   --   %LOCALIP%</p>
+
+<p>
+    latitude: <span id="latitude"></span>&deg;<br />
+    longitude: <span id="longitude"></span>&deg;
+  </p>
+
+
+
+
+  <script>
+   //    WALKER
+   function Walker() {
+  
+  // Start Walker in center with 0 velocity
+  this.pos = createVector(width / 2, height / 8)
+  this.vel = createVector(0, 0)
+  this.acc = createVector(0, 0)
+  this.color = color(0,0,0) // 
+  
+  // Sets the color used in render()
+  this.setColor = function(newColor) {
+      this.color = newColor
+  }
+  // Loop - Display Walker on canvas  
+  this.render = function() {
+      stroke(this.color)
+      fill(this.color)
+      rect(this.pos.x, this.pos.y, 3, 3, 20);
+  }
+  
+  // Loop - Actualize Walker position chasing a random ghost position.
+  this.update = function() 
+  {
+      // Vector at random OnScreen location
+      var scrpos = createVector(floor(random(0,width)), floor(random(0, height)))
+      // Vector pointing from Walker to OnScreen pos
+      this.acc = p5.Vector.sub(scrpos, this.pos);
+      // Setting the magnitude of that vector
+      this.acc.setMag(0.4);
+       // Physics engine algorithm
+      this.vel.add(this.acc);
+      this.pos.add(this.vel);
+      // Keep walker On Screen
+      this.pos.x = constrain(this.pos.x, 0, width - 1);
+      this.pos.y = constrain(this.pos.y, 0, height - 1);
+  }
+}
+//  PARTICLE
+class Particle {
+  constructor(startX, startY) {
+    this.x = startX;
+    this.y = startY;
+    this.vx = random(-1,1);
+    this.vy = random(-1,3);
+    this.d = random(15, 35);
+    this.acc = 0.1;
+    this.alpha = 255;
+  }
+  update() {
+    this.vy = this.vy - this.acc;
+    this.x += this.vx;
+    this.y += this.vy;
+    this.alpha -= 4;
+  }
+  isFinished() {
+    return this.alpha < 30;
+  }
+  show() {
+    noStroke();
+    fill(255, random(80,190), 0,this.alpha);
+    circle(this.x, this.y, this.d)
+  }
+  show1(colorX, colorY){
+    noStroke();
+    fill(colorX, random(80,190), colorY, this.alpha);
+    circle(this.x, this.y, this.d)
+  }
+  show2(colorX, colorY){
+    noStroke();
+    fill(random(80,190), colorX, colorY, this.alpha);
+    circle(this.x, this.y, this.d)
+  }
+}
+
+
+
+// SKETCH
+let particles = [];
+let particles2 = [];
+let particles3 = [];
+let walker, walker2, walker3;
+function setup() 
+{
+  let canvas = createCanvas(windowWidth, windowHeight);
+  canvas.parent('canvasDiv');
+  //create walker
+  walker = new Walker();
+  walker2 = new Walker(); 
+  walker3 = new Walker(); 
+
+  if ('geolocation' in navigator) {
+      console.log('geolocation available');
+      navigator.geolocation.getCurrentPosition(position => {
+        lat = position.coords.latitude;
+        lon = position.coords.longitude;
+        console.log(lat, lon);
+        document.getElementById('latitude').textContent = lat;
+        document.getElementById('longitude').textContent = lon;
+      });
+    } else {
+      console.log('geolocation not available');
+    }
+
+
+}
+ 
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+}
+function draw() 
+{
+   
+   // background(239,222,205);
+    clear();
+ 
+    walker.update();
+    walker2.update();
+    walker3.update();
+    for (let i = 0; i < 2; i++) {
+        let p = new Particle(walker.pos.x, walker.pos.y);
+        particles.push(p);
+    }
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].show();
+        if (particles[i].isFinished()) {
+            particles.splice(i, 1);
+        }
+    }  
+    for (let i = 0; i < 2; i++) {
+        let p2 = new Particle(walker2.pos.x, walker2.pos.y);
+        particles2.push(p2);
+    }
+    for (let i = particles2.length - 1; i >= 0; i--) {
+        particles2[i].update();
+        particles2[i].show2(walker2.pos.x, walker2.pos.y);
+        if (particles2[i].isFinished()) {
+            particles2.splice(i, 1);
+        }
+    }
+    for (let i = 0; i < 2; i++) {
+        let p3 = new Particle(walker3.pos.x, walker3.pos.y);
+        particles3.push(p3);
+    }
+    for (let i = particles3.length - 1; i >= 0; i--) {
+        particles3[i].update();
+        particles3[i].show1(walker3.pos.y, walker3.pos.x);
+        if (particles3[i].isFinished()) {
+            particles3.splice(i, 1);
+        }
+    }
+   
+}
+
+
+
+
+
+  </script>
+
+</div>
+</div>
+</body>
+</html>
