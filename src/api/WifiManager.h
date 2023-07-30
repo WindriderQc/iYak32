@@ -12,6 +12,8 @@ public:
   bool isConnected();
   void loop();
   IPAddress getIP();
+  char* getSSID();
+
 
 private:
   void startAccessPoint();
@@ -26,7 +28,10 @@ private:
   std::string preferredSsids[numPreferredNetworks];
   std::string preferredPasswords[numPreferredNetworks];
 
+  bool isAutoReconnect = false;
+
   IPAddress ipAdress;
+  char* ssid_;
 };
 
 #endif // WIFI_MANAGER_H

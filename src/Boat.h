@@ -50,20 +50,20 @@ namespace Boat
             speed = spd; 
             
             if(fwd && bck) {//Active low input so if both inactive
-                ledcWrite(ledChannelR, 0);
-                ledcWrite(ledChannelL, 0); 
-                //if(DEBUG)  Serial.printf("STOP: %d\n", speed);
+                    // STOP
+                    ledcWrite(ledChannelR, 0);
+                    ledcWrite(ledChannelL, 0); 
             }
             else  {  
                 if(fwd == LOW) {
+                    // FORWARD
                     ledcWrite(ledChannelR, speed);
                     ledcWrite(ledChannelL, 0); 
-                    //if(DEBUG) Serial.printf("FORWARD: %d\n", speed);
                 }
                 else if(bck == LOW) {
+                    // BACKWARD
                     ledcWrite(ledChannelL,  speed);
-                    ledcWrite(ledChannelR, 0);
-                    // if(DEBUG)  Serial.printf("BACKWARD: %d\n",  abs(speed));
+                    ledcWrite(ledChannelR, 0);   
                 }
             }
 
@@ -84,14 +84,21 @@ namespace Boat
             myservo.write(current_angle);
         }
 
-        
+
+        int pressure;
+
         const int SERVO_INTERVAL  =  10;   // changing the servo position every 10ms, defines the speed of the servo
+        const int DIR_POT_BUFFER = 10;
+
+    private:
+         
+        
         const int SERVO_SPEED_FACTOR  =  2;   // changing the servo position of FACTOR degrees every INTERVAL
         const int SERVO_MIN = 500;     
         const int SERVO_MAX = 2500;
 
 
-        const int DIR_POT_BUFFER = 10;
+        
 
 
         /******************************************
@@ -119,8 +126,7 @@ namespace Boat
 
 
 
-    private:
-        
+   
         int speed = 0;
         int direction = 0;
         int prevSpeedPin;

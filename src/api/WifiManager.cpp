@@ -18,28 +18,30 @@ bool WifiManager::isConnected() {
 }
 
 void WifiManager::loop() {
-  if (!isWifiConnected) {
-    tryConnectToPreferredNetworks();
-  }
 
+  if ((!isWifiConnected) && isAutoReconnect)  tryConnectToPreferredNetworks(); 
+ 
   handleOTA(); // Handle OTA updates
 
-  // Other loop tasks
-  // ...
 }
 
 IPAddress WifiManager::getIP() {
      return ipAdress; 
 }
 
+char* WifiManager::getSSID() {
+     return ssid_; 
+}
+
 void WifiManager::startAccessPoint() {
     // Set the SSID (name) and password of the Access Point
-    const char* apSsid = "MyESP32AP";
+    const char* apSsid = "iYak32";
     const char* apPassword = "12345678";
 
     // Start the Access Point with the specified SSID and password
     WiFi.softAP(apSsid, apPassword);
 
+    ssid_ = (char*)apSsid;
     ipAdress = WiFi.softAPIP();
     Serial.print(F("Access Point IP address: ")); Serial.println(ipAdress);
   // Additional configurations for the Access Point can be done here
@@ -94,6 +96,7 @@ bool WifiManager::tryConnectToPreferredNetworks() {
         isWifiConnected = true;
         Serial.print("Connected to ");
         Serial.println(ssid);
+        ssid_ = (char*)ssid;
         Serial.print("IP address: ");
         ipAdress = WiFi.localIP();
         Serial.println(ipAdress);

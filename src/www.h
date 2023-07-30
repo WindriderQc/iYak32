@@ -14,7 +14,7 @@ Add to platformio.ini:
 
 #include "Boat.h"
 
-//#include "api/Esp32.h"
+#include "api/Esp32.h"
 //#include "BMX280.h"
 
 
@@ -35,25 +35,27 @@ namespace www
 
         Serial.println(var);
 
-        String ledState;
-        String t =".";
-        String Spd;
-        String Dir;
-        String Pression ="test";
-        String Temp;
+       
+       
+     
+      
 
 
-        if(var == "STATE"){
-            if(digitalRead(BUILTIN_LED))  
+        if(var == "STATE") {
+            String ledState;
+           ledState = digitalRead(BUILTIN_LED) ? "ON" : "OFF";
+
+            /*if(digitalRead(BUILTIN_LED))  
                 ledState = "ON";
             else   
-                ledState = "OFF";
+                ledState = "OFF";*/
             
             Serial.println(ledState);
             return ledState;
         }
 
         if(var == "TIME") {
+            String t =".";
             t = time(0);
             Serial.print(F("t: "));
             Serial.println(t.c_str());
@@ -77,8 +79,15 @@ namespace www
         }
 
         if(var == "PRESSION") {
-          //  Pression = "test";//BMX280::pressure;
+
+            String Pression ="test";
+            Pression = boat.pressure;
             return(Pression);
+        }
+
+        if(var == "SSID") {
+          //  Pression = "test";//BMX280::pressure;
+            return(String(Esp32::wifiManager.getSSID()));
         }
 
         

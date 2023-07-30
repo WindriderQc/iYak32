@@ -8,6 +8,7 @@
 
 #include "Battery.h"
 #include "IPin.h"
+#include "WifiManager.h"
 
 
 // Internal filesystem (SPIFFS)
@@ -28,6 +29,7 @@ namespace Esp32
     //  ESP 32 configuration and helping methods
     const String DEVICE_NAME = String("ESP_") + String((uint16_t)(ESP.getEfuseMac()>>32));
 
+    const int ADC_Max = 4095;    
     
     // IO Configuration
     // ESP32 HUZZAH32
@@ -65,6 +67,9 @@ namespace Esp32
     Pin* ios[HUZZAH32];  //  39 pins for esp32   //  TODO: could be #defines NBRPIN selon le model WEMOSIO, EPS, etc.
 
    
+    WifiManager wifiManager;
+
+
 
 
 
@@ -140,6 +145,8 @@ namespace Esp32
 
         return false;
     }
+
+
     bool validIO(String io)    { return validIO(io.toInt()); }
 
 
@@ -211,10 +218,17 @@ namespace Esp32
     }*/
 
 
+    void begin() 
+    {
+        wifiManager.begin();
+       
+    }
+
     void loop() 
     {
         //timeSinceBoot += millis();     TODO: timeSinceboot devrait etre extern
-      
+
+            wifiManager.loop(); 
        
     }
 
