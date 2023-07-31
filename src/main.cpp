@@ -61,8 +61,6 @@ enum class SYS_state {
 SYS_state state = SYS_state::BOOT;
 
 
-unsigned long timeSinceBoot = 0;
-
 void setup() {
  
     Serial.begin(115200);
@@ -101,7 +99,6 @@ void setup() {
 void loop() 
 {
  
-    timeSinceBoot += millis();
     Esp32::loop();
    
     switch(state) 
@@ -125,8 +122,8 @@ void loop()
     case SYS_state::HEATUP:
             Serial.print("Heating up...");
            // insure all sensor at heated up to send accurate data at start
-            if(timeSinceBoot <= 3000) {
-                Serial.print("."); Serial.print(timeSinceBoot); Serial.print("."); 
+            if(millis() <= 3000) {
+                Serial.print("."); Serial.print(millis()); Serial.print("."); 
             }  
             else {
                 state = SYS_state::FIRSTLOOP; Serial.println("Done");
@@ -162,7 +159,7 @@ void loop()
             if(millis()-boat_timestamp > boat.SERVO_INTERVAL) {
                 boat_timestamp += boat.SERVO_INTERVAL;                 
 
-                if( abs(prevDirPin - d) >= boat.DIR_POT_BUFFER ) {  //  pot value tends to fluctuate a little.  Create a buffer to change servo only on real dir input
+                if( abs(prevDirPin - d) > boat.DIR_POT_BUFFER ) {  //  pot value tends to fluctuate a little.  Create a buffer to change servo only on real dir input
                 
                     prevDirPin = d;
                     int dir = map(d, 0, Esp32::ADC_Max, 180, 0);   //  OUPS ...  hardware pot is inverted...   //   Servo.write is limited to 180 so 180 = 270 for capable servo
@@ -180,7 +177,7 @@ void loop()
             static unsigned long startTime1 = 0;
             static unsigned long startTime5 = 0;
 
-            if (millis() - startTime1 >= 1000)
+            if (millis() - startTime1 >= 1000UL)
             {
     
                 if(oledConnected) {
@@ -204,7 +201,7 @@ void loop()
                 startTime1 = millis();  
             }
 
-            if (millis() - startTime5 >= 5000)
+            if (millis() - startTime5 >= 5000UL)
             {
                 if(bmxConnected) BMX280::actualizeWeather();  
                 //Serial.println(BMX280::pressure);
