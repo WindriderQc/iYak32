@@ -7,7 +7,6 @@ Add to platformio.ini:
 #include <Arduino.h>
 #include <vector>
 #include <ESPAsyncWebServer.h>
-//#include <AsyncTCP.h>
 #include <SPIFFS.h>
 //#include <ArduinoJson.h>
 #include <HTTPClient.h>
@@ -15,7 +14,22 @@ Add to platformio.ini:
 #include "Boat.h"
 
 #include "api/Esp32.h"
-//#include "BMX280.h"
+
+
+
+unsigned long cstring_to_ul(const char* str, char** end = nullptr, int base = 10)
+{
+    errno = 0; // Used to see if there was success or failure by overflow conditions
+
+    auto ul = strtoul(str, end, base);
+
+    if(errno != ERANGE)
+    {
+    return ul;
+    }
+
+    return ULONG_MAX;
+}
 
 
 
@@ -33,64 +47,24 @@ namespace www
     String processor(const String& var)   //  this will be called for every %PLACEHOLDER% in the served html file
     {
 
-        Serial.println(var);
+        if(var == "STATE")    {  return digitalRead(BUILTIN_LED) ? "ON" : "OFF";   }
+            //String ledState = digitalRead(BUILTIN_LED) ? "ON" : "OFF";   
+            //return ledState;
 
-       
-       
-     
-      
+        if(var == "PRESSION") {  return String(boat.pressure);                     }
+        if(var == "TIME")     {  return Esp32::hourglass.getDateTimeString();      }
+        if(var == "SPEED")    {  return String(boat.getSpeed());                   }
+        if(var == "DIR")      {  return String(boat.getDir());                     }
+        if(var == "TEMP")     {  return String(Esp32::getCPUTemp());               }
 
+        if(var == "LOCALIP")  {  return String(Esp32::wifiManager.getIPString());  }
+        if(var == "SSID")     {  return String(Esp32::wifiManager.getSSID());      }
+        if(var == "MQTTIP")   {  return Mqtt::server_ip.toString();                }
+        if(var == "IP0")      {  return String(Mqtt::server_ip[0]);                }
+        if(var == "IP1")      {  return String(Mqtt::server_ip[1]);                }
+        if(var == "IP2")      {  return String(Mqtt::server_ip[2]);                }
+        if(var == "IP3")      {  return String(Mqtt::server_ip[3]);                }
 
-        if(var == "STATE") {
-            String ledState;
-           ledState = digitalRead(BUILTIN_LED) ? "ON" : "OFF";
-
-            /*if(digitalRead(BUILTIN_LED))  
-                ledState = "ON";
-            else   
-                ledState = "OFF";*/
-            
-            Serial.println(ledState);
-            return ledState;
-        }
-
-        if(var == "TIME") {
-            String t =".";
-            t = time(0);
-            Serial.print(F("t: "));
-            Serial.println(t.c_str());
-            return t;
-        }
-
-        if(var == "SPEED") {
-           // Spd = BoatStats::speed;
-            return(String(boat.getSpeed()));
-        }
-
-        if(var == "DIR") {
-          //  Dir = BoatStats::direction;
-            return(String(boat.getDir()));
-        }
-
-        
-        if(var == "TEMP") {
-           // Temp =  "test";//BMX280::temp;
-            return(String(Esp32::getCPUTemp()));
-        }
-
-        if(var == "PRESSION") {
-
-            String Pression ="test";
-            Pression = boat.pressure;
-            return(Pression);
-        }
-
-        if(var == "SSID") {
-          //  Pression = "test";//BMX280::pressure;
-            return(String(Esp32::wifiManager.getSSID()));
-        }
-
-        
         return String();
     }
 
@@ -130,11 +104,28 @@ namespace www
           
     }*/
 
+    void IPtoEEPROM(IPAddress IPaddr) 
+    {
+        Serial.print("Saving IP to EEPROM : ");
+        Serial.println(IPaddr);
+
+        /*for (int n = 0; n < sizeof(ipchar); n++) // automatically adjust for number of digits        {
+            EEPROM.write(n + startingAddress, ipchar[n]);
+        }*/
+        for (int n = 0; n < 4; n++) // automatically adjust for number of digits
+        {
+            EEPROM.write(n , IPaddr[n]);
+            Serial.println( IPaddr[n]);
+        }
+
+        EEPROM.commit() ? Serial.println(F("\nEEPROM successfully committed")) : Serial.println(F("\nERROR! EEPROM commit failed"));
+    }
+
 
     
     void setup() 
     {
-        Serial.print(F("WWW on SPIFFS setup")); 
+        Serial.print(F("WWW from SPIFFS setup")); 
 
         // Initialize SPIFFS
         if(!SPIFFS.begin(true)){
@@ -160,6 +151,7 @@ namespace www
         });
 
         server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
+            Serial.println("Led OFF requested");
             digitalWrite(BUILTIN_LED, LOW);
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
@@ -171,7 +163,38 @@ namespace www
             digitalWrite(BUILTIN_LED, LOW);
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
-        
+        server.on("/mqttip", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL
+            , [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+            
+            DynamicJsonDocument jsonBuffer(1024);
+            auto error = deserializeJson(jsonBuffer, (const char*)data);
+            if(error)
+            {
+                Serial.print(F("deserializeJson() failed with code "));
+                Serial.println(error.c_str());
+                return;
+            }else{
+                //const char* ip[4];
+           
+                IPAddress mqttservIP(jsonBuffer["ip0"], jsonBuffer["ip1"], jsonBuffer["ip2"], jsonBuffer["ip3"]);
+              /*  ip[0] = jsonBuffer["ip0"];
+                ip[1] = jsonBuffer["ip1"];
+                ip[2] = jsonBuffer["ip2"];
+                ip[3] = jsonBuffer["ip3"];*/
+                Serial.println(F("Receiving new IP Address: "));
+                Serial.println(mqttservIP);
+                const char* port = jsonBuffer["port"];
+
+                IPtoEEPROM(mqttservIP);
+
+                int p = cstring_to_ul(port);
+                Serial.println(p);
+                Mqtt::setup();
+                request->send(200, "text/plain", mqttservIP.toString());
+            }/* else {
+            request->send(404, "text/plain", "");
+            }*/
+        });
 
 
         // Send 404 for not Found
@@ -184,11 +207,7 @@ namespace www
 
         Serial.println(F(" completed."));
     }
-    
-
-
-    
-    
+   
 
 }
 

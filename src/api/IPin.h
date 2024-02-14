@@ -117,9 +117,8 @@ namespace Esp32
                 else Serial.println("ERROR!!!!!!!!!!!!!!!!!!  Wrong pinMode");
 
 
-                Serial.print("Setting gpio: "); Serial.print(gpio); Serial.print(" : "); Serial.println(pinlabel);
-                Serial.println(config.gpio);
-                Serial.println(config.pinMode);
+                Serial.print(F("Setting gpio: ")); Serial.print(gpio); Serial.print(F(" : ")); Serial.print(pinlabel); Serial.print(F("  gpio: ")); Serial.print(config.gpio); Serial.print(F("  pinMode: ")); Serial.println(config.pinMode);
+                
                 pinMode(config.gpio, config.pinMode);
             }
 

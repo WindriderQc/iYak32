@@ -5,4 +5,5 @@
 .vscode/ipch
 
 data/config.txt
+data/mqtt.txt
 .vscode/extensions.json

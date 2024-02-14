@@ -1,11 +1,12 @@
 #pragma once
 
 #include <Wire.h>
-//#include <Adafruit_Sensor.h>
+#include <Adafruit_Sensor.h>
 
+#include <DHT.h>
+#include "MQ2.h"
 
-
-#define USE_BMPvsBME    //  BMP fais juste temp et presure, BME fait aussi l'humitdité
+#define USE_BMPvsBME
 
 #ifdef USE_BMPvsBME
     #include <Adafruit_BMP280.h>
@@ -15,7 +16,7 @@
 
   
 
-namespace BMX280  
+namespace Weather  
 {
 
     #define SEALEVELPRESSURE_HPA (1013.25)
@@ -34,26 +35,59 @@ namespace BMX280
     float bmpHumidity=0.0f;
     bool isCelcius = true;
 
+    // air quality
+    float co2 = 0.0f;
+    float smoke = 0.0f;
+    float lpg = 0.0f;
+
+
+ 
+
+    MQ2 mq2;
     
+    /* DHT22
+    * work from -40oC to +80oC
+    * Accuracy of +/- 0.5oC for temperature and +/-2% for relative Humidity
+    * Powered between 3.3V and 5V
+    *  It is also important to have in mind that the its sensing period is in average 2seconds (minimum time between readings).
+    */
+    //   !   if use the sensor on distances less than 20m, a 10K resistor should be connected between Data and VCC pins
+    DHT Dht;
+    float airHumidity = 0.0f;
+    float tempDht = 0.0f;
+    int tempLowAlert = 0;
+    int HOT_TEMP = 30;
+    int COLD_TEMP = 15;
     
 
 
-    bool init()
+    void ReadDHT() 
     {
-        Serial.print(F("BMX280 setup - start\n"));
-        Serial.print(F("SDA:"));
+        airHumidity = Dht.getHumidity();
+        tempDht = Dht.getTemperature();
+
+        if (isnan(airHumidity) || isnan(temp))   {  
+           // Serial.println("Failed to read from DHT sensor!"); 
+            airHumidity = 0.0f;
+            tempDht = 0.0f;
+        }
+    }
+
+
+    void initWeather(int dhtPin, int mq2Pin )
+    {
+        Serial.print(F("Weather setup - start\n"));
+        Serial.print(F("BME/BMP 280 setup - SDA:"));
         Serial.print(SDA);
         Serial.print(F(" SCL:"));
-        Serial.println(SCL);
-      
+        Serial.print(SCL);
+        Serial.print(F(" setup"));
+
+
 #ifdef USE_BMPvsBME
-        bool status = sensor.begin(0x76);  
+    bool status = sensor.begin(0x76);  
         if (!status) {
             Serial.println("Could not find a valid BMP280 sensor, check wiring!");
-            Serial.println(F("BMX280 setup - Failed"));
-            return(false);
-        }
-
 #else  
     bool status = sensor.begin();  
         if (!status) {  
@@ -63,19 +97,26 @@ namespace BMX280
             Serial.print("   ID of 0x56-0x58 represents a BMP 280,\n");
             Serial.print("        ID of 0x60 represents a BME 280.\n");
             Serial.print("        ID of 0x61 represents a BME 680.\n");
-            Serial.println(F("BMX280 setup - end"));
-        }
 #endif           
-        else{
-            Serial.println(F("BMX280 setup - Success\n"));
-            return(true);
+        }else{
+            Serial.println(" completed.");
+            Serial.println();
         }
 
+
+        Serial.print(F("DHT Setup")); 
+        pinMode(dhtPin, INPUT);  //  TODO: décider si ca reste ici car en doublon avec les configure pin du device
+        Dht.setup(dhtPin);
+        Serial.println(F(" completed."));
+
+        Serial.print(F("MQ2 setup"));
+        float ro = mq2.begin(mq2Pin);
+        Serial.print(F(" completed."));
+        Serial.print("  -  Ro: "); Serial.print(ro); Serial.println(" kohm");
+        Serial.println(F("Weather setup - end"));
     }
 
   
-
-
     void printWeather() {
         Serial.print("Temperature = ");
         Serial.print(temp);
@@ -97,10 +138,17 @@ namespace BMX280
         Serial.println(" %");
 #endif 
 
+        Serial.println("DHT:");
+        Serial.print("  Humidity = ");
+        Serial.print(airHumidity);
+        Serial.println(" %");
+
+        Serial.print("  Temp = ");
+        Serial.print(tempDht);
+        Serial.println(" *C");
+
         Serial.println();
     }
-
-
 
 
     void actualizeWeather(bool printResult = false) {
@@ -114,6 +162,12 @@ namespace BMX280
             bmpHumidity = sensor.readHumidity();  //  %
         #endif 
 
+        ReadDHT();
+
+
+        co2 = mq2.readCO();
+        smoke = mq2.readSmoke();
+        lpg = mq2.readLPG();
 
         if(printResult) printWeather();
     }

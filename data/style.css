@@ -30,3 +30,29 @@ p{
 .card {
     border:1px solid black
 }
+
+ /* Define styles for the display frame */
+ #canvasDiv {
+    border: 2px solid #ccc;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1; /* Set z-index to be below other elements */
+  }
+  /* Styles for the rest of the content */
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    color: white;
+    background: #333;
+  }
+
+  #content {
+    /* Add any styles you need for the content div here */
+    padding: 20px;
+  }

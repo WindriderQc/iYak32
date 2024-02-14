@@ -1,27 +1,20 @@
 #pragma once
 
 #include <Arduino.h>
-#include <Wire.h>
 #include <esp_log.h>
 #include <EEPROM.h>
 #include <ArduinoOTA.h>
 
-#include "Battery.h"
+#include <Wire.h>    // TODO Dépends de si on utilise i2C...  ne devrait ptete pas etre aussi générique
+
 #include "IPin.h"
+#include "Storage.h" 
 #include "WifiManager.h"
-
-
-// Internal filesystem (SPIFFS)
-// used for non-volatile camera settings
-#include "storage.h"
+#include "Hourglass.h"
 
 // Pin qty per model definitions
 #define HUZZAH32  39
 #define WEMOSIO   20  // tbd..
-
-
-
-
 
 
 namespace Esp32
@@ -30,10 +23,19 @@ namespace Esp32
     const String DEVICE_NAME = String("ESP_") + String((uint16_t)(ESP.getEfuseMac()>>32));
 
     const int ADC_Max = 4095;    
+
+    #define BATTERY_READ_PIN 35      // Pin used to read battery voltag   (Huzzah32 - A13 - pin 35)
+
+    String batteryText;      // String variable to hold text for battery voltage
     
-    // IO Configuration
-    // ESP32 HUZZAH32
-   
+    float vBAT = 0;          // Float variable to hold battery voltage
+    
+    byte vBATSampleSize = 5; // How many time we sample the battery
+
+
+
+    
+    // IO Configuration  ESP32 HUZZAH32
     // *** Note :
     //           you can only read analog inputs on ADC #1 once WiFi has started *** //
     //           PWM is possible on every GPIO pin
@@ -66,19 +68,61 @@ namespace Esp32
     // end of IO Configuration  */
     Pin* ios[HUZZAH32];  //  39 pins for esp32   //  TODO: could be #defines NBRPIN selon le model WEMOSIO, EPS, etc.
 
-   
     WifiManager wifiManager;
-
-
-
+    Hourglass hourglass;
 
 
     void setVerboseLog()    { esp_log_level_set("*", ESP_LOG_DEBUG);    }  //  require #include <esp_log.h>
-    void ioSwitch(int pin)  { digitalWrite(pin, !digitalRead(pin));     }
-    float getCPUTemp()      { return temperatureRead();                 }
-    int getCPUFreq()        { return ESP.getCpuFreqMHz();               }
-    int getRemainingHeap()  { return ESP.getFreeHeap();                 }
   
+    float getCPUTemp()      { return temperatureRead();                 }
+    
+    int getCPUFreq()        { return ESP.getCpuFreqMHz();               }
+    
+    int getRemainingHeap()  { return ESP.getFreeHeap();                 }
+
+    bool validIO(int io) 
+    {
+        Serial.print("valid io: ");
+        Serial.println(io);
+        if(ios[io] != nullptr) {
+            if(ios[io]->config.gpio != 0) {
+                 return true;
+            }
+        }
+
+        return false;
+    }
+   
+    bool validIO(String io) { return validIO(io.toInt());               }
+    
+    void ioSwitch(int pin)  { digitalWrite(pin, !digitalRead(pin));     }
+   
+    void ioBlink(int pin, int timeon, int timeoff, int iteration)
+    {
+        for (int i = 0; i < iteration; i++)
+        {
+            ioSwitch(pin);
+            ///delay(timeon);  
+            delay(timeon);  
+            ioSwitch(pin);
+            ///delay(timeoff);  
+            delay(timeoff);
+        }
+    }
+
+    void configPin(int gpio ,  const char* pinMode,  const char* label = "", bool isAnalog = false)/* Accept  "INPULL", "INPULLD", "IN" and "OUT" as pinMode.   */
+    {
+       // if(ios[gpio] != nullptr) delete(ios[gpio]); 
+        ios[gpio] = new Pin(pinMode,gpio, label, isAnalog);
+    }
+
+    void reboot() 
+    {  
+        Serial.println(F("!!!  Rebooting device..."));
+        delay(1500);
+        ESP.restart();                           
+    }
+
     int i2cScanner()
     {
         byte count = 0;
@@ -102,137 +146,45 @@ namespace Esp32
 
         return count;
     } 
-
-    /* Take  "INPULL", "INPULLD", "IN" and "OUT" as pinMode. Label  */
-    void configPin(int gpio ,  const char* pinMode,  const char* label = "", bool isAnalog = false)
+    
+    // Check the battery voltage     vBAT = between 0 and 4.2 expressed as volts
+    float getBatteryVoltage()
     {
-       // if(ios[gpio] != nullptr) delete(ios[gpio]); 
-        ios[gpio] = new Pin(pinMode,gpio, label, isAnalog);
+        vBAT = (127.0f / 100.0f) * 3.30f * float(analogRead(BATTERY_READ_PIN)) / 4095.0f; // Calculates the voltage left in the battery
+        return vBAT;                                                                       
     }
-
-
-    void reboot() 
-    {  
-        Serial.println(F("!!!  Rebooting device..."));
-        delay(1500);
-        ESP.restart();                           
-    }
-
-
-    void ioBlink(int pin, int timeon, int timeoff, int iteration)
+    //  Convert batt voltage to %
+    float getBattRemaining(bool print = false) 
     {
-        for (int i = 0; i < iteration; i++)
+        for (byte i = 0; i < vBATSampleSize; i++) // Average samples together to minimize false readings
         {
-            ioSwitch(pin);
-            ///delay(timeon);  
-            delay(timeon);  
-            ioSwitch(pin);
-            ///delay(timeoff);  
-            delay(timeoff);
-        }
-    }
-
-
-    bool validIO(int io) 
-    {
-        Serial.print("valid io: ");
-        Serial.println(io);
-        if(ios[io] != nullptr) {
-            if(ios[io]->config.gpio != 0) {
-                 return true;
-            }
+            vBAT += ceilf(getBatteryVoltage() * 100) / 100; // Work out battery voltage from DAC and round to 2 decimal places
         }
 
-        return false;
-    }
+        vBAT /= vBATSampleSize;
 
-
-    bool validIO(String io)    { return validIO(io.toInt()); }
-
-
-   
- //   void setupOTA(const char* ssid = "SM-A520W7259", const char* password = "Alouette54321")
-  //  void setupOTA(const char* ssid, const char* password)
-    /*void setupOTA()
-    {
-        WiFi.mode(WIFI_STA);
-       // WiFi.begin(ssid, password);
-        WiFi.begin("UGLink", "Alouette54321!");
+        if(print) {
+            batteryText = String(vBAT);
+            Serial.print("Battery Voltage: "); 
+            Serial.print(batteryText);  
+            Serial.println("V");  
+        }
         
-        uint32_t notConnectedCounter = 0;
-        Serial.print("\nWifi connecting...");
-        while (WiFi.status() != WL_CONNECTED) {
-            delay(100);
-            Serial.print("...");
-            notConnectedCounter++;
-            if(notConnectedCounter > 150) { // Reset board if not connected after 15s
-                Serial.println("\nRebooting due to Wifi not connecting...");
-                ESP.restart();
-            }
-        }
+        return vBAT;
+    }
 
-        // Port defaults to 3232
-        // ArduinoOTA.setPort(3232);
-
-        // Hostname defaults to esp3232-[MAC]
-        // ArduinoOTA.setHostname("myesp32");
-
-        // No authentication by default
-        // ArduinoOTA.setPassword("admin");
-
-        // Password can be set with it's md5 value as well
-        // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
-        // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
-
-        ArduinoOTA
-            .onStart([]() {
-            String type;
-            if (ArduinoOTA.getCommand() == U_FLASH)
-                type = "sketch";
-            else // U_SPIFFS
-                type = "filesystem";
-
-            // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-            Serial.println("Start updating " + type);
-            })
-            .onEnd([]() {
-            Serial.println("\nEnd");
-            })
-            .onProgress([](unsigned int progress, unsigned int total) {
-            Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-            })
-            .onError([](ota_error_t error) {
-            Serial.printf("Error[%u]: ", error);
-            if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-            else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-            else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-            else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-            else if (error == OTA_END_ERROR) Serial.println("End Failed");
-            });
-
-        ArduinoOTA.begin();
-
-        Serial.println("Ready");
-        Serial.print("IP address: ");
-        Serial.println(getLocalIP());
-    }*/
-
-
-    void begin() 
+    void setup() 
     {
-        wifiManager.begin();
-       
+        i2cScanner();
+        wifiManager.setup();
     }
 
     void loop() 
     {
         //timeSinceBoot += millis();     TODO: timeSinceboot devrait etre extern
-
-            wifiManager.loop(); 
-       
+        wifiManager.loop();   //  reconnect if connection is lost and handle OTA
+       //TODO  devrait y avoir un readIO ici, non??
     }
-
-
 
 
 } // namespace Esp32
