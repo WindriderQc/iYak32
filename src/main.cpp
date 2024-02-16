@@ -13,8 +13,8 @@
 
 const char* ver = "v1:5 ";
 
-const bool isConfigFromServer = false;  //  TODO config a faire sur la page web, default a false
-
+const bool isConfigFromServer = true;  //  TODO config a faire sur la page web, default a false
+const bool isUsingMqtt = true;
 
 //  22 - 23  //  I2C comm  SDA/SCL
 
@@ -86,9 +86,9 @@ void sendData()
     names.push_back("lux");         values.push_back(String(Lux::lux_));*/
 
     #ifdef VERBOSE
-        Mqtt::sendJson( names, values, "esp32/alive/" + Esp32::DEVICE_NAME, true);   
+        Mqtt::sendJson( names, values, "esp32/data/" + Esp32::DEVICE_NAME, true);   
     #else
-        Mqtt::sendJson( names, values, "esp32/alive/" + Esp32::DEVICE_NAME, false);               
+        Mqtt::sendJson( names, values, "esp32/data/" + Esp32::DEVICE_NAME, false);               
     #endif
 }
 
@@ -112,6 +112,7 @@ void printOled()
 
 
 
+
 void setup() 
 {
     Serial.begin(115200);
@@ -122,12 +123,13 @@ void setup()
     #endif
 
     Esp32::configPin(LED_BUILTIN, "OUT", "Builtin LED"); Esp32::ioBlink(LED_BUILTIN,500, 750, 4);
+    Esp32::configPin(Esp32::speakerPin, "OUT", "Buzzer");
         
     Esp32::setup();
 
     www::setup();
 
-    Mqtt::setup();
+    if(isUsingMqtt) Mqtt::setup();
 
     oledConnected = Oled::setupOled();  
 
@@ -149,9 +151,12 @@ void loop()
     {
     case SYS_state::BOOT:
 
-            if(isConfigFromServer) Mqtt::mqttQueue.add("esp32/boot", Esp32::DEVICE_NAME);  //  requesting device config from server
-
-            Mqtt::loop();  // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue          
+            if(isUsingMqtt) {
+                Mqtt::mqttClient.publish("esp32/register", Esp32::DEVICE_NAME.c_str() ); //Once connected, publish an announcement...
+                if(isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());
+                Mqtt::loop();  // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue   
+            }            
+            Esp32::playSiren();     
             Serial.println("BOOT done\n");
             state = SYS_state::DEVICES_CONFIG;
             break;
@@ -198,7 +203,7 @@ void loop()
 
     case SYS_state::LOOP:       
             
-            Mqtt::loop();  // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue 
+            if(isUsingMqtt) Mqtt::loop();  // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue 
            
             boat.loop();
 
@@ -211,7 +216,7 @@ void loop()
 
                 if(oledConnected) printOled();   
 
-                sendHeartbeat();  
+                if(isUsingMqtt) sendHeartbeat();  
             }
 
             if (millis() - startTime5 >= 5000UL)
@@ -222,7 +227,7 @@ void loop()
                 boat.pressure = BMX280::pressure;
                 //Lux::loop(); 
                 
-                sendData();
+                if(isUsingMqtt) sendData();
             }
             break;  
 

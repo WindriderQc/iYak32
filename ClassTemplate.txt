@@ -1,0 +1,64 @@
+#pragma once
+
+#include <Arduino.h>
+#include <vector>
+
+namespace WebServer
+{
+    enum AlarmType
+    {
+        eON,
+        eOFF,        
+        eTOGGLE
+    };
+
+    struct ActionInfo
+    {
+        typedef void (*Callback_t)();
+        Callback_t callback_;
+        AlarmType type_;
+        long duration_;
+    };
+
+
+
+    class Obj
+    {
+    public:
+        Obj()
+        {}
+
+        ~Obj()
+        {}
+
+        void setup() 
+        {
+           
+
+        }
+
+        void loop() 
+        {
+           
+
+        }
+
+
+    private:
+        
+
+
+        
+    };
+
+    
+
+
+
+
+
+
+
+
+
+}

@@ -142,14 +142,12 @@ namespace www
                 String data =  "{ \"name\":\"John\", \"age\":30, \"car\":null }";
                 request->send(200, "application/json", data);
                 //request->redirect("/");
-            });
-       
+        });
         server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
             Serial.println("Led ON requested");
             digitalWrite(BUILTIN_LED, HIGH);
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
-
         server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
             Serial.println("Led OFF requested");
             digitalWrite(BUILTIN_LED, LOW);
@@ -163,8 +161,7 @@ namespace www
             digitalWrite(BUILTIN_LED, LOW);
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
-        server.on("/mqttip", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL
-            , [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+        server.on("/mqttip", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
             
             DynamicJsonDocument jsonBuffer(1024);
             auto error = deserializeJson(jsonBuffer, (const char*)data);
@@ -195,20 +192,16 @@ namespace www
             request->send(404, "text/plain", "");
             }*/
         });
-
-
         // Send 404 for not Found
         server.onNotFound( [](AsyncWebServerRequest *request) {
             request->send(404, "text/plain", "Not found");
         });
 
-       
         server.begin();
 
         Serial.println(F(" completed."));
     }
    
-
 }
 
 

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.min.js"></script>
+  
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div class="topnav">
+        <a class="active" href="index.html">Home</a>
+        <a href="tides.html">Tides</a>
+        <a href="#mqtt">MQTTViewer</a>
+        <a href="about.html">About</a>
+      </div>
+
+  <h1>Current Tide Level in Quebec</h1>
+  <p id="currentTide"></p>
+  <div style="position: relative; width: 1024px; height: 320px;">
+    <div style="
+        position: absolute;
+        top: 32px;  
+        bottom: 3px;  
+        left: 65px;  
+        right: 7px;  
+        background: linear-gradient(90deg, rgb(0,0,60), darkblue, dodgerblue, skyblue, dodgerblue, darkblue,  rgb(0,0,60));
+        background-size: calc(100% / 3.5) 100%;  
+        background-repeat: repeat-x;
+
+        background:  dodgerblue;
+        z-index: 0;
+"></div>
+    <canvas id="tideChart" style="position: absolute; z-index: 1;" width="1024" height="400"></canvas>
+  </div>
+
+  <script>
+    let tideData = [];
+    let tideTimes = [];
+
+    async function fetchData() {
+        let data;
+
+        // Try to get cached data
+        const cachedData = localStorage.getItem('tideData');
+        const lastFetched = localStorage.getItem('lastFetched');
+
+        if (cachedData && moment().diff(moment(lastFetched), 'minutes') < 60) {
+            data = JSON.parse(cachedData);
+            console.log('fetching cached data:', data);
+            //localStorage.removeItem('lastFetched');
+
+        } else {
+            console.log('fetching API data');
+            const response = await fetch('https://www.worldtides.info/api/v3?heights&extremes&key=60f4ee94-8a46-4380-92be-8dcedd40ac58&lat=46.8139&lon=-71.2082&days=4');
+            data = await response.json();
+            
+            // Cache the data
+            localStorage.setItem('tideData', JSON.stringify(data));
+            localStorage.setItem('lastFetched', moment().toISOString());
+        }
+
+
+
+
+
+      if (data.heights && data.heights.length > 0) {
+        tideData = data.heights.map(h => h.height);
+        tideTimes = data.heights.map(h => moment.unix(h.dt).toDate());
+
+        const ctx = document.getElementById('tideChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: tideTimes,
+            datasets: [{
+              label: 'Tide Height (m)',
+              data: tideData,
+              borderColor: 'black',
+              borderWidth: 3,
+              pointRadius: 0,
+              fill: false
+            }]
+          },
+          options: {
+            responsive: false,
+            scales: {
+              xAxes: [{
+                type: 'time',
+                time: {
+                  tooltipFormat: 'ddd D MMM  HH:mm',
+                  unit: 'hour',
+                  displayFormats: {
+                    hour: 'ddd D MMM  HH:mm'
+                  }
+                },
+                ticks: {
+                    callback: function(value, index, values) {
+                        if (values[index] instanceof Date) {
+                            return moment(values[index]).format('ddd D MMM  HH:mm');
+                        }
+                        return value;
+                    }
+                }
+              }]
+            },
+            annotation: {
+              annotations: [{
+                type: 'line',
+                mode: 'vertical',
+                scaleID: 'x-axis-0',
+                value: moment().toDate(),
+                borderColor: 'red',
+                borderWidth: 2,
+                label: {
+                  content: 'Now',
+                  enabled: true,
+                  position: 'top'
+                }
+              }]
+            }
+          }
+        });
+      }
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>

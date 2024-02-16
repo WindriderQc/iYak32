@@ -240,4 +240,3 @@ String WifiManager::getIPString(){
     s += i  ? "." + String(ip[i]) : String(ip[i]);
   return s;
 }
-
