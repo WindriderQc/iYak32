@@ -7,20 +7,17 @@
 
 namespace Sensor
 {
-    class Pushbtn : public Sensor::ISensor 
+
+
+    class Pushbtn : public ISensor 
     {
     public:
-        Pushbtn()
-         : isr_(false)
-         , state_(false)
-        {}
+        Pushbtn() : state_(false) {}
 
-        ~Pushbtn()
-        { }
+        ~Pushbtn() {}
 
         String loopImpl() override
         {
-           // isr_saved = isr_;
             saveDebounceTimeout = debounceTimeout;
             saveLastState  = state_;
             String message = "";
@@ -34,34 +31,31 @@ namespace Sensor
                     message = ISensor::message(!state_);  //  Input is logic inverted
                     isr_ = false;
 
-                    // if (state_ == HIGH) Serial.printf("Button is pressed and debounced, current tick=%d\n", int(millis()));
-                    // else                  Serial.printf("Button is released and debounced, current tick=%d\n", int(millis()));
+
+                     /*if (state_ == HIGH) Serial.printf("Button is pressed and debounced, current tick=%d\n", int(millis()));
+                     else                  Serial.printf("Button is released and debounced, current tick=%d\n", int(millis()));*/
                 }        
             }
             return message;
         }
 
-        inline void setInterrupted() override
-        {
+        
+        virtual void handleInterrupt() override {
             isr_ = true; 
             debounceTimeout = xTaskGetTickCount(); //version of millis() that works from interrupt
         }
 
-        bool getState()
-        {
-            return state_;
-        }
-
-        void reset()
-        {}
-
+        
+        bool getState()  { return state_;   }
+      
+      
 
     private:
-        volatile bool isr_;
-       // volatile bool isr_saved;
         bool state_;
         bool saveLastState;
         uint32_t saveDebounceTimeout;
         volatile uint32_t debounceTimeout = 0;
+         
     };
+
 }

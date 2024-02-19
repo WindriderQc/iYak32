@@ -1,30 +1,22 @@
 //#define VERBOSE
 #include <Arduino.h>
 
-#include "api/devices/SevenSegmentAscii.h"
 #include "api/Esp32.h"
 #include "api/Mqtt.h"
 #include "api/devices/BMX280.h"
 #include "api/devices/Oled.h"
 
 #include "www.h"
-#include "Boat.h"
+//#include "Boat.h"
+#include "Hockey.h"
 
 
 const char* ver = "v1:5 ";
 
-const bool isConfigFromServer = true;  //  TODO config a faire sur la page web, default a false
-const bool isUsingMqtt = true;
+const bool isConfigFromServer = false;  //  TODO config a faire sur la page web, default a false
+const bool isUsingMqtt = false;
 
 //  22 - 23  //  I2C comm  SDA/SCL
-
-// TM1637 Module connection pins (Digital Pins)
-#define CLK 32
-#define DIO 33
-// XX:XX 7-segment display module 
-TM1637Display display(CLK, DIO);
-// Create an instance of the SevenSegmentAscii library
-SevenSegmentAscii asciiDisplay(display, 5);  // Set the brightness level (0-7)
 
 
 
@@ -123,8 +115,7 @@ void setup()
     #endif
 
     Esp32::configPin(LED_BUILTIN, "OUT", "Builtin LED"); Esp32::ioBlink(LED_BUILTIN,500, 750, 4);
-    Esp32::configPin(Esp32::speakerPin, "OUT", "Buzzer");
-        
+    
     Esp32::setup();
 
     www::setup();
@@ -134,8 +125,8 @@ void setup()
     oledConnected = Oled::setupOled();  
 
     bmxConnected  = BMX280::init();
-            
-    asciiDisplay.displayString(ver); //"u1:0 ");
+ 
+   
 
     Serial.println(F("Setup completed. - Launching State Machine..."));
 }
@@ -156,7 +147,7 @@ void loop()
                 if(isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());
                 Mqtt::loop();  // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue   
             }            
-            Esp32::playSiren();     
+            Hockey::asciiDisplay.displayString("00:00");
             Serial.println("BOOT done\n");
             state = SYS_state::DEVICES_CONFIG;
             break;
@@ -168,9 +159,11 @@ void loop()
            // setupSensors();
             //setupAlarmsClock();
 
-            boat.setup(boat.SERVO_PIN, boat.RPWM, boat.LPWM, Esp32::ADC_Max);
-            boat.setDir(135);
-            boat.setSpeed(1,1,0);    
+            //boat.setup(boat.SERVO_PIN, boat.RPWM, boat.LPWM, Esp32::ADC_Max);
+            //boat.setDir(135);
+            //boat.setSpeed(1,1,0);    
+
+            hockey.setup();
 
             Serial.println("\nSENSORS & ALARMLib CONFIG done\n");
             state = SYS_state::HEATUP;
@@ -205,7 +198,8 @@ void loop()
             
             if(isUsingMqtt) Mqtt::loop();  // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue 
            
-            boat.loop();
+            //boat.loop();
+            hockey.loop();
 
             static unsigned long startTime1 = 0;
             static unsigned long startTime5 = 0;

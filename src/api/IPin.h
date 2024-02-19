@@ -109,15 +109,15 @@ namespace Esp32
                 config.gpio = gpio;
                 config.isAnalog = isAnalog;
 
-             
-                if(strcmp(pinmode, "INPULL") == 0) config.pinMode = INPUT_PULLUP;
-                else if(strcmp(pinmode, "INPULLD") == 0) config.pinMode = INPUT_PULLDOWN;
-                else if(strcmp(pinmode, "IN") == 0) config.pinMode = INPUT;
-                else if(strcmp(pinmode, "OUT") == 0) config.pinMode = OUTPUT;
+                String mode = "";
+                if(strcmp(pinmode, "INPULL") == 0)   {  config.pinMode = INPUT_PULLUP;    mode = "Input Pull Up" ;            } 
+                else if(strcmp(pinmode, "INPULLD") == 0) {config.pinMode = INPUT_PULLDOWN;  mode = "Input Pull Down" ;    }
+                else if(strcmp(pinmode, "IN") == 0) {config.pinMode = INPUT; mode = "Input" ;    }
+                else if(strcmp(pinmode, "OUT") == 0) {config.pinMode = OUTPUT; mode = "Output" ;    }
                 else Serial.println("ERROR!!!!!!!!!!!!!!!!!!  Wrong pinMode");
 
 
-                Serial.print(F("Setting gpio: ")); Serial.print(gpio); Serial.print(F(" : ")); Serial.print(pinlabel); Serial.print(F("  gpio: ")); Serial.print(config.gpio); Serial.print(F("  pinMode: ")); Serial.println(config.pinMode);
+                Serial.print(F("Setting gpio: ")); Serial.print(gpio); Serial.print(F(" : ")); Serial.print(pinlabel); Serial.print(F("  gpio: ")); Serial.print(config.gpio); Serial.print(F("  pinMode: ")); Serial.println(mode);
                 
                 pinMode(config.gpio, config.pinMode);
             }

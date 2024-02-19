@@ -4,14 +4,14 @@
 
 namespace Sensor {
 
-    class Motion : public Sensor::ISensor
+    class AnLux : public Sensor::ISensor
     {
     public:
-        Motion()
+        AnLux()
         : isr_(0)
         {}
 
-        ~Motion()
+        ~AnLux()
         {}
 
         void reset() override {} 
@@ -21,26 +21,24 @@ namespace Sensor {
         {
             String msg = "";
  
-            if(isr_ > 0)
+            if(isr_)
             {
-                isr_= 0;
+                isr_= false;
+                int value = digitalRead(pin_id());
                 msg = message("Motion!");  
-                Serial.println(F("Motion Detected!"));
+                Serial.println(F("Motion Detected! " + value));
             } 
             
             return msg;
         }        
       
-        inline void setInterrupted() override
+        inline void handleInterrupt() override
         {
-            ++isr_;
+            isr_ = true; //  set interupt flag to true
         }
 
     private:
-        volatile int isr_;
-
-        Sensor::ActionInfo action;  
-       
+        volatile int isr_;       
 
     };
 }
