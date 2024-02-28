@@ -11,7 +11,7 @@ Add to platformio.ini:
 //#include <ArduinoJson.h>
 #include <HTTPClient.h>
 
-#include "Boat.h"
+//#include "Boat.h"
 
 #include "api/Esp32.h"
 
@@ -51,10 +51,10 @@ namespace www
             //String ledState = digitalRead(BUILTIN_LED) ? "ON" : "OFF";   
             //return ledState;
 
-        if(var == "PRESSION") {  return String(boat.pressure);                     }
+       // if(var == "PRESSION") {  return String(boat.pressure);                     }
         if(var == "TIME")     {  return Esp32::hourglass.getDateTimeString();      }
-        if(var == "SPEED")    {  return String(boat.getSpeed());                   }
-        if(var == "DIR")      {  return String(boat.getDir());                     }
+      //  if(var == "SPEED")    {  return String(boat.getSpeed());                   }
+       // if(var == "DIR")      {  return String(boat.getDir());                     }
         if(var == "TEMP")     {  return String(Esp32::getCPUTemp());               }
 
         if(var == "LOCALIP")  {  return String(Esp32::wifiManager.getIPString());  }

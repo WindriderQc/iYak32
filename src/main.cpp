@@ -91,8 +91,8 @@ void printOled()
     Oled::oled.setTextSize(1);             
     Oled::oled.setCursor(0,0);             // Start at top-left corner
     Oled::oled.setTextColor(WHITE);  
-    Oled::oled.printf("Speed:%d     %s\n",boat.getSpeed(), ver);            
-    Oled::oled.printf("Dir: %d\n", boat.getDir()); 
+   // Oled::oled.printf("Speed:%d     %s\n",boat.getSpeed(), ver);            
+   // Oled::oled.printf("Dir: %d\n", boat.getDir()); 
     Oled::oled.setTextSize(1);  
     Oled::oled.println(Esp32::wifiManager.getIP());
     Oled::oled.printf("\nKPa: %.2f", BMX280::pressure); 
@@ -114,7 +114,8 @@ void setup()
         Esp32::setVerboseLog();
     #endif
 
-    Esp32::configPin(LED_BUILTIN, "OUT", "Builtin LED"); Esp32::ioBlink(LED_BUILTIN,500, 750, 4);
+    Esp32::configPin(LED_BUILTIN, "OUT", "Builtin LED");   //  TODO :  devrait retourner la pin ou ios [].  comme ca on utiliserait ca sinon pointless on dirait....  on prends encore LED_BUILTIN dans la next commant... :)
+    Esp32::ioBlink(LED_BUILTIN,200, 200, 4);
     
     Esp32::setup();
 
@@ -147,7 +148,7 @@ void loop()
                 if(isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());
                 Mqtt::loop();  // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue   
             }            
-            Hockey::asciiDisplay.displayString("00:00");
+            
             Serial.println("BOOT done\n");
             state = SYS_state::DEVICES_CONFIG;
             break;
@@ -186,7 +187,8 @@ void loop()
             Serial.println();
             Esp32::getBattRemaining(true);
             if(bmxConnected) BMX280::actualizeWeather(true);
-         
+
+            hockey.warmup();
             //Lux::loop(); 
             
             Serial.print("FIRST LOOP done -- ");
@@ -218,7 +220,7 @@ void loop()
                 startTime5 = millis(); 
 
                 if(bmxConnected) BMX280::actualizeWeather();  
-                boat.pressure = BMX280::pressure;
+                //boat.pressure = BMX280::pressure;
                 //Lux::loop(); 
                 
                 if(isUsingMqtt) sendData();

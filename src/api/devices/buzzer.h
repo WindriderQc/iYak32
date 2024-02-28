@@ -144,7 +144,7 @@ namespace Esp32
             tone(speakerPin, 738, quart); //F#
             delay(half);
             tone(speakerPin, 440*2, note); //A
-            delay(1500);
+            delay(2000);
             tone(speakerPin, 587, 1500); //D
             delay(half);
 

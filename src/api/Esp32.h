@@ -18,6 +18,8 @@
 #define WEMOSIO   20  // tbd..
 
 
+//TODO : utiliser file system pour creer un json de config qui stock les info au lieu/en complement de l'EEPROM...  
+
 namespace Esp32
 {
     //  ESP 32 configuration and helping methods
