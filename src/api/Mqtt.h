@@ -28,6 +28,7 @@ namespace Mqtt
     bool isConfigFromServer = false;
     
     IPAddress server_ip;
+    int port_;
     String mqttUser = "";
     String mqttPass = "";
 
@@ -151,13 +152,14 @@ namespace Mqtt
     }
 
 
-    bool setup( String deviceName, int server_port = 1883)
+    bool setup( String deviceName, IPAddress mqttIP, int server_port = 1883)
     {
-
+        server_ip = mqttIP; 
+        port_ = server_port;
         Serial.print(F("MQTT server IP address retrieved: "));  Serial.println(server_ip);
-
+        
         mqttClient.disconnect();
-        mqttClient.setServer(server_ip, server_port);
+        mqttClient.setServer(server_ip, port_);
         //mqttClient.setBufferSize(512);  Semble pas marcher...  build flag dans platformio a la place
         //mqttClient.setCallback(incomingCallback);
       
@@ -189,19 +191,19 @@ namespace Mqtt
     }
 
 
-    void checkConnection()
+   /* void checkConnection()
     {
         if(mqttClient.connected()) {  //  returns 0 when connected!
             //Serial.println("MQTT server disconnected!!!  Reconnecting...."); 
             //Mqtt::setup();   // if client was disconnected then try to reconnect again 
         } 
 
-    }
+    }*/
 
 
     void loop()
     {      
-        checkConnection();  
+       // checkConnection();  
         mqttClient.loop();   
         mqttQueue.publish();      //Mqtt::mqttQueue.add("esp32/sensors", btnBlue.loop());
     }

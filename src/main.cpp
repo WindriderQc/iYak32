@@ -1,7 +1,7 @@
 //#define VERBOSE
 #include <Arduino.h>
 #include "api/Esp32.h"
-#include "api/devices/BMX280.h"
+#include "api/devices/BMX280.h"  //  TODO : devrait etre encaps dans un device...   device = gestion IO = main config n feature focus
 #include "api/devices/Oled.h"
 
 #include "www.h"

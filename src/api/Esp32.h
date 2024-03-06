@@ -18,9 +18,6 @@
 
 
 
-
-//TODO : utiliser file system pour creer un json de config qui stock les info au lieu/en complement de l'EEPROM...  
-
 namespace Esp32   //  ESP 32 configuration and helping methods
 {
    
@@ -281,36 +278,34 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     {
         Serial.println("\nExcecuting Config!");
 
-        String _ssid= configJson_["ssid"];
-        String _pass = configJson_["pass"];
+        wifiManager.setSSID(configJson_["ssid"]);
+        wifiManager.setPASS(configJson_["pass"]);
 
-        wifiManager.setSSID(_ssid);
-        wifiManager.setPASS(_pass);
+        wifiManager.setup(true, configJson_["ssid"],configJson_["pass"] );  //  Set WIFI connection and OTA. Access point if cannot reach SSID
 
-        Mqtt::isEnabled = configJson_["isMqtt"];     
-        Mqtt::isConfigFromServer = configJson_["isConfigFromServer"]; 
-
-        Mqtt::server_ip = IPAddress(configJson_["ip0"], configJson_["ip1"], configJson_["ip2"], configJson_["ip3"]);
-        Serial.print(F("MQTT IP Address: "));  Serial.println(Mqtt::server_ip);
-        //const char* port = jsonBuffer["port"];
-        //int p = String(port).toInt();
-        int p = configJson_["mqttport"];
-        Serial.println(p);
-
-        Mqtt::mqttClient.setCallback(mqttIncoming);
-        Mqtt::server_ip = IPAddress(configJson_["mqttIP0"], configJson_["mqttIP1"],configJson_["mqttIP2"],configJson_["mqttIP3"]);
-        if(Mqtt::isEnabled) {
-            if (!Mqtt::setup(DEVICE_NAME, configJson_["mqttport"]))  Serial.print("Mqtt setup fail");
-            Serial.print("Mqtt setup completed");
-        } 
+        //  if not on access point, synchronize system time
+        if(Esp32::wifiManager.isConnected()) {
+            if(Esp32::hourglass.setupTimeSync()) Esp32::hourglass.getDateTimeString(true);
+        }
 
 
-       /*Mqtt::setup(DEVICE_NAME, p);  //  reset MQTT server with new IP.  Allows to change the port for a specific session (port not saved in eeprom yet   TODO )    
+        Mqtt::isEnabled =           configJson_["isMqtt"];     
+        Mqtt::isConfigFromServer =  configJson_["isConfigFromServer"]; 
+
+        IPAddress mqttIP = IPAddress(configJson_["ip0"], configJson_["ip1"], configJson_["ip2"], configJson_["ip3"]);
         
         if(Mqtt::isEnabled) {
-            Mqtt::mqttClient.publish("esp32/register", Esp32::DEVICE_NAME.c_str() ); //Once connected, publish an announcement...
-            if(Mqtt::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());
-        }*/
+            Mqtt::mqttClient.setCallback(mqttIncoming);
+
+            if (!Mqtt::setup(DEVICE_NAME, mqttIP, configJson_["mqttport"]))     Serial.print("Mqtt setup fail"); 
+            else  {
+                    Serial.print("Mqtt setup completed"); 
+                    
+                    Mqtt::mqttClient.publish("esp32/register", Esp32::DEVICE_NAME.c_str() ); //Once connected, publish an announcement...
+                    
+                    if(Mqtt::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());  // Request IO config and profile from server
+                }                                                                                                 
+        } 
     }
 
 
@@ -418,30 +413,21 @@ namespace Esp32   //  ESP 32 configuration and helping methods
                 Serial.println("setup -> Could not read Config file -> initializing new file");
                 // if not possible -> save new config file
                 if (saveConfig(configDoc)) Serial.println("setup -> Config file saved");   
+            
             }
             else { 
-                Serial.println("ConfigJson was retreved and configuration executed...");            
-                //executeConfig();    
+                Serial.println("ConfigJson was retreved and configuration executed...");              
             }
+            
+            executeConfig();  
         }
 
 
-        /*Mqtt::mqttClient.setCallback(mqttIncoming);
-        Mqtt::server_ip = IPAddress(configJson_["mqttIP0"], configJson_["mqttIP1"],configJson_["mqttIP2"],configJson_["mqttIP3"]);
-        if(Mqtt::isEnabled) {
-            if (!Mqtt::setup(DEVICE_NAME, configJson_["mqttPort"]))  Serial.print("Mqtt setup fail");
-            Serial.print("Mqtt setup completed");
-        } 
-*/
+
 
         i2cScanner();
 
-        wifiManager.setup(true, configJson_["ssid"],configJson_["pass"] );  //  Set WIFI connection and OTA. Access point if cannot reach SSID
 
-        //  if not on access point, synchronize system time
-        if(Esp32::wifiManager.isConnected()) {
-            if(Esp32::hourglass.setupTimeSync()) Esp32::hourglass.getDateTimeString(true);
-        }
     }
 
 
