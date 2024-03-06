@@ -155,17 +155,13 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     }
 
 
-
-
+    // Helper function to convert a json to a string
     String getJsonString(JsonDocument doc, bool isPretty = false) 
     {
         String str = "";
         isPretty ? serializeJsonPretty(doc, str) : serializeJson(doc, str);
         return str;
     }
-
-
-
 
 
 
@@ -298,13 +294,8 @@ namespace Esp32   //  ESP 32 configuration and helping methods
             Mqtt::mqttClient.setCallback(mqttIncoming);
 
             if (!Mqtt::setup(DEVICE_NAME, mqttIP, configJson_["mqttport"]))     Serial.print("Mqtt setup fail"); 
-            else  {
-                    Serial.print("Mqtt setup completed"); 
-                    
-                    Mqtt::mqttClient.publish("esp32/register", Esp32::DEVICE_NAME.c_str() ); //Once connected, publish an announcement...
-                    
-                    if(Mqtt::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());  // Request IO config and profile from server
-                }                                                                                                 
+            else                                                            Serial.print("Mqtt setup completed");                    
+                                                                                                                
         } 
     }
 
