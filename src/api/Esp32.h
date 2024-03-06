@@ -2,82 +2,59 @@
 
 #include <Arduino.h>
 #include <esp_log.h>
-#include <EEPROM.h>
+
 #include <ArduinoOTA.h>
+#include <ArduinoJson.h>   
 
 #include <Wire.h>    // TODO Dépends de si on utilise i2C...  ne devrait ptete pas etre aussi générique
 
 #include "IPin.h"
-#include "Storage.h" 
+#include "Storage.h"
+
 #include "WifiManager.h"
 #include "Hourglass.h"
+#include "Mqtt.h"
 #include "devices/Buzzer.h"
 
-// Pin qty per model definitions
-#define HUZZAH32  39
-#define WEMOSIO   20  // tbd..
+
 
 
 //TODO : utiliser file system pour creer un json de config qui stock les info au lieu/en complement de l'EEPROM...  
 
-namespace Esp32
+namespace Esp32   //  ESP 32 configuration and helping methods
 {
-    //  ESP 32 configuration and helping methods
+   
     const String DEVICE_NAME = String("ESP_") + String((uint16_t)(ESP.getEfuseMac()>>32));
+
+    const String CONFIG_FILENAME =  "/esp32config.json";
+    const int CONFIG_FILE_MAX_SIZE = 1024;   // TODO: really required? Since JSON is dynamic...
+    JsonDocument configJson_;
+    String configString_;
+   
+
+
 
     const int ADC_Max = 4095;    
 
-    #define BATTERY_READ_PIN 35      // Pin used to read battery voltag   (Huzzah32 - A13 - pin 35)
+    #define BATTERY_READ_PIN 35 // Pin used to read battery voltag   (Huzzah32 - A13 - pin 35)   //   TODO :  devrait plus etre lié a la config / profile 
+    String batteryText;         // String variable to hold text for battery voltage
+    float vBAT = 0;             // Float variable to hold battery voltage
+    byte vBATSampleSize = 5;    // How many time we sample the battery
 
-    String batteryText;      // String variable to hold text for battery voltage
-    
-    float vBAT = 0;          // Float variable to hold battery voltage
-    
-    byte vBATSampleSize = 5; // How many time we sample the battery
-
-
-
-
-
-    
-    // IO Configuration  ESP32 HUZZAH32
-    // *** Note :
-    //           you can only read analog inputs on ADC #1 once WiFi has started *** //
-    //           PWM is possible on every GPIO pin
-    /*
-    //DigitalInput _A0( 26, "A0");  // A0 DAC2 ADC#2 not available when using wifi 
-    //DigitalInput _A1( 25, "A1");  // A1 DAC1 ADC#2 not available when using wifi
-    AnalogInput  _A2( 34, "GAZ");  // A2      ADC#1   Note it is not an output-capable pin! 
-    AnalogInput  _A3( 39, "LIGHT");  // A3      ADC#1   Note it is not an output-capable pin! 
-    AnalogInput  _A4( 36, "SOIL1");  // A4      ADC#1   Note it is not an output-capable pin! 
-    DigitalInput _A5(  4, "HEAT1");  // A5      ADC#2  TOUCH0 
-    DigitalInput _SCK( 5, "FAN1");  // SPI SCK
-    DigitalInput _MOSI( 18, "PUMP1");   // MOSI
-    DigitalInput _MISO( 19, "PUMP2");  // MISO
-    // GPIO 16 - RX
-    // GPIO 17 - TX
-    DigitalOutput _D21( 21, "BLUE"); 
-    // 23		            BMP280	            SDA
-    // 22		            BMP280	            SCL
-    DigitalInput _A6( 14, "DHT");  // A6 ADC#2
-    // 32		                                A7 can also be used to connect a 32 KHz crystal
-    PullupInput _A8( 15, "MOVE"); // 15		A8 ADC#2
-    // 33		             	                A9
-    // 27		            	                A10 ADC#2
-    // 12	            	          	        A11 ADC#2 This pin has a pull-down resistor built into it, we recommend using it as an output only, or making sure that the pull-down is not affected during boot
-    DigitalOutput _A12( 13, "LED1");  // A12  ADC#2  Builtin LED
-    AnalogInput  _A13( 35, "VBAT");   // A13 This is general purpose input #35 and also an analog input, which is a resistor divider connected to the VBAT line   Voltage is divided by 2 so multiply the analogRead by 2
-    
-    //IPin* ioPins[] = { &_A2, &_A3, &_A4, &_A5, &_SCK, &_MOSI, &_MISO, &_D21, &_A6, &_A8, &_A12, &_A13 };
-    //
-    // end of IO Configuration  */
+    // Pin qty per model definitions
+    #define HUZZAH32  39
+    #define WEMOSIO   20  // tbd..    
     Pin* ios[HUZZAH32];  //  39 pins for esp32   //  TODO: could be #defines NBRPIN selon le model WEMOSIO, EPS, etc.
+
 
     WifiManager wifiManager;
     Hourglass hourglass;
-    Buzzer buzzer;
+    Buzzer buzzer;  //  TODO:  devrait etre un device configurable...  pas dans le namespace ESP32
     
-   
+
+
+
+
 
     void setVerboseLog()    { esp_log_level_set("*", ESP_LOG_DEBUG);    }  //  require #include <esp_log.h>
   
@@ -180,11 +157,293 @@ namespace Esp32
         return vBAT;
     }
 
+
+
+
+    String getJsonString(JsonDocument doc, bool isPretty = false) 
+    {
+        String str = "";
+        isPretty ? serializeJsonPretty(doc, str) : serializeJson(doc, str);
+        return str;
+    }
+
+
+
+
+
+
+    void mqttIncoming(char* topic, byte* message, unsigned int length) {
+        
+        //MqttMsg mqttMsg = sliceMqttMsg(topic, message, length);
+        //Serial.print(F("New message arrived on topic: ")); Serial.println(mqttMsg.topicChar); 
+        //Serial.print(F("Message: ")); Serial.println(mqttMsg.msgArray);
+
+        String topicStr = String(topic);
+        /*String msgStr = "";
+        for (int i=0; i < length; i++) {
+            msgStr += (char)message[i];
+        }  */
+
+        #ifdef VERBOSE  
+        Serial.println(topicStr);
+        Serial.print("Msg bytes: "); Serial.println(length);
+        //Serial.println(msgStr);
+        #endif
+    
+        if(topicStr.indexOf(Esp32::DEVICE_NAME) >= 0) //  If the topic contains your ID 
+        {    
+            if(topicStr.indexOf("/config") >= 0)  //  If the topic contains ... 
+            {
+                        JsonDocument config;
+                        DeserializationError error = deserializeJson(config, message, length);  // Deserialize the JSON document  
+                        if (error) { // Test if parsing succeeds.
+                            Serial.print(F("deserializeJson() failed: "));  Serial.println(error.f_str()); return;
+                        }
+
+                        for (JsonObject elem : config.as<JsonArray>()) 
+                        { 
+                            unsigned int io = atoi(elem["io"]); 
+                            const char* mode = elem["mode"];
+                            const char* lbl = elem["lbl"]; 
+                            int isA = atoi(elem["isA"]); 
+                            //const char* pre = elem["pre"];    
+                            //short tcpPort = config["port"] | 80;
+                            #ifdef VERBOSE
+                            Serial.println("Json deserialized");
+                            Serial.println(io);
+                            Serial.println(mode);
+                            Serial.println(lbl);
+                            Serial.println(isA);
+                            // Serial.println(pre);
+                            #endif
+                            Esp32::configPin(io, mode, lbl, isA); 
+                            //  --->   Als::pins[io].action_.pin_ = io;  
+
+                                                /*
+                            Serial.print("Setting alarm to pin......");
+                                    Als::ActionInfo act; 
+                                    act.pin_ = Esp32::ios[21]->config.gpio;
+                                    act.type_ = Als::AlarmType::eREPEAT;
+                                    act.callbackOn_  = []{Als::pins[21].handleAlarmOn();};
+                                    act.callbackOff_ = []{Als::pins[21].handleAlarmOff();};    
+                                    Als::pins[21].setup("LED1", act);
+                            Serial.println("Done");*/
+                                /* act.pin_ = Esp32::LED2_PIN;
+                                    act.type_ = Als::AlarmType::eREPEAT;
+                                    act.callbackOn_  = []{Als::pins[Esp32::LED2_PIN].handleAlarmOn();};
+                                    act.callbackOff_ = []{Als::pins[Esp32::LED2_PIN].handleAlarmOff();};    
+                                    Als::pins[Esp32::LED2_PIN].setup("LED2", act);
+                                    */             
+                        }
+                        Serial.println(F("Config received and completed")); 
+            }
+            else if(topicStr.indexOf("/io/") >= 0)  //  If the topic contains ... 
+            {
+                        Mqtt::MqttMsg mqttMsg = Mqtt::sliceMqttMsg(topic, message, length);  //  TODO   plus de performance si on découpe sliceMqttMsg en petite fonction juste pour les token ou les array
+                        
+                        int io = atoi(mqttMsg.msgTokens[0]);   // then get 1st msg token should be the IO
+                        
+                        if(Esp32::validIO(io) == true) 
+                        {
+                            if(topicStr.indexOf("/on") >= 0) {
+                                digitalWrite(io, HIGH); Serial.print(F("Setting ON output ")); Serial.println(io); return;
+                            }
+                            else if(topicStr.indexOf("/off") >= 0) {
+                                digitalWrite(io, LOW);  Serial.print(F("Setting OFF output ")); Serial.println(io); return;
+                            }
+                            else if(topicStr.indexOf("/sunrise") >= 0) {
+                                //  --->  Als::pins[io].setOnAlarm(atoi(mqttMsg.msgTokens[1]), atoi(mqttMsg.msgTokens[2]), atoi(mqttMsg.msgTokens[3])); return; //  IO:HH:MM:SS 
+                            }
+                            else if(topicStr.indexOf("/nightfall") >= 0) {
+                            //  --->   Als::pins[io].setOffAlarm(atoi(mqttMsg.msgTokens[1]), atoi(mqttMsg.msgTokens[2]), atoi(mqttMsg.msgTokens[3])); return;  // IO:HH:MM:SS
+                            }
+                        } 
+                        else Serial.println(F("Invalid IO"));
+
+            }
+            else if (topicStr.indexOf("/reboot") >= 0) //  If the topic contains ...
+            {
+                        Esp32::reboot();
+            }
+
+        }
+        else {   /*Serial.println("Not my business!!!");*/      }
+    }
+
+
+
+
+
+
+
+    
+    void executeConfig()
+    {
+        Serial.println("\nExcecuting Config!");
+
+        String _ssid= configJson_["ssid"];
+        String _pass = configJson_["pass"];
+
+        wifiManager.setSSID(_ssid);
+        wifiManager.setPASS(_pass);
+
+        Mqtt::isEnabled = configJson_["isMqtt"];     
+        Mqtt::isConfigFromServer = configJson_["isConfigFromServer"]; 
+
+        Mqtt::server_ip = IPAddress(configJson_["ip0"], configJson_["ip1"], configJson_["ip2"], configJson_["ip3"]);
+        Serial.print(F("MQTT IP Address: "));  Serial.println(Mqtt::server_ip);
+        //const char* port = jsonBuffer["port"];
+        //int p = String(port).toInt();
+        int p = configJson_["mqttport"];
+        Serial.println(p);
+
+        Mqtt::mqttClient.setCallback(mqttIncoming);
+        Mqtt::server_ip = IPAddress(configJson_["mqttIP0"], configJson_["mqttIP1"],configJson_["mqttIP2"],configJson_["mqttIP3"]);
+        if(Mqtt::isEnabled) {
+            if (!Mqtt::setup(DEVICE_NAME, configJson_["mqttport"]))  Serial.print("Mqtt setup fail");
+            Serial.print("Mqtt setup completed");
+        } 
+
+
+       /*Mqtt::setup(DEVICE_NAME, p);  //  reset MQTT server with new IP.  Allows to change the port for a specific session (port not saved in eeprom yet   TODO )    
+        
+        if(Mqtt::isEnabled) {
+            Mqtt::mqttClient.publish("esp32/register", Esp32::DEVICE_NAME.c_str() ); //Once connected, publish an announcement...
+            if(Mqtt::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());
+        }*/
+    }
+
+
+    bool loadConfig(JsonDocument* returnDoc = nullptr, bool doExecuteConfig = false)
+    {   
+        String name = Esp32::CONFIG_FILENAME;
+         if (!SPIFFS.exists(name)) {
+            Serial.print("esp32Config file "); Serial.print(name); Serial.println(" not found; using system defaults.");
+            return false;
+         } else {
+            // read file into a string
+            Serial.print("Loading preferences from file ");
+            Serial.println(Esp32::CONFIG_FILENAME);
+            String file_content = Storage::readFile(Esp32::CONFIG_FILENAME);
+            int config_file_size = file_content.length();
+            Serial.println("Config file size: " + String(config_file_size));
+
+            if(config_file_size > CONFIG_FILE_MAX_SIZE) {   // corrupted SPIFFS files can return data beyond their declared size.
+                Serial.println("Config file too large, maybe corrupt, removing");
+                Storage::removeConfigFile(Esp32::CONFIG_FILENAME);
+                return false;
+            }
+
+            JsonDocument doc;
+            auto error = deserializeJson(doc, file_content);
+            if ( error ) { 
+                Serial.println("Error interpreting config file");
+                return false;
+            }
+
+            Storage::dumpFile(Esp32::CONFIG_FILENAME);
+
+            if (returnDoc)  *returnDoc = doc; // if a return doc is provded, Copy the content of doc into returnDoc
+
+            configJson_ = doc; 
+            configString_ = getJsonString(configJson_);
+
+            if(doExecuteConfig)  executeConfig(); 
+
+            return true;
+        } 
+    }
+
+
+    bool saveConfig(JsonDocument config, bool reboot = false)
+    {
+        SPIFFS.exists(Esp32::CONFIG_FILENAME)  ?  Serial.print("Updating ") :  Serial.print("Creating "); 
+        Serial.println(Esp32::CONFIG_FILENAME);
+
+        configJson_ = config;
+        configString_ = getJsonString(configJson_);
+
+        Storage::writeFile(Esp32::CONFIG_FILENAME, configString_);
+
+        
+        Storage::dumpFile(Esp32::CONFIG_FILENAME);
+
+        if(reboot) Esp32::reboot();
+        else loadConfig();  //  Actalize local variable without executing the new config
+
+        return true;
+    }
+
+
+
+
+    //////////////////////////////////////////////
+    // Main
+    //////////////////////////////////////////////
+
     void setup() 
     {
+       
+        Serial.println("\nStarting internal SPIFFS filesystem");
+
+        if(!SPIFFS.begin(false)) {
+            Serial.println("SPIFFS Mount failed\nDid not find filesystem - this can happen on first-run initialisation; starting format"); 
+            ioBlink(LED_BUILTIN,100, 100, 4); // Show SPIFFS failure
+            // format if begin fails
+            if (!SPIFFS.begin(true)) {
+                Serial.println("SPIFFS mount failed\nFormatting not possible - check if a SPIFFS partition is present for your board?");
+                ioBlink(LED_BUILTIN,100, 100, 8); // Show SPIFFS failure
+            } else {
+                Serial.println("Formatting");
+            }
+        } else {
+            Serial.println("setup -> SPIFFS mounted successfully");
+
+            Storage::listDir("/", 4);  //  TODO : show only files on root, not folders....  
+
+            // loading config json and saving it as JsonDocument. If loading fails, create a default json and save the default file.
+            if(loadConfig(&configJson_) == false) {   
+                 // Create a dictionary (key-value pairs) to store configurations and save/load from config file
+                JsonDocument configDoc;
+                 // default esp32config.jsom if not found on SPIFFS
+                configDoc["isMqtt"] = false;
+                configDoc["isConfigFromServer"] = false;
+                configDoc["ssid"] = "";
+                configDoc["pass"] ="";
+                configDoc["mqttport"] = 1883;
+                configDoc["mqttIP0"] = "";
+                configDoc["mqttIP1"] = "";
+                configDoc["mqttIP2"] = "";
+                configDoc["mqttIP3"] = "";
+                Serial.println("setup -> Could not read Config file -> initializing new file");
+                // if not possible -> save new config file
+                if (saveConfig(configDoc)) Serial.println("setup -> Config file saved");   
+            }
+            else { 
+                Serial.println("ConfigJson was retreved and configuration executed...");            
+                //executeConfig();    
+            }
+        }
+
+
+        /*Mqtt::mqttClient.setCallback(mqttIncoming);
+        Mqtt::server_ip = IPAddress(configJson_["mqttIP0"], configJson_["mqttIP1"],configJson_["mqttIP2"],configJson_["mqttIP3"]);
+        if(Mqtt::isEnabled) {
+            if (!Mqtt::setup(DEVICE_NAME, configJson_["mqttPort"]))  Serial.print("Mqtt setup fail");
+            Serial.print("Mqtt setup completed");
+        } 
+*/
+
         i2cScanner();
-        wifiManager.setup();
+
+        wifiManager.setup(true, configJson_["ssid"],configJson_["pass"] );  //  Set WIFI connection and OTA. Access point if cannot reach SSID
+
+        //  if not on access point, synchronize system time
+        if(Esp32::wifiManager.isConnected()) {
+            if(Esp32::hourglass.setupTimeSync()) Esp32::hourglass.getDateTimeString(true);
+        }
     }
+
 
     void loop() 
     {
@@ -192,8 +451,19 @@ namespace Esp32
         wifiManager.loop();   //  reconnect if connection is lost and handle OTA
        //TODO  devrait y avoir un readIO ici, non??
         buzzer.loop();     
+
+        if(Mqtt::isEnabled) Mqtt::loop();   // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue   
     }
 
+
+    
+    
+
+
+    namespace GPS {
+        const int lon = 77;
+        const int lat = 55;
+    }
 
 } // namespace Esp32
 

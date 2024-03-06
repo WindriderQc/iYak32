@@ -1,10 +1,9 @@
-#ifndef WIFI_MANAGER_H
-#define WIFI_MANAGER_H
+#pragma once
 
-#include <WiFi.h>
-#include <SPIFFS.h>
-#include <ArduinoOTA.h> // Include the ArduinoOTA library
 #include <string> // Include the <string> header for std::string
+#include <WiFi.h>
+
+
 
 /*
 Auto connect to wifi using a list of preferred network in SPIFF /config.txt containing lines of "SSID:PASSWORD"  
@@ -17,29 +16,36 @@ TODO: possibility to have a fixed IP address configured from EEPROM?  and adapt 
 
 class WifiManager {
     public:
-        void setup();
-        bool isConnected();
+        void setup(bool enableOTA, String ssid, String password);
+        void setup(bool enableOTA);
         void loop();
+
+        bool isConnected();
         IPAddress getIP();
         String getIPString();
-        char* getSSID();
+        String getSSID();
+        void setSSID(String ssid);
+        String getPASS();
+        void setPASS(String pass);
         int getWiFiStrength(int points = 10); 
+        void relaunchOTA();
 
     private:
         void setupOTA();
         void handleOTA();
         bool tryConnectToPreferredNetworks();
+        bool tryConnectToUserNetwork(String ssid, String password);
         void startAccessPoint();
     
         bool isWifiConnected = false;
         const static int numPreferredNetworks = 3; // Update this based on your preferred SSID count  TODO:  ark.... lire le nbr de ligne dans config.txt? ou whatever?
-        std::string preferredSsids[numPreferredNetworks];
-        std::string preferredPasswords[numPreferredNetworks];
+        String preferredSsids[numPreferredNetworks];
+        String preferredPasswords[numPreferredNetworks];
 
         bool isAutoReconnect = false;
-
+        bool isOTA = false;
+   
         IPAddress ipAdress;
-        char* ssid_;
+        String ssid_;
+        String pass_;
 };
-
-#endif // WIFI_MANAGER_H

@@ -6,4 +6,5 @@
 
 data/config.txt
 data/mqtt.txt
+data/esp32config.json
 .vscode/extensions.json

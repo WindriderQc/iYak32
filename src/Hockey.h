@@ -85,7 +85,7 @@ namespace Hockey
             asciiDisplay.displayString(scoreString.c_str()); 
 
             senseLeft.action.mode_ = RISING; 
-            senseLeft. action.callback_ = senseLeft_isr;  
+            senseLeft.action.callback_ = senseLeft_isr;  
             senseLeft.setup("senseLeft", Esp32::DEVICE_NAME, LEFTGOAL, true );
 
             senseRight.action.mode_ = RISING; 
@@ -102,10 +102,9 @@ namespace Hockey
 
 
 
-
         void loop() 
         {
-            bool bSwitch = false;
+            
             unsigned long elapsedSeconds;
             unsigned int minutes, seconds;
             String timeString;
@@ -125,12 +124,14 @@ namespace Hockey
                 //asciiDisplay.displayString(scoreString.c_str()); 
             } 
 
+            if(!digitalRead(RESET)) reset();
+            if(!digitalRead(PAUSE)) pause();
 
             String msg;
             switch(state) 
             {
                 case HOCKEY_state::eINTRO:           
-                        asciiDisplay.displayString("gO:gO");
+                        asciiDisplay.displayString("COOL");
                         tictac++;
                         if(tictac >= GOAL_DELAY*2) { tictac = 0;   state = HOCKEY_state::eON; }
                         break;
@@ -159,9 +160,6 @@ namespace Hockey
                             state = HOCKEY_state::ePERIOD_BELL;
                             Serial.print("BELL");
                         }
-
-                        if(!digitalRead(RESET)) reset();
-                        if(!digitalRead(PAUSE)) pause();
                         
                         msg = senseLeft.loop();
                         if(msg.length() != 0) { goalLeft(); Serial.println(msg);  }
@@ -175,23 +173,11 @@ namespace Hockey
                         
                         asciiDisplay.displayString("GOAL");
                         tictac++;
-                        if(tictac >= GOAL_DELAY) { tictac = 0; state = HOCKEY_state::eDROP_PUCK; }
+                        if(tictac >= GOAL_DELAY*0.6) { tictac = 0; state = HOCKEY_state::eDROP_PUCK; }
                         break;
 
                 case HOCKEY_state::ePERIOD_BELL:
                      
-
-                        if(!digitalRead(RESET)) reset();
-                        if(!digitalRead(PAUSE)) pause();
-                        /*msg = senseLeft.loop();
-                        if(msg.length() != 0) { goalLeft(); Serial.println(msg);  }
-                        
-                        msg = senseRight.loop(); 
-                        if(msg.length() != 0) {  goalRight();  Serial.println(msg);  }*/
-
-                        
-
-
                         if(period < 4) {   
                             tictac++;
                             if(tictac >= GOAL_DELAY*2) { 
@@ -200,14 +186,15 @@ namespace Hockey
                                 time = periodLength;
                                 Serial.print("PERIOD FINISH");
                             }
-                            asciiDisplay.displayString(scoreString.c_str());
+                            if(tictac >= GOAL_DELAY) asciiDisplay.displayString(scoreString.c_str());
+                            else        asciiDisplay.displayString("COOL");
                         } else {
                             tictac++;
                             if(tictac >= GOAL_DELAY) { 
                                 tictac = 0; 
                                 bSwitch = !bSwitch;
                             }
-                            if(bSwitch)  asciiDisplay.displayString("GOOD");
+                            if(bSwitch)  asciiDisplay.displayString("Good");
                             else         asciiDisplay.displayString("GAME");
                         }
                         break;
@@ -224,7 +211,13 @@ namespace Hockey
                         break;
 
                 case HOCKEY_state::ePAUSE:
-                        asciiDisplay.displayString(scoreString.c_str());
+                        tictac++;
+                        if(tictac >= GOAL_DELAY) { 
+                            tictac = 0; 
+                            bSwitch = !bSwitch;
+                        }
+                        if(bSwitch)  asciiDisplay.displayString(scoreString.c_str());
+                        else         asciiDisplay.displayString("COOL");
                         break;
             }          
            
@@ -255,8 +248,7 @@ namespace Hockey
         void pause() 
         { 
             Serial.print("Timer ");
-            if( state == HOCKEY_state::ePAUSE)
-            {
+            if( state == HOCKEY_state::ePAUSE)  {
                 Serial.println("Started");
                 state = HOCKEY_state::eDROP_PUCK;
             } else {
@@ -291,6 +283,7 @@ namespace Hockey
         int periodLength = 60000;
         int time = 60000;
         const int GOAL_DELAY = 100; 
+        bool bSwitch = false;
     
         String scoreString = "00:00";
 

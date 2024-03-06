@@ -1,0 +1,60 @@
+--- Folder Layout ---
+[.git] (...)
+.gitignore
+[.pio] (...)
+[.vscode] (...)
+ClassTemplate.txt
+[data]
+    ├── about.html
+    ├── [components]
+        ├── footer.js
+        └── topMenu.js
+    ├── config.txt
+    ├── [dump]
+    ├── favicon.ico
+    ├── [img]
+        └── favicon.ico
+    ├── index.html
+    ├── mqtt.txt
+    ├── setup.html
+    ├── style.css
+    └── tides.html
+platformio.ini
+README.md
+[src]
+    ├── [api]
+        ├── [archive]
+            ├── ACS712.cpp
+            ├── ACS712.h
+            ├── alarmIO.h
+            ├── Lux.h
+            ├── MQ2.cpp
+            ├── MQ2.h
+            ├── [time]
+                ├── TimeAlarms.cpp
+                ├── TimeAlarms.h
+                ├── TimeLib.cpp
+                └── TimeLib.h
+            ├── Timerz.h
+            └── Weather.h
+        ├── [devices]
+            ├── BMX280.h
+            ├── buzzer.h
+            ├── Oled.h
+            ├── [sensors]
+                ├── anLux.h
+                ├── ISensor.h
+                └── Pushbtn.h
+            ├── SevenSegmentAscii.cpp
+            └── SevenSegmentAscii.h
+        ├── Esp32.h
+        ├── Hourglass.h
+        ├── IPin.h
+        ├── Mqtt.h
+        ├── Storage.h
+        ├── WifiManager.cpp
+        └── WifiManager.h
+    ├── Boat.h
+    ├── Hockey.h
+    ├── main.cpp
+    └── www.h

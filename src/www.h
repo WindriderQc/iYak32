@@ -4,32 +4,12 @@ Add to platformio.ini:
     lib_deps =
         https://github.com/me-no-dev/ESPAsyncWebServer.git  ; required for www.h
 */
+//#include <vector>
 #include <Arduino.h>
-#include <vector>
 #include <ESPAsyncWebServer.h>
-#include <SPIFFS.h>
-//#include <ArduinoJson.h>
 #include <HTTPClient.h>
 
-//#include "Boat.h"
-
 #include "api/Esp32.h"
-
-
-
-unsigned long cstring_to_ul(const char* str, char** end = nullptr, int base = 10)
-{
-    errno = 0; // Used to see if there was success or failure by overflow conditions
-
-    auto ul = strtoul(str, end, base);
-
-    if(errno != ERANGE)
-    {
-    return ul;
-    }
-
-    return ULONG_MAX;
-}
 
 
 
@@ -43,30 +23,36 @@ namespace www
     AsyncWebServer server(serverPort);
    
 
- 
     String processor(const String& var)   //  this will be called for every %PLACEHOLDER% in the served html file
     {
 
-        if(var == "STATE")    {  return digitalRead(BUILTIN_LED) ? "ON" : "OFF";   }
-            //String ledState = digitalRead(BUILTIN_LED) ? "ON" : "OFF";   
-            //return ledState;
+        if(var == "STATE")    {  return digitalRead(BUILTIN_LED) ? "ON" : "OFF";    }
 
-       // if(var == "PRESSION") {  return String(boat.pressure);                     }
-        if(var == "TIME")     {  return Esp32::hourglass.getDateTimeString();      }
-      //  if(var == "SPEED")    {  return String(boat.getSpeed());                   }
-       // if(var == "DIR")      {  return String(boat.getDir());                     }
-        if(var == "TEMP")     {  return String(Esp32::getCPUTemp());               }
+        // if(var == "PRESSION") {  return String(boat.pressure);                   }
+        if(var == "TIME")     {  return Esp32::hourglass.getDateTimeString();       }
+        if(var == "TEMP")     {  return String(Esp32::getCPUTemp());                }
 
-        if(var == "LOCALIP")  {  return String(Esp32::wifiManager.getIPString());  }
-        if(var == "SSID")     {  return String(Esp32::wifiManager.getSSID());      }
-        if(var == "MQTTIP")   {  return Mqtt::server_ip.toString();                }
-        if(var == "IP0")      {  return String(Mqtt::server_ip[0]);                }
-        if(var == "IP1")      {  return String(Mqtt::server_ip[1]);                }
-        if(var == "IP2")      {  return String(Mqtt::server_ip[2]);                }
-        if(var == "IP3")      {  return String(Mqtt::server_ip[3]);                }
+        if(var == "LON")      {  return String(Esp32::GPS::lon);                    }
+        if(var == "LAT")      {  return String(Esp32::GPS::lat);                    }
+
+        if(var == "LOCALIP")  {  return Esp32::wifiManager.getIPString();           }
+        if(var == "SSID")     {  return String(Esp32::wifiManager.getSSID());       }
+
+
+        if(var == "MQTTIP")   {  return Mqtt::server_ip.toString();                 }
+        if(var == "IP0")      {  return String(Mqtt::server_ip[0]);                 }
+        if(var == "IP1")      {  return String(Mqtt::server_ip[1]);                 }
+        if(var == "IP2")      {  return String(Mqtt::server_ip[2]);                 }
+        if(var == "IP3")      {  return String(Mqtt::server_ip[3]);                 }
+        if(var == "CONFIG")   {  
+            JsonDocument d = Esp32::configJson_;
+            d["pass"] = "";   //  suppress password for security.  this forces user to enter it back everytime.
+            return Esp32::getJsonString(d, true);     
+        }
 
         return String();
     }
+
 
  /*   void jsonPOST()   //  TODO : test function.  ca doit etre fini...
     {        
@@ -104,22 +90,7 @@ namespace www
           
     }*/
 
-    void IPtoEEPROM(IPAddress IPaddr) 
-    {
-        Serial.print("Saving IP to EEPROM : ");
-        Serial.println(IPaddr);
 
-        /*for (int n = 0; n < sizeof(ipchar); n++) // automatically adjust for number of digits        {
-            EEPROM.write(n + startingAddress, ipchar[n]);
-        }*/
-        for (int n = 0; n < 4; n++) // automatically adjust for number of digits
-        {
-            EEPROM.write(n , IPaddr[n]);
-            Serial.println( IPaddr[n]);
-        }
-
-        EEPROM.commit() ? Serial.println(F("\nEEPROM successfully committed")) : Serial.println(F("\nERROR! EEPROM commit failed"));
-    }
 
 
     
@@ -127,22 +98,36 @@ namespace www
     {
         Serial.print(F("WWW from SPIFFS setup")); 
 
-        // Initialize SPIFFS
-        if(!SPIFFS.begin(true)){
-            Serial.println(F("An Error has occurred while mounting SPIFFS"));
-            return;
-        }
-
         server
             .serveStatic("/", SPIFFS, "/")
             .setDefaultFile("index.html")
             .setTemplateProcessor(processor);
 
         server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request){
-                String data =  "{ \"name\":\"John\", \"age\":30, \"car\":null }";
-                request->send(200, "application/json", data);
+                JsonDocument cnf;
+                String cnfStr = "";
+                Serial.println("Loading config from json: ");
+                if(Esp32::loadConfig(&cnf)) {  
+                    cnfStr = Esp32::getJsonString(cnf, true);
+                    Serial.println(cnfStr);
+                    request->send(200, "application/json", cnfStr); // Send the JSON response with the appropriate content type
+                } else {
+                    request->send(500, "text/plain", "Error loading config"); // Handle the case when loading the config fails
+                }
                 //request->redirect("/");
         });
+
+        server.on("/data", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+            
+                String strCnf = Esp32::configString_; 
+                Serial.print("Sending data to client: ");
+                Serial.println(strCnf);
+               
+                request->send(SPIFFS, "/setup.html", String(), false, processor);
+          
+        });
+
+
         server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
             Serial.println("Led ON requested");
             digitalWrite(BUILTIN_LED, HIGH);
@@ -161,9 +146,10 @@ namespace www
             digitalWrite(BUILTIN_LED, LOW);
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
-        server.on("/mqttip", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+        server.on("/config", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
             
-            DynamicJsonDocument jsonBuffer(1024);
+            JsonDocument jsonBuffer;
+
             auto error = deserializeJson(jsonBuffer, (const char*)data);
             if(error)
             {
@@ -171,27 +157,23 @@ namespace www
                 Serial.println(error.c_str());
                 return;
             }else{
-                //const char* ip[4];
-           
-                IPAddress mqttservIP(jsonBuffer["ip0"], jsonBuffer["ip1"], jsonBuffer["ip2"], jsonBuffer["ip3"]);
-              /*  ip[0] = jsonBuffer["ip0"];
-                ip[1] = jsonBuffer["ip1"];
-                ip[2] = jsonBuffer["ip2"];
-                ip[3] = jsonBuffer["ip3"];*/
-                Serial.println(F("Receiving new IP Address: "));
-                Serial.println(mqttservIP);
-                const char* port = jsonBuffer["port"];
+                Serial.println("Saving receved config: ");
+                String strCnf = Esp32::getJsonString(jsonBuffer, true); 
+                Serial.println(strCnf);
+                Esp32::saveConfig(jsonBuffer, false);  //  saves new config json and  dont REBOOT device
 
-                IPtoEEPROM(mqttservIP);
-
-                int p = cstring_to_ul(port);
-                Serial.println(p);
-                Mqtt::setup();
-                request->send(200, "text/plain", mqttservIP.toString());
+                request->send(200, "text/plain",strCnf);
             }/* else {
             request->send(404, "text/plain", "");
             }*/
         });
+
+        
+
+
+
+
+
         // Send 404 for not Found
         server.onNotFound( [](AsyncWebServerRequest *request) {
             request->send(404, "text/plain", "Not found");

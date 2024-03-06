@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Web Server</title>
+  <!-- Include p5.js library -->
+   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>  -->
+  
+  <script src="components/topMenu.js" type="text/javascript" defer></script>
+  <script src="components/footer.js" type="text/javascript" defer></script>  
+  
+<link rel="stylesheet" type="text/css" href="style.css">
+
+</head>
+<body class='bg-transparent sticky-footer' id='page-top'>
+    <header-component></header-component>
+  <!-- The display frame div -->
+  <div id="canvasDiv"></div> 
+    <div class='content-wrapper bg-transparent'>
+    <div class='container-fluid text-center '>  
+
+  <h1>ESP32 Setup Server</h1>
+  
+  </br>
+  <p>Current Time   --   %TIME%</p>
+  <p>Local IP   --   %LOCALIP% </p>
+  <p>SSID   --   %SSID% </p>      
+
+  <br>
+
+  <form>
+    <button class="button" onclick=saveConfig()> Save to ESP32 Config JSON </button>
+
+    <br><br>
+
+    <div>
+        <label for="ssid"> SSID: </label>
+        <input type="text" id="ssid" value="UG"><br>
+        <label for="pass"> Password: </label>
+        <input type="password" id="pass" value="***">
+    </div>
+
+    <br><br>
+
+    <div>
+        <input type="checkbox" id="isMqttEnabled" name="isMqttEnabled" value = false>
+        <label for="isMqttEnabled"> Enable MQTT </label><br>
+        <input type="checkbox" id="isCnfServ" name="isCnfServ" value = false>
+        <label for="isCnfServ"> Load IO Config from Server </label><br><br>
+        <label for="profileId"> Select Device Profile </label>
+        <input type="text" id="profileId" name="profileId" value="default_ESP32"><br>
+    </div>
+
+    <br><br><br>
+
+    <div>
+        <div>
+            <label for="IP0mqtt">IP0</label> .
+            <label for="IP1mqtt">IP1</label>.
+            <label for="IP2mqtt">IP2</label> .
+            <label for="IP3mqtt">IP3</label> 
+            <label for="mqttport">PORT</label> 
+        </div>
+        <br>
+        <div> 
+            <input type="text" id="IP0mqtt" size="3" maxlength="3" value="%IP0%">.
+            <input type="text" id="IP1mqtt" size="3" maxlength="3" value="%IP1%">.
+            <input type="text" id="IP2mqtt" size="3" maxlength="3" value="%IP2%">.
+            <input type="text" id="IP3mqtt" size="3" maxlength="3" value="%IP3%">
+            <input type="text" id="mqttport" value="1883">
+        </div>
+    </div>
+
+  </form>
+
+  <br><br><br>
+
+  <a href="/data">dataJson</a>
+
+  </div>
+  </div>
+
+
+  <script>
+    const configJson = %CONFIG%
+    console.log(configJson)
+    console.log(configJson.ssid)
+    actualizeFields(configJson)
+
+   /* async function changeSSID() 
+    {
+        let ssid = document.getElementById("ssid").value
+        let pass = document.getElementById("pass").value
+    
+        const data = { ssid, pass };
+        const options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        };
+        const response = await fetch('/ssid', options);
+        const respjson = await response.json();
+        console.log(respjson);
+    }*/
+    
+    
+    /*async function changeIP() 
+    {
+        let ip0 = document.getElementById("IP0mqtt").value
+        let ip1 = document.getElementById("IP1mqtt").value
+        let ip2 = document.getElementById("IP2mqtt").value
+        let ip3 = document.getElementById("IP3mqtt").value
+    
+        let mqttport = document.getElementById("mqttport").value
+        const data = { ip0, ip1, ip2, ip3, mqttport };
+        const options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        };
+        const response = await fetch('/mqttip', options);
+        const respjson = await response.json();
+        console.log(respjson);
+    }*/
+
+    async function saveConfig() 
+    {
+        let ip0 = document.getElementById("IP0mqtt").value
+        let ip1 = document.getElementById("IP1mqtt").value
+        let ip2 = document.getElementById("IP2mqtt").value
+        let ip3 = document.getElementById("IP3mqtt").value
+    
+        let mqttport = document.getElementById("mqttport").value
+       
+        let ssid = document.getElementById("ssid").value
+        let pass = document.getElementById("pass").value
+
+        let isMqtt = document.getElementById("isMqttEnabled").checked
+        let isConfigFromServer = document.getElementById("isCnfServ").checked
+    
+        const data = {  isMqtt, isConfigFromServer, ssid, pass,  ip0, ip1, ip2, ip3, mqttport  }
+
+        console.log( "Saving:", data)
+        const options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        }
+        const response = await fetch('/config', options)
+        const respjson = await response.json()
+        console.log(respjson); 
+    }
+
+
+    function actualizeFields(dataJson)
+    {
+        document.getElementById("IP0mqtt").value = dataJson["ip0"]
+        document.getElementById("IP1mqtt").value = dataJson["ip1"]
+        document.getElementById("IP2mqtt").value = dataJson["ip2"]
+        document.getElementById("IP3mqtt").value = dataJson["ip3"]
+    
+        document.getElementById("mqttport").value = dataJson["mqttport"]
+       
+        document.getElementById("ssid").value = dataJson["ssid"]
+        document.getElementById("pass").value = dataJson["pass"]
+
+        document.getElementById("isMqttEnabled").checked = dataJson["isMqtt"]
+        document.getElementById("isCnfServ").checked = dataJson["isConfigFromServer"]
+    }
+
+  </script>
+
+
+</body>
+</html>

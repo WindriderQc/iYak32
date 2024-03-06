@@ -23,6 +23,10 @@ Available features:
     a) ESP IP address must be configured in platformio.ini and ESP must be connected a preferred wifi to be on the same network as the intended programming computer.  A first USB connection is obviously required  
 
 
+
+ // Set the SSID (name) and password of the Access Point
+    const char* apSsid = "iYak32";
+    const char* apPassword = "12345678";
 -------------------------------------------------------------------------------
 
 

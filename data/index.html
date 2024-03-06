@@ -8,24 +8,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
   
 <link rel="stylesheet" type="text/css" href="style.css">
-<!-- jQuery first, then Popper.js, then Bootstrap JS & CSS-->
-<script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+<script src="components/topMenu.js" type="text/javascript" defer></script>
+<script src="components/footer.js" type="text/javascript" defer></script>
 </head>
-<body class='fixed-nav sticky-footer bg-transparent sidenav-toggled ' id='page-top'>
+<body class='bg-transparent sticky-footer' id='page-top'>  
+    
+    <header-component></header-component>
+
   <!-- The display frame div -->
   <div id="canvasDiv"></div> 
     <div class='content-wrapper bg-transparent'>
+
+
     <div class='container-fluid text-center '>  
 
-        <div class="topnav">
-            <a class="active" href="index.html">Home</a>
-            <a href="tides.html">Tides</a>
-            <a href="#mqtt">MQTTViewer</a>
-            <a href="about.html">About</a>
-          </div>
+
 
   <h1>ESP32 Web Server</h1>
 
@@ -47,83 +45,24 @@
   </p>
   </br></br><p></p></br>
 
-  <p><a href="/data"><button class="button">GetData</button></a></p>
-  </br>
-  <p>Current Time   --   %TIME%</p>
-  <p>Local IP   --   %LOCALIP% </p>
-  <p>SSID   --   %SSID% </p>      
-
+  <p>Current Time   --   %TIME% </p>
+ 
   <p>
-    latitude: <span id="latitude"></span>&deg;<br />
-    longitude: <span id="longitude"></span>&deg;
+    latitude: <span id="latitude"> %LON% </span>&deg;<br />
+    longitude: <span id="longitude"> %LAT% </span>&deg;
   </p>
 
-  <form>
-    <input type="text" id="ssid" value="UG">
-    <input type="password" id="pass" value="***">
-    <button class="button" onclick=changeSSID()>Set WiFi SSID</button>
-    
-    <br>
-
-    <input type="text" id="IP0mqtt" size="3" maxlength="3" value="%IP0%">.
-    <input type="text" id="IP1mqtt" size="3" maxlength="3" value="%IP1%">.
-    <input type="text" id="IP2mqtt" size="3" maxlength="3" value="%IP2%">.
-    <input type="text" id="IP3mqtt" size="3" maxlength="3" value="%IP3%">
-  
-    <input type="text" id="mqttport" value="1883">
-    <button class="button" onclick=changeIP()>Set MQTT Server </button>
-  </form>
 
   </div>
   </div>
-  <script src="walker.js"></script>
-
-
-
 
 
   <script>
-    async function changeSSID() 
-    {
-        let ssid = document.getElementById("ssid").value
-        let pass = document.getElementById("pass").value
     
-        const data = { ssid, pass };
-        const options = {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
-        };
-        const response = await fetch('/ssid', options);
-        const respjson = await response.json();
-        console.log(respjson);
-    }
-    
-    
-    async function changeIP() 
-    {
-        let ip0 = document.getElementById("IP0mqtt").value
-        let ip1 = document.getElementById("IP1mqtt").value
-        let ip2 = document.getElementById("IP2mqtt").value
-        let ip3 = document.getElementById("IP3mqtt").value
-    
-        let port = document.getElementById("mqttport").value
-        const data = { ip0, ip1, ip2, ip3, port };
-        const options = {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
-        };
-        const response = await fetch('/mqttip', options);
-        const respjson = await response.json();
-        console.log(respjson);
-    }
     
   </script>
+
+<footer-component></footer-component>
 
 </body>
 </html>

@@ -1,22 +1,16 @@
 //#define VERBOSE
 #include <Arduino.h>
-
 #include "api/Esp32.h"
-#include "api/Mqtt.h"
 #include "api/devices/BMX280.h"
 #include "api/devices/Oled.h"
 
 #include "www.h"
 //#include "Boat.h"
-#include "Hockey.h"
+//#include "Hockey.h"
 
 
-const char* ver = "v1:5 ";
+const char* ver = "v1:6 ";
 
-const bool isConfigFromServer = false;  //  TODO config a faire sur la page web, default a false
-const bool isUsingMqtt = false;
-
-//  22 - 23  //  I2C comm  SDA/SCL
 
 
 
@@ -38,50 +32,56 @@ SYS_state state = SYS_state::BOOT;
 
 void sendHeartbeat()
 {
-    std::vector<String> names;
-    std::vector<String> values;
+    if(Mqtt::isEnabled) {
+        std::vector<String> names;
+        std::vector<String> values;
 
-    names.push_back("sender");      values.push_back(Esp32::DEVICE_NAME);
-    names.push_back("time");        values.push_back(Esp32::hourglass.getDateTimeString());
+        names.push_back("sender");      values.push_back(Esp32::DEVICE_NAME);
+        names.push_back("time");        values.push_back(Esp32::hourglass.getDateTimeString());
 
-    #ifdef VERBOSE
-        Mqtt::sendJson( names, values, "esp32/alive/" + Esp32::DEVICE_NAME, true);   
-    #else
-        Mqtt::sendJson( names, values, "esp32/alive/" + Esp32::DEVICE_NAME, false);               
-    #endif
+        #ifdef VERBOSE
+            Mqtt::sendJson( names, values, "esp32/alive/" + Esp32::DEVICE_NAME, true);   
+        #else
+            Mqtt::sendJson( names, values, "esp32/alive/" + Esp32::DEVICE_NAME, false);               
+        #endif
+    }
 }
 
 
 void sendData()
 {
-    std::vector<String> names;
-    std::vector<String> values;
+    if(Mqtt::isEnabled) {
+        std::vector<String> names;
+        std::vector<String> values;
 
-    names.push_back("sender");      values.push_back(Esp32::DEVICE_NAME);
-    names.push_back("time");        values.push_back(Esp32::hourglass.getDateTimeString());
-    names.push_back("CPUtemp");     values.push_back(String(Esp32::getCPUTemp()));    
-    names.push_back("wifi");        values.push_back(String(Esp32::wifiManager.getWiFiStrength()));
+        names.push_back("sender");      values.push_back(Esp32::DEVICE_NAME);
+        names.push_back("time");        values.push_back(Esp32::hourglass.getDateTimeString());
+        names.push_back("CPUtemp");     values.push_back(String(Esp32::getCPUTemp()));    
+        names.push_back("wifi");        values.push_back(String(Esp32::wifiManager.getWiFiStrength()));
 
-    names.push_back("battery");     values.push_back(String(Esp32::getBattRemaining()));
+        names.push_back("battery");     values.push_back(String(Esp32::getBattRemaining()));
+    
+        names.push_back("tempBM_280");  values.push_back(String(BMX280::temp));
+        names.push_back("pressure");    values.push_back(String(BMX280::pressure));
+        names.push_back("altitude");    values.push_back(String(BMX280::altitude));
+        /*names.push_back("co2");         values.push_back(String(Weather::co2));
+        names.push_back("smoke");       values.push_back(String(Weather::smoke));
+        names.push_back("lpg");         values.push_back(String(Weather::lpg));
+        names.push_back("airHumid");    values.push_back(String(Weather::airHumidity));
+        names.push_back("tempDht");     values.push_back(String(Weather::tempDht));
+        names.push_back("ir");          values.push_back(String(Lux::ir_));
+        names.push_back("full");        values.push_back(String(Lux::full_));
+        names.push_back("visible");     values.push_back(String(Lux::visible_));
+        names.push_back("lux");         values.push_back(String(Lux::lux_));*/
+
+        #ifdef VERBOSE
+            Mqtt::sendJson( names, values, "esp32/data/" + Esp32::DEVICE_NAME, true);   
+        #else
+            Mqtt::sendJson( names, values, "esp32/data/" + Esp32::DEVICE_NAME, false);               
+        #endif
+
+    }
    
-    names.push_back("tempBM_280");  values.push_back(String(BMX280::temp));
-    names.push_back("pressure");    values.push_back(String(BMX280::pressure));
-    names.push_back("altitude");    values.push_back(String(BMX280::altitude));
-    /*names.push_back("co2");         values.push_back(String(Weather::co2));
-    names.push_back("smoke");       values.push_back(String(Weather::smoke));
-    names.push_back("lpg");         values.push_back(String(Weather::lpg));
-    names.push_back("airHumid");    values.push_back(String(Weather::airHumidity));
-    names.push_back("tempDht");     values.push_back(String(Weather::tempDht));
-    names.push_back("ir");          values.push_back(String(Lux::ir_));
-    names.push_back("full");        values.push_back(String(Lux::full_));
-    names.push_back("visible");     values.push_back(String(Lux::visible_));
-    names.push_back("lux");         values.push_back(String(Lux::lux_));*/
-
-    #ifdef VERBOSE
-        Mqtt::sendJson( names, values, "esp32/data/" + Esp32::DEVICE_NAME, true);   
-    #else
-        Mqtt::sendJson( names, values, "esp32/data/" + Esp32::DEVICE_NAME, false);               
-    #endif
 }
 
 void printOled()
@@ -110,6 +110,8 @@ void setup()
     Serial.begin(115200);
     Serial.print(F("\nLaunching initial Setup  ")); Serial.print(ver); Serial.print(F("  --   Device: ")); Serial.println(Esp32::DEVICE_NAME);
 
+    static const char* TAG = "Main";
+    esp_log_level_set(TAG,ESP_LOG_WARN); 
     #ifdef VERBOSE
         Esp32::setVerboseLog();
     #endif
@@ -117,19 +119,15 @@ void setup()
     Esp32::configPin(LED_BUILTIN, "OUT", "Builtin LED");   //  TODO :  devrait retourner la pin ou ios [].  comme ca on utiliserait ca sinon pointless on dirait....  on prends encore LED_BUILTIN dans la next commant... :)
     Esp32::ioBlink(LED_BUILTIN,200, 200, 4);
     
-    Esp32::setup();
+    Esp32::setup();  //  
 
-    www::setup();
-
-    if(isUsingMqtt) Mqtt::setup();
+    www::setup();  //  TODO : add safety because SPIFFS must be mounted by ESP32 to insure success       maybe through usage of config struture?
 
     oledConnected = Oled::setupOled();  
 
     bmxConnected  = BMX280::init();
  
-   
-
-    Serial.println(F("Setup completed. - Launching State Machine..."));
+    Serial.println(F("Setup completed. - Launching State Machine...\n"));
 }
 
 
@@ -143,19 +141,20 @@ void loop()
     {
     case SYS_state::BOOT:
 
-            if(isUsingMqtt) {
+            if(Mqtt::isEnabled) {
                 Mqtt::mqttClient.publish("esp32/register", Esp32::DEVICE_NAME.c_str() ); //Once connected, publish an announcement...
-                if(isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());
-                Mqtt::loop();  // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue   
+                if(Mqtt::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());
+              
             }            
             
-            Serial.println("BOOT done\n");
+            Serial.println("BOOT done");
             state = SYS_state::DEVICES_CONFIG;
             break;
 
     case SYS_state::DEVICES_CONFIG:
 
-            if(Esp32::hourglass.setupTimeSync()) Esp32::hourglass.getDateTimeString(true);
+           
+            
             //setupTimerz();
            // setupSensors();
             //setupAlarmsClock();
@@ -164,9 +163,9 @@ void loop()
             //boat.setDir(135);
             //boat.setSpeed(1,1,0);    
 
-            hockey.setup();
+            //hockey.setup();
 
-            Serial.println("\nSENSORS & ALARMLib CONFIG done\n");
+            Serial.println("SENSORS & ALARMLib CONFIG done");
             state = SYS_state::HEATUP;
             break;
     
@@ -188,20 +187,17 @@ void loop()
             Esp32::getBattRemaining(true);
             if(bmxConnected) BMX280::actualizeWeather(true);
 
-            hockey.warmup();
+            //hockey.warmup();
             //Lux::loop(); 
             
-            Serial.print("FIRST LOOP done -- ");
-            Serial.println("Let's roll!\n");
+            Serial.println("FIRST LOOP done -- Let's roll!\n");
             state = SYS_state::LOOP;
             break;
 
     case SYS_state::LOOP:       
-            
-            if(isUsingMqtt) Mqtt::loop();  // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue 
-           
+                       
             //boat.loop();
-            hockey.loop();
+            //hockey.loop();
 
             static unsigned long startTime1 = 0;
             static unsigned long startTime5 = 0;
@@ -212,7 +208,7 @@ void loop()
 
                 if(oledConnected) printOled();   
 
-                if(isUsingMqtt) sendHeartbeat();  
+                sendHeartbeat();  
             }
 
             if (millis() - startTime5 >= 5000UL)
@@ -223,7 +219,7 @@ void loop()
                 //boat.pressure = BMX280::pressure;
                 //Lux::loop(); 
                 
-                if(isUsingMqtt) sendData();
+               sendData();
             }
             break;  
 

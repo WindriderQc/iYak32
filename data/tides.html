@@ -5,16 +5,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.min.js"></script>
+
+  <script src="components/topMenu.js" type="text/javascript" defer></script>
+  <script src="components/footer.js" type="text/javascript" defer></script>  
   
   <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-    <div class="topnav">
-        <a class="active" href="index.html">Home</a>
-        <a href="tides.html">Tides</a>
-        <a href="#mqtt">MQTTViewer</a>
-        <a href="about.html">About</a>
-      </div>
+    <header-component></header-component>
+  
 
   <h1>Current Tide Level in Quebec</h1>
   <p id="currentTide"></p>
@@ -36,9 +35,12 @@
   </div>
 
   <script>
+
+    //  TODO :   stock last tides data gathered so you can always display some infos on graph.
+
     let tideData = [];
     let tideTimes = [];
-
+    const apikeyTides = '60f4ee94-8a46-4380-92be-8dcedd40ac58'   // TODO mettre dans config.txt
     async function fetchData() {
         let data;
 
@@ -53,7 +55,7 @@
 
         } else {
             console.log('fetching API data');
-            const response = await fetch('https://www.worldtides.info/api/v3?heights&extremes&key=60f4ee94-8a46-4380-92be-8dcedd40ac58&lat=46.8139&lon=-71.2082&days=4');
+            const response = await fetch('https://www.worldtides.info/api/v3?heights&extremes&key='+ apikeyTides +'&lat=46.8139&lon=-71.2082&days=4');
             data = await response.json();
             
             // Cache the data
@@ -127,5 +129,6 @@
 
     fetchData();
   </script>
+
 </body>
 </html>
