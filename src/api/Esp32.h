@@ -18,6 +18,17 @@
 
 
 
+
+/* 
+
+    ESP32 API / Librairie providing all methods to configure ESP32 IOs, WIFI, Mqtt, time and various devices that can be added/configure to the ESP.
+    Needs a mqtt.txt file in data folder containing user:pass
+    
+
+*/
+
+
+
 namespace Esp32   //  ESP 32 configuration and helping methods
 {
    
@@ -397,12 +408,13 @@ namespace Esp32   //  ESP 32 configuration and helping methods
                 configDoc["ssid"] = "";
                 configDoc["pass"] ="";
                 configDoc["mqttport"] = 1883;
-                configDoc["mqttIP0"] = "";
-                configDoc["mqttIP1"] = "";
-                configDoc["mqttIP2"] = "";
-                configDoc["mqttIP3"] = "";
+                configDoc["ip0"] = "";
+                configDoc["ip1"] = "";
+                configDoc["ip2"] = "";
+                configDoc["ip3"] = "";
+                configDoc["profileName"] = "default_ESP32";
                 Serial.println("setup -> Could not read Config file -> initializing new file");
-                // if not possible -> save new config file
+               
                 if (saveConfig(configDoc)) Serial.println("setup -> Config file saved");   
             
             }

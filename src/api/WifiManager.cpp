@@ -111,7 +111,7 @@ bool WifiManager::tryConnectToPreferredNetworks()
         return false;
     }
 
-    File configFile = SPIFFS.open("/config.txt", "r"); // Open the config file for reading
+    File configFile = SPIFFS.open("/config.txt", "r"); // Open the config file for reading   //  TODO : mettre en array dans esp32config.json
 
     if (!configFile) {    Serial.println("Failed to open config file");    return false;  }
 
