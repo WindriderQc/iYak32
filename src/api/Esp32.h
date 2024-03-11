@@ -24,6 +24,11 @@
     ESP32 API / Librairie providing all methods to configure ESP32 IOs, WIFI, Mqtt, time and various devices that can be added/configure to the ESP.
     Needs a mqtt.txt file in data folder containing user:pass
     
+    Mqtt:
+    on /esp32 channel, the device id is then used and commands structure follows....   ex:  eps32/ESP_35030/io/on
+    
+    
+    TODO: all msg should be json { status: , msg: , data:  , ... }   sill to uniformize
 
 */
 

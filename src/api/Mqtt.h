@@ -19,6 +19,10 @@
 The maximum message size, including header, is 128 bytes by default. This is configurable via MQTT_MAX_PACKET_SIZE in PubSubClient.h or through build_flag in platformio.ini.
 The keepalive interval is set to 15 seconds by default. This is configurable via MQTT_KEEPALIVE in PubSubClient.h.
 client.loop() must be called...
+
+
+on /esp32 channel, the device id is then used and commands structure follows....   ex:  eps32/ESP_35030/io/on
+
 */
 
 
