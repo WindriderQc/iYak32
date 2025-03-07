@@ -167,6 +167,9 @@ namespace www
             request->send(404, "text/plain", "");
             }*/
         });
+        server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
+            Esp32::reboot();
+        });
 
         
 

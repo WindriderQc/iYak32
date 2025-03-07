@@ -30,7 +30,7 @@
   <br>
 
   <form>
-    <button class="button" onclick=saveConfig()> Save to ESP32 Config JSON </button>
+    <button class="button mx-2 px-1" onclick=saveConfig()> Save to ESP32 Config JSON </button>
 
     <br><br>
 
@@ -156,6 +156,7 @@
         const response = await fetch('/config', options)
         const respjson = await response.json()
         console.log(respjson); 
+        await fetch('/reboot')
     }
 
 

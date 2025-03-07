@@ -44,7 +44,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     JsonDocument configJson_;
     String configString_;
    
-
+    bool spiffsMounted = false;
 
 
     const int ADC_Max = 4095;    
@@ -395,12 +395,14 @@ namespace Esp32   //  ESP 32 configuration and helping methods
             if (!SPIFFS.begin(true)) {
                 Serial.println("SPIFFS mount failed\nFormatting not possible - check if a SPIFFS partition is present for your board?");
                 ioBlink(LED_BUILTIN,100, 100, 8); // Show SPIFFS failure
+                spiffsMounted = false;
             } else {
                 Serial.println("Formatting");
+                spiffsMounted = false;
             }
         } else {
             Serial.println("setup -> SPIFFS mounted successfully");
-
+            spiffsMounted = true;
             Storage::listDir("/", 4);  //  TODO : show only files on root, not folders....  
 
             // loading config json and saving it as JsonDocument. If loading fails, create a default json and save the default file.

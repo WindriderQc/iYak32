@@ -29,6 +29,11 @@ Available features:
     const char* apPassword = "12345678";
 -------------------------------------------------------------------------------
 
+- MQTT
+    mqtt.txt  file must be in the data folder with a simple line:
+user:password
+
+
 
 Upcoming intentions:
 - Add directions and speed control from webInterface

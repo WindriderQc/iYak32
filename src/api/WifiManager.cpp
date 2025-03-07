@@ -3,6 +3,9 @@
 #include <ArduinoOTA.h> 
 #include <SPIFFS.h>
 
+//  A data/config.txt file can be created, holding lines of ssid:password to preset a list of prefered network.
+//  Apps will try to connect on user set network first, and then switch to prefered network list if previously unsuccessful
+//  setup() and loop() must be called to use
 
 
 void WifiManager::setup(bool enableOTA, String ssid, String password) 
@@ -12,8 +15,9 @@ void WifiManager::setup(bool enableOTA, String ssid, String password)
     ssid_ = ssid;
     pass_ = password;
   
-    // if(!tryConnectToUserNetwork(ssid, password)) tryConnectToPreferredNetworks();
-    tryConnectToUserNetwork(ssid, password);
+    bool check = tryConnectToUserNetwork(ssid, password);
+    if(!check) tryConnectToPreferredNetworks(); 
+    
 
     // If all preferred networks failed, start an Access Point
     if (!isWifiConnected)  startAccessPoint();
@@ -60,8 +64,8 @@ void WifiManager::relaunchOTA()
 void WifiManager::loop() 
 {
     if ((!isWifiConnected) && isAutoReconnect) {
-        // if(!tryConnectToUserNetwork(ssid_, pass_)) tryConnectToPreferredNetworks(); 
-        tryConnectToUserNetwork(ssid_, pass_);
+        if(!tryConnectToUserNetwork(ssid_, pass_)) tryConnectToPreferredNetworks(); 
+        //tryConnectToUserNetwork(ssid_, pass_);
     }
     if(isOTA) handleOTA(); // Handle OTA updates
 }
@@ -103,6 +107,7 @@ bool WifiManager::tryConnectToUserNetwork(String ssid, String password)
 
 
 
+// Deprecated - Not used in the current implementation    tryConnectToUserNetwork is used instead
 
 bool WifiManager::tryConnectToPreferredNetworks() 
 {

@@ -163,7 +163,12 @@ namespace Mqtt
         Serial.print(F("MQTT server IP address retrieved: "));  Serial.println(server_ip);
         
         mqttClient.disconnect();
-        mqttClient.setServer(server_ip, port_);
+
+        IPAddress default_ip(0, 0, 0, 0);
+
+        if(server_ip == default_ip)  mqttClient.setServer("specialblend.ca", port_);
+        else                         mqttClient.setServer(server_ip, port_);
+       
         //mqttClient.setBufferSize(512);  Semble pas marcher...  build flag dans platformio a la place
         //mqttClient.setCallback(incomingCallback);
       

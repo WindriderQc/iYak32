@@ -14,7 +14,7 @@
 </head>
 <body class='bg-transparent sticky-footer' id='page-top'>  
     
-    <header-component></header-component>
+    <header-component>Testing Header Component</header-component>
 
   <!-- The display frame div -->
   <div id="canvasDiv"></div> 
@@ -27,7 +27,17 @@
 
   <h1>ESP32 Web Server</h1>
 
-  <form class = 'card'>
+
+  <p>GPIO state: <strong> %STATE%</strong></p>
+  <p>
+    <a href="/on"><button class="button">ON</button></a>
+    <a href="/off"><button class="button button2">OFF</button></a>
+  </p>
+  </br></br>
+
+
+
+  <form class = 'card px-3'>
     <h3>Weather</h3>
     <p>Temperature: <strong> %TEMP%</strong></p>
     <p>Pression: <strong> %PRESSION%</strong></p>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT WebSocket Test</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+    
+<h1>MQTT WebSocket Test</h1>
+<form id="mqttForm">
+    <label for="connectString">Connect String:</label>
+    <input type="text" id="connectString" name="connectString" value="ws://specialblend.ca:9001"><br><br>
+    <label for="useDefault">Use default test server:</label>
+    <input type="checkbox" id="useDefault" name="useDefault" onclick="toggleDefaultServer()"><br><br>
+    <button type="button" onclick="resetConnection()">Connect</button><br><br>
+    <label for="topic">Topic:</label>
+    <input type="text" id="topic" name="topic" value="test/topic"><br><br>
+    <label for="message">Message:</label>
+    <input type="text" id="message" name="message" value="Hello MQTT"><br><br>
+    <button type="button" onclick="mqttPost()">Publish</button><br><br>
+    <label for="newTopic">New Topic:</label>
+    <input type="text" id="newTopic" name="newTopic"><br><br>
+    <button type="button" onclick="subscribeTopic()">Subscribe</button><br><br>
+    <h2>Subscribed Topics</h2>
+    <ul id="subscribedTopicsList"></ul>
+</form>
+
+<script>
+    let client;
+    const defaultServer = 'ws://test.mosquitto.org:8080/mqtt';
+    const subscribedTopics = new Set();
+
+    function toggleDefaultServer() {
+        const useDefault = document.getElementById('useDefault').checked;
+        const connectStringInput = document.getElementById('connectString');
+        const connectButton = document.querySelector('button[onclick="resetConnection()"]');
+        
+        if (useDefault) {
+            connectStringInput.disabled = true;
+            connectButton.disabled = true;
+        } else {
+            connectStringInput.disabled = false;
+            connectButton.disabled = false;
+        }
+    }
+
+    function resetConnection() {
+        const connectString = document.getElementById('useDefault').checked ? defaultServer : document.getElementById('connectString').value;
+        
+        if (client) {
+            client.end();
+        }
+
+        client = mqtt.connect(connectString);
+
+        client.on('connect', () => {
+            console.log('Connected to MQTT broker');
+            subscribeToInitialTopics();
+        });
+
+        client.on('message', (topic, message) => {
+            // message is Buffer
+            console.log(`Received message on topic ${topic}: ${message.toString()}`);
+        });
+    }
+
+    function mqttPost() {
+        const topic = document.getElementById('topic').value;
+        const message = document.getElementById('message').value;
+        client.publish(topic, message, (err) => {
+            if (err) {
+                console.error('Failed to publish message:', err);
+            } else {
+                console.log('Message published successfully');
+            }
+        });
+    }
+
+    function subscribeTopic() {
+        const newTopic = document.getElementById('newTopic').value;
+        if (newTopic && !subscribedTopics.has(newTopic)) {
+            client.subscribe(newTopic, (err) => {
+                if (!err) {
+                    subscribedTopics.add(newTopic);
+                    updateSubscribedTopicsList();
+                    console.log(`Subscribed to topic ${newTopic}`);
+                } else {
+                    console.error(`Failed to subscribe to topic ${newTopic}:`, err);
+                }
+            });
+        }
+    }
+
+    function subscribeToInitialTopics() {
+        const initialTopics = ['presence'];
+        initialTopics.forEach(topic => {
+            client.subscribe(topic, (err) => {
+                if (!err) {
+                    subscribedTopics.add(topic);
+                    updateSubscribedTopicsList();
+                }
+            });
+        });
+    }
+
+    function updateSubscribedTopicsList() {
+        const list = document.getElementById('subscribedTopicsList');
+        list.innerHTML = '';
+        subscribedTopics.forEach(topic => {
+            const listItem = document.createElement('li');
+            listItem.textContent = topic;
+            list.appendChild(listItem);
+        });
+    }
+
+    // Initialize connection on page load
+    resetConnection();
+</script>
+
+</body>
+</html>
