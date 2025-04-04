@@ -2,6 +2,7 @@
 
 #include "ISensor.h"
 
+
 namespace Sensor {
 
     class AnLux : public Sensor::ISensor

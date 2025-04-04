@@ -30,6 +30,17 @@
     
     TODO: all msg should be json { status: , msg: , data:  , ... }   sill to uniformize
 
+
+    Esp32 are listening to :
+        - esp32
+        - esp32/DEVICE_NAME
+
+        esp32/DEVICE_NAME/io/on msg: GPIO
+        esp32/DEVICE_NAME/io/off msg: GPIO
+        esp32/DEVICE_NAME/io/sunrise msg: GPIO:HH:MM:SS
+        esp32/DEVICE_NAME/io/nightfall msg: GPIO:HH:MM:SS
+        esp32/DEVICE_NAME/reboot
+        esp32/DEVICE_NAME/config msg: Stringify->config = [ { io: 2, mode: "IN", lbl: "A0", isA: 0, pre: "none" },{ io: 4, mode: "IN", lbl: "A1", isA: 0, pre: "none" }]
 */
 
 
@@ -303,14 +314,15 @@ namespace Esp32   //  ESP 32 configuration and helping methods
 
         Mqtt::isEnabled =           configJson_["isMqtt"];     
         Mqtt::isConfigFromServer =  configJson_["isConfigFromServer"]; 
+        Mqtt::port_ =               configJson_["mqttport"];
 
         IPAddress mqttIP = IPAddress(configJson_["ip0"], configJson_["ip1"], configJson_["ip2"], configJson_["ip3"]);
         
         if(Mqtt::isEnabled) {
             Mqtt::mqttClient.setCallback(mqttIncoming);
 
-            if (!Mqtt::setup(DEVICE_NAME, mqttIP, configJson_["mqttport"]))     Serial.print("Mqtt setup fail"); 
-            else                                                            Serial.print("Mqtt setup completed");                    
+            if (!Mqtt::setup(DEVICE_NAME, mqttIP, Mqtt::port_ ))     Serial.print("Mqtt setup fail"); 
+            else                                                     Serial.print("Mqtt setup completed");                    
                                                                                                                 
         } 
     }
