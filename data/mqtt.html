@@ -11,8 +11,8 @@
 <h1>MQTT WebSocket Test</h1>
 <form id="mqttForm">
     <label for="connectString">Connect String:</label>
-    <input type="text" id="connectString" name="connectString" value="ws://specialblend.ca:9001"><br><br>
-    <label for="useDefault">Use default test server:</label>
+    <input type="text" id="connectString" name="connectString" value="wss://mqtt.specialblend.ca"><br><br>
+    <label for="useDefault">Use default test server "ws://test.mosquitto.org:8080/mqtt":</label>
     <input type="checkbox" id="useDefault" name="useDefault" onclick="toggleDefaultServer()"><br><br>
     <button type="button" onclick="resetConnection()">Connect</button><br><br>
     <label for="topic">Topic:</label>

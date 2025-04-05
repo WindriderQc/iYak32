@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hockey Configuration</title>
+
+    <link rel="stylesheet" type="text/css" href="style.css">
+    
+</head>
+<body>
+    <h1>Hockey Configuration</h1>
+
+    <!-- Scoreboard -->
+    <div class="scoreboard" id="scoreboard">00:00</div>
+
+    <!-- Pause and Reset Buttons -->
+    <button class="button button-green" onclick="sendCommand('pause')">Pause</button>
+    <button class="button button-red" onclick="sendCommand('reset')">Reset</button>
+
+    <!-- Left Fluctuation Detection Configuration -->
+    <div class="form-container">
+        <h3>Left Fluctuation Detection</h3>
+        <label for="leftDelta">Detection Delta:</label>
+        <input type="number" id="leftDelta" placeholder="Enter delta value">
+        <button class="button" onclick="setDelta('left')">Set</button>
+        <p>Current Value: <span id="leftValue">0</span></p>
+    </div>
+
+    <!-- Right Fluctuation Detection Configuration -->
+    <div class="form-container">
+        <h3>Right Fluctuation Detection</h3>
+        <label for="rightDelta">Detection Delta:</label>
+        <input type="number" id="rightDelta" placeholder="Enter delta value">
+        <button class="button" onclick="setDelta('right')">Set</button>
+        <p>Current Value: <span id="rightValue">0</span></p>
+    </div>
+
+    <h5>IO Status</h5>
+    <p>Analoger Pin 34: <span id='pin34'></span></p>
+    <p>Analoger Pin 39: <span id='pin39'></span></p>
+    <p>Analoger Pin 5: <span id='pin5'></span></p>
+
+
+    <script>
+    // Function to send commands (pause/reset) to the ESP32
+    function sendCommand(command) {
+        fetch(`/${command}`, { method: 'POST' })
+            .then(response => response.text())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Function to set the delta value for left or right fluctuation detection
+    function setDelta(side) {
+        const delta = document.getElementById(`${side}Delta`).value;
+        fetch(`/setDelta?side=${side}&value=${delta}`, { method: 'POST' })
+            .then(response => response.text())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+    }
+
+       
+
+
+
+    function requestData() {
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', 'sensors');
+
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+
+          if (xhr.responseText) { // if the returned data is not null, update the values
+
+            var data = JSON.parse(xhr.responseText);
+
+            document.getElementById("pin34").innerText = data.pin34;
+            document.getElementById("pin39").innerText = data.pin39;
+            document.getElementById("pin5").innerText = data.pin5;
+
+          } else { // a problem occurred
+
+            document.getElementById("pin34").innerText = "?";
+            document.getElementById("pin39").innerText = "?";
+            document.getElementById("pin5").innerText = "?";
+          }
+        } else {
+          console.log('Request failed.  Returned status of ' + xhr.status);
+
+          document.getElementById("pin34").innerText = "?";
+          document.getElementById("pin39").innerText = "?";
+          document.getElementById("pin5").innerText = "?";
+
+        }
+      };
+      
+      xhr.send();
+    }
+
+    requestData(); // get intial data straight away 
+    // request data updates every 5000 milliseconds
+    setInterval(requestData, 1000);
+
+    
+  </script>
+</body>
+
+</html>

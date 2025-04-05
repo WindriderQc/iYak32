@@ -17,7 +17,7 @@ namespace Sensor {
             String msg = "";
  
             int value = analogRead(pin_id());
-Serial.println(value);
+//Serial.println(value);
            
             if(value >= lastValue + fluctDetection) {    //   High = darker
                 //msg = message("Increasing: " + String(value));   

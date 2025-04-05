@@ -20,6 +20,7 @@ namespace Hockey
     const int CLK = 32; // TM1637 Module connection pins (Digital Pins)
     const int DIO =  33; // TM1637 Module connection pins (Digital Pins)
     const int REDLED = 21; 
+    // 14 =  buzzer pin  //  defined in esp32.h
 
     // XX:XX 7-segment display module 
     TM1637Display display(CLK, DIO);
@@ -104,7 +105,6 @@ namespace Hockey
 
         void loop() 
         {
-            
             unsigned long elapsedSeconds;
             unsigned int minutes, seconds;
             String timeString;
@@ -113,7 +113,6 @@ namespace Hockey
             unsigned long currentTime  = millis();  
             unsigned long delta = currentTime - lastLoop;
             lastLoop = currentTime;
-
 
             // if score changed via interrupts, actualize scorestring
             String newstr = String("") + doubleDigit(scoreLeft) + String(":") + doubleDigit(scoreRight) ;
@@ -128,6 +127,7 @@ namespace Hockey
             if(!digitalRead(PAUSE)) pause();
 
             String msg;
+           
             switch(state) 
             {
                 case HOCKEY_state::eINTRO:           
@@ -165,7 +165,7 @@ namespace Hockey
                         if(msg.length() != 0) { goalLeft(); Serial.println(msg);  }
                         
                         msg = senseRight.loop(); 
-                        if(msg.length() != 0) {  goalRight();  Serial.println(msg);  }
+                        if(msg.length() != 0) {  goalRight();  Serial.println(msg);   }
                         break;
 
                 case HOCKEY_state::eGOALLEFT:

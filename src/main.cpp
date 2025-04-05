@@ -1,13 +1,21 @@
 //#define VERBOSE
+#define HOCKEY
+//#define BOAT
+
 #include <Arduino.h>
 #include "api/Esp32.h"
 #include "api/devices/BMX280.h"  //  TODO : devrait etre encaps dans un device...   device = gestion IO = main config n feature focus
 #include "api/devices/Oled.h"
 
 #include "www.h"
-//#include "Boat.h"
-#include "Hockey.h"
 
+#ifdef BOAT
+    #include "Boat.h"
+#endif
+
+#ifdef HOCKEY  
+    #include "Hockey.h"
+#endif
 
 const char* ver = "v1:7 ";
 
@@ -147,11 +155,15 @@ void loop()
            // setupSensors();
             //setupAlarmsClock();
 
-            //boat.setup(boat.SERVO_PIN, boat.RPWM, boat.LPWM, Esp32::ADC_Max);
-            //boat.setDir(135);
-            //boat.setSpeed(1,1,0);    
+#ifdef BOAT  
+            boat.setup(boat.SERVO_PIN, boat.RPWM, boat.LPWM, Esp32::ADC_Max);
+            boat.setDir(135);
+            boat.setSpeed(1,1,0); 
+#endif
 
-            //hockey.setup();
+#ifdef HOCKEY  
+            hockey.setup();
+#endif
 
             Serial.println("SENSORS & ALARMLib CONFIG done");
             state = SYS_state::HEATUP;
@@ -175,7 +187,10 @@ void loop()
             Esp32::getBattRemaining(true);
             if(bmxConnected) BMX280::actualizeWeather(true);
 
-            //hockey.warmup();
+#ifdef HOCKEY  
+            hockey.warmup();
+#endif            
+           
             //Lux::loop(); 
             
             Serial.println("FIRST LOOP done -- Let's roll!\n");
@@ -183,9 +198,14 @@ void loop()
             break;
 
     case SYS_state::LOOP:       
-                       
-            //boat.loop();
-            //hockey.loop();
+              
+#ifdef HOCKEY  
+            hockey.loop();
+#endif     
+            
+#ifdef BOAT  
+            boat.loop();
+#endif              
 
             static unsigned long startTime1 = 0;
             static unsigned long startTime5 = 0;
@@ -204,7 +224,10 @@ void loop()
                 startTime5 = millis(); 
 
                 if(bmxConnected) BMX280::actualizeWeather();  
-                //boat.pressure = BMX280::pressure;
+#ifdef BOAT  
+                boat.pressure = BMX280::pressure;
+#endif                
+                
                 //Lux::loop(); 
                 
                if(Mqtt::isEnabled) sendData();     //   TODO :   set les frequence d'envoi via la page web et config.

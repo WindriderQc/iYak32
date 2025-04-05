@@ -173,7 +173,20 @@ namespace www
 
         
 
+        // Respond to /sensors route
+        server.on("/hockey/sensors", HTTP_GET, [](AsyncWebServerRequest *request){
+            int val34 = analogRead(34);
+            int val39 = analogRead(39);
+            int val5  = digitalRead(5);
 
+            String json = "{";
+            json += "\"pin34\":" + String(val34) + ",";
+            json += "\"pin39\":" + String(val39) + ",";
+            json += "\"pin5\":"  + String(val5);
+            json += "}";
+
+            request->send(200, "application/json", json);
+        });
 
 
 
