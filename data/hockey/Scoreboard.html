@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hockey Configuration</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <nav class="menu">
+        <ul>
+          <li><a href="Scoreboard.html">Scoreboard</a></li>
+          <li><a href="Stats.html">Stats</a></li>
+          <li><a href="Hockey.html">Config</a></li>
+        </ul>
+      </nav>
+    
+
+
+  <h1>Hockey Scoreboard</h1>
+
+    <!-- Scoreboard -->
+    <div class="scoreboard-container">
+        <div class="game-status">
+            <img id="gameStatusGif" 
+                src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHB0Y28wOGtkNWhjNDBqYnBoY3NmNzJqdXQxN2N6M2I4eHB0aGY5eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/4aj9pOvliF488/giphy.gif" 
+                alt="Game Status" class="game-status-gif">
+        </div>
+        <div class="scoreboard">
+            <div class="team-score" id="scoreLeft">00</div>
+            <div class="time-period">
+                <div class="time" id="time">00:00</div>
+                <div class="period">
+                    <div class="period-value" id="period">1</div>
+                    <div class="period-label">Period</div>
+                </div>
+            </div>
+            <div class="team-score" id="scoreRight">00</div>
+        </div>
+    </div>
+
+  <!-- Pause and Reset Buttons -->
+  <button class="button button-green" onclick="sendCommand('pause')">Pause</button>
+  <button class="button button-red" onclick="sendCommand('reset')">Reset</button>
+
+  
+
+  <script>
+
+    let previousStatus = null;
+
+
+    function updateScoreboard() {
+        fetch('scoreboard')
+            .then(res => res.json()) // Parse the response as JSON
+            .then(data => {
+                 // Format scores as double digits
+                const scoreLeft = data.scoreLeft.toString().padStart(2, '0');
+                const scoreRight = data.scoreRight.toString().padStart(2, '0');
+
+                // Update the scoreboard with the formatted scores
+                document.getElementById('scoreLeft').innerText = scoreLeft;
+                document.getElementById('scoreRight').innerText = scoreRight;
+                document.getElementById('time').innerText = data.time ?? "??:??";
+                document.getElementById('period').innerText = data.period ?? "?";
+
+                const gameStatusGif = document.getElementById('gameStatusGif');
+                let gameStatus = "?";
+                switch(data.gameStatus) {
+                    case 0:
+                        gameStatus = "eON";
+                        if(previousStatus != gameStatus) {
+                            previousStatus = gameStatus;
+                            gameStatusGif.src = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHNpbnFqbTFoMnZ4NDJsdTI1MzZ5am5kZjl2cHVzaXN1MWM2b3k0ZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/BeY2MQgCQjmDwap41Z/giphy.gif";
+                        }
+                        break;
+                    case 1:
+                        gameStatus = "eINTRO";
+                        if(previousStatus != gameStatus) {
+                            previousStatus = gameStatus;
+                            gameStatusGif.src = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHB0Y28wOGtkNWhjNDBqYnBoY3NmNzJqdXQxN2N6M2I4eHB0aGY5eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/4aj9pOvliF488/giphy.gif";
+                        }
+                        break;
+                    case 2:
+                        gameStatus = "eGOALLEFT";
+                        if(previousStatus != gameStatus) {
+                            previousStatus = gameStatus;
+                            gameStatusGif.src = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOGQ2dnI3bnduM3A4cDkzejdiemwxbHh5YzVyc2NxNmR4a2d0NDBzMiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pM3953AIAaNWcV46g7/giphy.gif";
+                        }
+                        break;
+                    case 3:
+                        gameStatus = "eGOALRIGHT";
+                        if(previousStatus != gameStatus) {
+                            previousStatus = gameStatus;
+                            gameStatusGif.src = "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExaHE0cXR5eTEyNDVwOHJ3YXExdjBiZndxb2RhZGxkbTViZ2pmMjgzbSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/26ufi5IIOGQBjpzUs/giphy.gif";
+                        }
+                        break;
+                    case 4:
+                        gameStatus = "ePERIOD_BELL";
+                        if(previousStatus != gameStatus) {
+                            previousStatus = gameStatus;
+                            gameStatusGif.src = "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdm1jYjF1Z2U1eTV5aGhpb21xNDZldXlqM29tcnV2OGM0MW5taHdiOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/5qFZgpOSdzfkakIDdm/giphy.gif";
+                        }
+                        break;
+                    case 5:
+                        gameStatus = "eDROP_PUCK";
+                        if(previousStatus != gameStatus) {
+                            previousStatus = gameStatus;
+                            gameStatusGif.src = "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXF2N3Zoc3czeDByY2l2ZnJxOXRhNGJzMnllNDJsNGlkejJua2lmeiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gnrmDwZDVj0gHYUevN/giphy.gif";
+                        }
+                        break;
+                    case 6:
+                        gameStatus = "ePAUSE";
+                        if(previousStatus != gameStatus) {
+                            previousStatus = gameStatus;
+                            gameStatusGif.src = "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExdm1jYjF1Z2U1eTV5aGhpb21xNDZldXlqM29tcnV2OGM0MW5taHdiOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/5qFZgpOSdzfkakIDdm/giphy.gif";
+                        }
+                        break;    
+                    default:
+                        gameStatusGif.src = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHB0Y28wOGtkNWhjNDBqYnBoY3NmNzJqdXQxN2N6M2I4eHB0aGY5eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/4aj9pOvliF488/giphy.gif";
+                        gameStatus = "?";
+                }   
+                console.log(`Game Status: ${gameStatus}`);             
+                //document.getElementById('gameStatus').innerText = `Game Status: ${gameStatus}`;
+            })
+            .catch(error => {
+                console.error('Error fetching scoreboard:', error);
+                // Handle errors by showing default values
+                document.getElementById('scoreLeft').innerText = "00";
+                document.getElementById('scoreRight').innerText = "00";
+                document.getElementById('time').innerText = "??:??";
+                document.getElementById('period').innerText = "?";
+                document.getElementById('gameStatus').innerText = "Game Status: ?";
+            });
+}
+
+    updateScoreboard(); // Call immediately on load
+    setInterval(updateScoreboard, 900);
+   
+
+
+    function sendCommand(command) {
+      fetch(`${command}`, { method: 'POST' })
+        .then(response => response.text())
+        .then(data => console.log(data))
+        .catch(error => console.error('Error:', error));
+    }
+
+
+
+
+  </script>
+</body>
+</html>

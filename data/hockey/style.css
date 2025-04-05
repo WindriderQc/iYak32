@@ -47,6 +47,41 @@ body {
     min-width: 250px;
   }
 
+  .menu {
+    background-color: #333;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+.menu ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 20px;
+}
+
+.menu li {
+    display: inline;
+}
+
+.menu a {
+    text-decoration: none;
+    color: white;
+    padding: 10px 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.menu a:hover {
+    background-color: #575757;
+    border-radius: 5px;
+}
+
   canvas {
     max-width: 100%;
   }
@@ -57,8 +92,8 @@ body {
 }
 
 .game-status-gif {
-    width: 50px; /* Adjust size as needed */
-    height: 50px;
+   /* width: 240px; /* Adjust size as needed */
+    height: 240px;
 }
 
 

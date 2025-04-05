@@ -36,7 +36,7 @@ class Header extends HTMLElement {
                 <a id="setup-link" href="setup.html">Setup</a>
                 <a id="tides-link" href="tides.html">Tides</a>
                 <a id="mqtt-link" href="mqtt.html">MQTTViewer</a>
-                <a id="hockey-link" href="hockey/hockey.html">Hockey</a>
+                <a id="hockey-link" href="hockey/Scoreboard.html">Hockey</a>
                 <a id="about-link" href="about.html">About</a>
             </nav>
 

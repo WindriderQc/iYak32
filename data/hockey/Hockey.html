@@ -9,13 +9,21 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+
+    <nav class="menu">
+        <ul>
+          <li><a href="Scoreboard.html">Scoreboard</a></li>
+          <li><a href="Stats.html">Stats</a></li>
+          <li><a href="Hockey.html">Config</a></li>
+        </ul>
+      </nav>
+    
   <h1>Hockey Configuration</h1>
 
     <!-- Scoreboard -->
     <div class="scoreboard-container">
-        <div class="game-status">
-            <img id="gameStatusGif" src="default.gif" alt="Game Status" class="game-status-gif">
-        </div>
+        <div id="gameStatus" class="game-status"></div>
+            
         <div class="scoreboard">
             <div class="team-score" id="scoreLeft">00</div>
             <div class="time-period">
@@ -50,6 +58,15 @@
       <button class="button" onclick="setDelta('right')">Set</button>
       <p>Current Value: <span id="rightValue">0</span></p>
     </div>
+  </div>
+
+
+  <div class="form-container">
+    <h3>Period Length</h3>
+    <label for="periodLength">Period Length:</label>
+    <input type="number" id="periodLength" placeholder="Enter minutes value">
+    <button class="button" onclick="setPeriodLength()">Set</button>
+    <p>Current Value: <span id="periodLenghtValue">0</span></p>
   </div>
 
   <h5>IO Status</h5>
@@ -122,6 +139,15 @@
         .catch(error => console.error('Error:', error));
     }
 
+    function setPeriodLength() {
+      const minutes = document.getElementById(`periodLength`).value;
+      fetch(`setPeriodLength?minutes=${minutes}`, { method: 'POST' })
+        .then(response => response.text())
+        .then(data => console.log(data))
+        .catch(error => console.error('Error:', error));
+    }
+
+
     function setDelta(side) {
       const delta = document.getElementById(`${side}Delta`).value;
       fetch(`setDelta?side=${side}&value=${delta}`, { method: 'POST' })
@@ -150,7 +176,7 @@
     requestData();
     setInterval(requestData, 1000);
 
-
+    let previousStatus = null;
 
 
     function updateScoreboard() {
@@ -166,43 +192,14 @@
                 document.getElementById('scoreRight').innerText = scoreRight;
                 document.getElementById('time').innerText = data.time ?? "??:??";
                 document.getElementById('period').innerText = data.period ?? "?";
-
-                const gameStatusGif = document.getElementById('gameStatusGif');
-                let gameStatus = "?";
-                switch(data.gameStatus) {
-                    case 0:
-                        gameStatus = "eON";
-                        gameStatusGif.src = "https://giphy.com/gifs/TeamColorCodes-gnrmDwZDVj0gHYUevN"; 
-                        // https://giphy.com/gifs/WarChildNorthAmerica-warchild-playtofree-play-to-free-BeY2MQgCQjmDwap41Z
-                        break;
-                    case 1:
-                        gameStatus = "eINTRO";
-                        gameStatusGif.src = "https://giphy.com/gifs/nes-snes-7OWs6QPW3smYAKTFav";
-                        break;
-                    case 2:
-                        gameStatus = "eGOALLEFT";
-                        gameStatusGif.src = "https://giphy.com/gifs/ice-hockey-warrior-covert-qrl-3q4TRsKsx8g4mMcE4F";
-                        break;
-                    case 3:
-                        gameStatus = "eGOALRIGHT";
-                        gameStatusGif.src = "https://giphy.com/gifs/southparkgifs-26ufi5IIOGQBjpzUs";
-                        break;
-                    case 4:
-                        gameStatus = "ePERIOD_BELL";
-                        gameStatusGif.src = "https://giphy.com/gifs/nes-snes-5qFZgpOSdzfkakIDdm";
-                        break;
-                    case 5:
-                        gameStatus = "eDROP_PUCK";
-                        gameStatusGif.src = "https://giphy.com/gifs/SportsManias-emoji-sportsmanias-YllMTZ8ZVswBVvvdA8";
-                        break;
-                    case 6:
-                        gameStatus = "ePAUSE";
-                        gameStatusGif.src = "https://giphy.com/gifs/nes-snes-5qFZgpOSdzfkakIDdm";
-                        break;    
-                    default:
-                        gameStatusGif.src = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHB0Y28wOGtkNWhjNDBqYnBoY3NmNzJqdXQxN2N6M2I4eHB0aGY5eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/4aj9pOvliF488/giphy.gif";
-                        gameStatus = "?";
-                }                
+               // document.getElementById('periodLength').value = data.periodLength ?? "0";
+                document.getElementById('periodLenghtValue').innerText = data.periodLength ?? "0";
+                
+                
+                
+                let gameStatus = data.gameStatus ?? "?";
+                
+                console.log(`Game Status: ${gameStatus}`);             
                 document.getElementById('gameStatus').innerText = `Game Status: ${gameStatus}`;
             })
             .catch(error => {
@@ -217,7 +214,7 @@
 }
 
     updateScoreboard(); // Call immediately on load
-    setInterval(updateScoreboard, 500);
+    setInterval(updateScoreboard, 900);
    
 
 

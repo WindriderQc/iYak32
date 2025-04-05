@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hockey Stats</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+  <!-- Horizontal Menu -->
+  <nav class="menu">
+    <ul>
+      <li><a href="Scoreboard.html">Scoreboard</a></li>
+      <li><a href="Stats.html">Stats</a></li>
+      <li><a href="Hockey.html">Config</a></li>
+    </ul>
+  </nav>
+
+  <h1>Last 10 Game Scores</h1>
+
+  <div class="stats-container">
+    <table class="stats-table">
+      <thead>
+        <tr>
+          <th>Game #</th>
+          <th>Score Left</th>
+          <th>Score Right</th>
+          <th>Epic Date</th>
+        </tr>
+      </thead>
+      <tbody id="statsTableBody">
+        <!-- Rows will be dynamically populated -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Fetch the stats from the text file and populate the table
+    fetch('game_scores.txt')
+      .then(response => response.text())
+      .then(data => {
+        const rows = data.trim().split('\n'); // Split the file into lines
+        const tableBody = document.getElementById('statsTableBody');
+        rows.slice(-10).reverse().forEach((row, index) => { // Get the last 10 rows
+          const [scoreLeft, scoreRight, period] = row.split(',');
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${rows.length - index}</td>
+            <td>${scoreLeft}</td>
+            <td>${scoreRight}</td>
+            <td>${period}</td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      })
+      .catch(error => {
+        console.error('Error loading game scores:', error);
+      });
+  </script>
+</body>
+</html>

@@ -8,7 +8,7 @@
 #include "api/devices/sensors/Pushbtn.h"
 #include "api/devices/sensors/AnLux.h"
 
-
+// TODO  tictac methode vrmt pas bonne...   asciiDisplay.displayString("xxx");   fait vrmt étiré une loop...   ptete pas bon pour les watchdog timer :S
 namespace Hockey  
 {
 
@@ -36,6 +36,7 @@ namespace Hockey
         eGOALRIGHT,
         ePERIOD_BELL, 
         eDROP_PUCK, 
+        eGAMEOVER,
         ePAUSE
     };
     
@@ -119,7 +120,7 @@ namespace Hockey
             if( newstr != scoreString) 
             {
                 scoreString = newstr;
-                Serial.println(scoreString);
+                //Serial.println(scoreString);
                 //asciiDisplay.displayString(scoreString.c_str()); 
             } 
 
@@ -130,10 +131,22 @@ namespace Hockey
            
             switch(state) 
             {
-                case HOCKEY_state::eINTRO:           
+                case HOCKEY_state::eINTRO:    
+                        time = periodLength;
+                         // Calculate elapsed time in seconds
+                         elapsedSeconds = time / 1000;
+
+                         // Calculate minutes and seconds
+                         minutes = elapsedSeconds / 60;
+                         seconds = elapsedSeconds % 60;
+ 
+                        // Update time display
+                        timeString = String("") + doubleDigit(minutes) + String(":") + doubleDigit(seconds);
+                      
+                         
                         asciiDisplay.displayString("COOL");
                         tictac++;
-                        if(tictac >= GOAL_DELAY*2) { tictac = 0;   state = HOCKEY_state::eON; }
+                        if(tictac >= GOAL_DELAY) { tictac = 0;   state = HOCKEY_state::eDROP_PUCK; }
                         break;
 
                 case HOCKEY_state::eON:
@@ -176,6 +189,17 @@ namespace Hockey
                         if(tictac >= GOAL_DELAY*0.6) { tictac = 0; state = HOCKEY_state::eDROP_PUCK; }
                         break;
 
+                case HOCKEY_state::eGAMEOVER:
+
+                        tictac++;
+                        if(tictac >= GOAL_DELAY) { 
+                            tictac = 0; 
+                            bSwitch = !bSwitch;
+                        }
+                        if(bSwitch)  asciiDisplay.displayString("Good");
+                        else         asciiDisplay.displayString("GAME");
+                    break;
+
                 case HOCKEY_state::ePERIOD_BELL:
                      
                         if(period < 4) {   
@@ -189,22 +213,37 @@ namespace Hockey
                             if(tictac >= GOAL_DELAY) asciiDisplay.displayString(scoreString.c_str());
                             else        asciiDisplay.displayString("COOL");
                         } else {
-                            tictac++;
-                            if(tictac >= GOAL_DELAY) { 
-                                tictac = 0; 
-                                bSwitch = !bSwitch;
-                            }
-                            if(bSwitch)  asciiDisplay.displayString("Good");
-                            else         asciiDisplay.displayString("GAME");
+                                // Game finished, save the score with date/time
+                                File file = SPIFFS.open("/game_scores.txt", FILE_APPEND);
+                                if (file) {
+                                    // Get the current date and time
+                                    time_t now;
+                                    struct tm timeinfo;
+                                    if (!getLocalTime(&timeinfo)) {
+                                        Serial.println("Failed to obtain time");
+                                    } else {
+                                        char timeBuffer[20];
+                                        strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
+                                        file.printf("%d,%d,%s\n", scoreLeft, scoreRight, timeBuffer);
+                                        Serial.printf("Saved score: %d,%d,%s\n", scoreLeft, scoreRight, timeBuffer);
+                                    }
+                                    file.close();
+                                } else {
+                                    Serial.println("Failed to open game_scores.txt for writing");
+                                }
+
+                                state = HOCKEY_state::eGAMEOVER;
+                                period = 3;
+                                tictac = 0;
                         }
                         break;
 
                 case HOCKEY_state::eDROP_PUCK:
                         Serial.print("DROPPUCK");
-                        //asciiDisplay.displayString(" GO ");
+                        asciiDisplay.displayString(" GO ");
                         //asciiDisplay.displayString(scoreString.c_str());
                         tictac++;
-                        if(tictac >= GOAL_DELAY*2) { 
+                        if(tictac >= GOAL_DELAY) { 
                             tictac = 0;   
                             state = HOCKEY_state::eON;
                             Serial.print("GO");
@@ -232,15 +271,14 @@ namespace Hockey
             return result;
         }
 
-        int getScoreLeft() { return scoreLeft; }
-        int getScoreRight() { return scoreRight; }
-
-        void setPeriodLenght(int lenght ) {  periodLength = lenght;      }
+    
 
         void reset() 
         {
             scoreLeft = 0;
             scoreRight=0;
+            period = 1;
+            tictac = 0;
             time = periodLength;
             Serial.print("RESET ");
             state = HOCKEY_state::eINTRO;
@@ -272,6 +310,9 @@ namespace Hockey
             state = HOCKEY_state::eGOALRIGHT;
         }
 
+        int getScoreLeft() { return scoreLeft; }
+        int getScoreRight() { return scoreRight; }
+
 
         String getScoreString()         {       return scoreString;         }
         String gettimeString()          {       return timeString;          }
@@ -282,6 +323,9 @@ namespace Hockey
         void setScoreLeft(int s) { scoreLeft = s; } 
         void setScoreRight(int s) { scoreRight = s; }
 
+
+        int getPeriodLength()                 {       return periodLength/60000;              }
+        void setPeriodLength(int length) { periodLength = length*60000; }
 
         
     private:

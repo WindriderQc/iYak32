@@ -105,14 +105,14 @@ namespace www
           startTime = millis() - pausedTime;
           isPaused = false;
         }
-        
+        hockey.pause();
       }
       
       void handleReset() {
         startTime = millis();
         pausedTime = 0;
         isPaused = true;
-        
+        hockey.reset();
       }
 
 
@@ -232,6 +232,13 @@ namespace www
             handleReset();
             request->send(200, "text/plain", "reset");
         }); 
+        server.on("/hockey/setPeriodLength", HTTP_POST,[](AsyncWebServerRequest *request){
+            Serial.println("Set period length requested");
+            Serial.println(request->arg("minutes"));
+            hockey.setPeriodLength(request->arg("minutes").toInt());
+            hockey.reset();
+            request->send(200, "text/html", "ESP32 Hockey Timer Interface");
+        }); 
 
         server.on("/hockey/scoreboard", HTTP_GET,[](AsyncWebServerRequest *request){
            /* unsigned long elapsed = isPaused ? pausedTime : millis() - startTime;
@@ -250,6 +257,7 @@ namespace www
             json += "\"scoreRight\":" + String(hockey.getScoreRight()) + ",";
             json += "\"time\":\""      + String(hockey.gettimeString()) + "\",";
             json += "\"period\":"  + String(hockey.getPeriod()) + ",";
+            json += "\"periodLength\":"  + String(hockey.getPeriodLength()) + ",";
             json += "\"gameStatus\":"  + String(Hockey::state);
             json += "}";
 
