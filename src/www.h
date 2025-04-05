@@ -10,6 +10,7 @@ Add to platformio.ini:
 #include <HTTPClient.h>
 
 #include "api/Esp32.h"
+#include "Hockey.h"
 
 
 
@@ -90,6 +91,29 @@ namespace www
           
     }*/
 
+
+    // hockey board
+    unsigned long startTime;
+    unsigned long pausedTime = 0;
+    bool isPaused = true;
+          
+    void handlePause() {
+        if (!isPaused) {
+          pausedTime = millis() - startTime;
+          isPaused = true;
+        } else {
+          startTime = millis() - pausedTime;
+          isPaused = false;
+        }
+        
+      }
+      
+      void handleReset() {
+        startTime = millis();
+        pausedTime = 0;
+        isPaused = true;
+        
+      }
 
 
 
@@ -172,6 +196,15 @@ namespace www
         });
 
         
+        
+
+
+//
+        /* hockey */
+        //
+      
+          
+    
 
         // Respond to /sensors route
         server.on("/hockey/sensors", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -188,6 +221,42 @@ namespace www
             request->send(200, "application/json", json);
         });
 
+        server.on("/hockey/", [](AsyncWebServerRequest *request){
+            request->send(200, "text/html", "ESP32 Hockey Timer Interface");
+        });
+        server.on("/hockey/pause", HTTP_POST, [](AsyncWebServerRequest *request){
+            handlePause();
+            request->send(200, "text/plain", "paused");
+        });
+        server.on("/hockey/reset", HTTP_POST,[](AsyncWebServerRequest *request){
+            handleReset();
+            request->send(200, "text/plain", "reset");
+        }); 
+
+        server.on("/hockey/scoreboard", HTTP_GET,[](AsyncWebServerRequest *request){
+           /* unsigned long elapsed = isPaused ? pausedTime : millis() - startTime;
+            unsigned int minutes = (elapsed / 1000) / 60;
+            unsigned int seconds = (elapsed / 1000) % 60;
+          
+            Serial.println(hockey.getScoreString());
+            char buffer[6];
+            sprintf(buffer, "%02d:%02d", minutes, seconds);
+            request->send(200, "text/plain", hockey.getScoreString());*/
+
+
+
+            String json = "{";
+            json += "\"scoreLeft\":" + String(hockey.getScoreLeft()) + ",";
+            json += "\"scoreRight\":" + String(hockey.getScoreRight()) + ",";
+            json += "\"time\":\""      + String(hockey.gettimeString()) + "\",";
+            json += "\"period\":"  + String(hockey.getPeriod()) + ",";
+            json += "\"gameStatus\":"  + String(Hockey::state);
+            json += "}";
+
+            request->send(200, "application/json", json);
+
+
+        }); 
 
 
         // Send 404 for not Found

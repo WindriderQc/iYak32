@@ -299,7 +299,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     
     void executeConfig()
     {
-        Serial.println("\nExcecuting Config!");
+        Serial.println("\nExecuting Config!");
 
         wifiManager.setSSID(configJson_["ssid"]);
         wifiManager.setPASS(configJson_["pass"]);

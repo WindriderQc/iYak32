@@ -79,7 +79,11 @@ void WifiManager::handleOTA()
 
 bool WifiManager::tryConnectToUserNetwork(String ssid, String password) 
 {
-    Serial.print("Attempting to connect to ");
+    Serial.print("Attempting to connect to User network");
+    if(ssid.isEmpty()) {
+        Serial.println(" - No user network provided");
+        return false;
+    }
     Serial.println(ssid);
 
     WiFi.begin(ssid, password);
@@ -141,7 +145,7 @@ bool WifiManager::tryConnectToPreferredNetworks()
             const char* ssid = preferredSsids[i].c_str();
             const char* password = preferredPasswords[i].c_str();
 
-            Serial.print("Attempting to connect to ");
+            Serial.print("Attempting to connect to Preferred network: ");
             Serial.println(ssid);
 
             WiFi.begin(ssid, password);

@@ -31,3 +31,96 @@ body {
     background-color: #f44336;
     color: white;
 }
+
+.form-wrapper {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .form-container {
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 8px;
+    flex: 1;
+    min-width: 250px;
+  }
+
+  canvas {
+    max-width: 100%;
+  }
+
+.game-status {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.game-status-gif {
+    width: 50px; /* Adjust size as needed */
+    height: 50px;
+}
+
+
+.scoreboard-container {
+    text-align: center;
+    font-family: Arial, sans-serif;
+    margin: 20px auto;
+    width: 640px; /* Increase the width of the scoreboard container */
+    border: 2px solid black;
+    border-radius: 10px;
+    background-color: #222;
+    color: white;
+    padding: 10px;
+    box-sizing: border-box; /* Include padding in the total width */
+}
+
+.scoreboard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 2em;
+    margin: 20px 0;
+    padding: 0 10px; /* Reduce padding slightly to save space */
+    box-sizing: border-box; /* Ensure padding is included in the total width */
+}
+
+.team-score {
+    flex: 1; /* Allow scores to take equal space */
+    text-align: center;
+    font-weight: bold;
+    background-color: #444;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 3em; /* Keep the font size large */
+    max-width: 120px; /* Reduce max width slightly to fit within the container */
+    box-sizing: border-box; /* Include padding in the width */
+}
+
+
+.time-period {
+    flex: 2; /* Allow the time to take more space */
+    text-align: center;
+    margin: 0 10px; /* Add spacing between the time and scores */
+}
+
+.time {
+    font-size: 2.5em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.period {
+    text-align: center;
+}
+
+.period-value {
+    font-size: 2.5em;
+    font-weight: bold;
+}
+
+.period-label {
+    font-size: 1em;
+    font-weight: normal;
+    margin-top: -5px;
+}

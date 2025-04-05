@@ -1,110 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hockey Configuration</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hockey Configuration</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
 
-    <link rel="stylesheet" type="text/css" href="style.css">
-    
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>Hockey Configuration</h1>
+  <h1>Hockey Configuration</h1>
 
     <!-- Scoreboard -->
-    <div class="scoreboard" id="scoreboard">00:00</div>
-
-    <!-- Pause and Reset Buttons -->
-    <button class="button button-green" onclick="sendCommand('pause')">Pause</button>
-    <button class="button button-red" onclick="sendCommand('reset')">Reset</button>
-
-    <!-- Left Fluctuation Detection Configuration -->
-    <div class="form-container">
-        <h3>Left Fluctuation Detection</h3>
-        <label for="leftDelta">Detection Delta:</label>
-        <input type="number" id="leftDelta" placeholder="Enter delta value">
-        <button class="button" onclick="setDelta('left')">Set</button>
-        <p>Current Value: <span id="leftValue">0</span></p>
+    <div class="scoreboard-container">
+        <div class="game-status">
+            <img id="gameStatusGif" src="default.gif" alt="Game Status" class="game-status-gif">
+        </div>
+        <div class="scoreboard">
+            <div class="team-score" id="scoreLeft">00</div>
+            <div class="time-period">
+                <div class="time" id="time">00:00</div>
+                <div class="period">
+                    <div class="period-value" id="period">1</div>
+                    <div class="period-label">Period</div>
+                </div>
+            </div>
+            <div class="team-score" id="scoreRight">00</div>
+        </div>
     </div>
 
-    <!-- Right Fluctuation Detection Configuration -->
+  <!-- Pause and Reset Buttons -->
+  <button class="button button-green" onclick="sendCommand('pause')">Pause</button>
+  <button class="button button-red" onclick="sendCommand('reset')">Reset</button>
+
+  <!-- Fluctuation Detection Forms -->
+  <div class="form-wrapper">
     <div class="form-container">
-        <h3>Right Fluctuation Detection</h3>
-        <label for="rightDelta">Detection Delta:</label>
-        <input type="number" id="rightDelta" placeholder="Enter delta value">
-        <button class="button" onclick="setDelta('right')">Set</button>
-        <p>Current Value: <span id="rightValue">0</span></p>
+      <h3>Left Fluctuation Detection</h3>
+      <label for="leftDelta">Detection Delta:</label>
+      <input type="number" id="leftDelta" placeholder="Enter delta value">
+      <button class="button" onclick="setDelta('left')">Set</button>
+      <p>Current Value: <span id="leftValue">0</span></p>
     </div>
 
-    <h5>IO Status</h5>
-    <p>Analoger Pin 34: <span id='pin34'></span></p>
-    <p>Analoger Pin 39: <span id='pin39'></span></p>
-    <p>Analoger Pin 5: <span id='pin5'></span></p>
+    <div class="form-container">
+      <h3>Right Fluctuation Detection</h3>
+      <label for="rightDelta">Detection Delta:</label>
+      <input type="number" id="rightDelta" placeholder="Enter delta value">
+      <button class="button" onclick="setDelta('right')">Set</button>
+      <p>Current Value: <span id="rightValue">0</span></p>
+    </div>
+  </div>
 
+  <h5>IO Status</h5>
+  <p>Analog Pin 34: <span id='pin34'></span></p>
+  <p>Analog Pin 39: <span id='pin39'></span></p>
+  <p>Digital Pin 5: <span id='pin5'></span></p>
 
-    <script>
-    // Function to send commands (pause/reset) to the ESP32
+  <canvas id="ioChart" height="100"></canvas>
+
+  <script>
+    const MAX_POINTS = 50;
+    const ioChartCtx = document.getElementById('ioChart').getContext('2d');
+
+    const ioChart = new Chart(ioChartCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Pin 34',
+            data: [],
+            borderColor: 'red',
+            borderWidth: 1,
+            fill: false,
+          },
+          {
+            label: 'Pin 39',
+            data: [],
+            borderColor: 'blue',
+            borderWidth: 1,
+            fill: false,
+          },
+          {
+            label: 'Pin 5',
+            data: [],
+            borderColor: 'green',
+            borderWidth: 1,
+            fill: false,
+          }
+        ]
+      },
+      options: {
+        scales: {
+          x: { title: { display: true, text: 'Time' } },
+          y: { title: { display: true, text: 'Analog Value' } }
+        }
+      }
+    });
+
+    function updateChart(pin34, pin39, pin5) {
+      const time = new Date().toLocaleTimeString();
+
+      ioChart.data.labels.push(time);
+      ioChart.data.datasets[0].data.push(pin34);
+      ioChart.data.datasets[1].data.push(pin39);
+      ioChart.data.datasets[2].data.push(pin5);
+
+      if (ioChart.data.labels.length > MAX_POINTS) {
+        ioChart.data.labels.shift();
+        ioChart.data.datasets.forEach(dataset => dataset.data.shift());
+      }
+
+      ioChart.update();
+    }
+
     function sendCommand(command) {
-        fetch(`/${command}`, { method: 'POST' })
-            .then(response => response.text())
-            .then(data => console.log(data))
-            .catch(error => console.error('Error:', error));
+      fetch(`${command}`, { method: 'POST' })
+        .then(response => response.text())
+        .then(data => console.log(data))
+        .catch(error => console.error('Error:', error));
     }
 
-    // Function to set the delta value for left or right fluctuation detection
     function setDelta(side) {
-        const delta = document.getElementById(`${side}Delta`).value;
-        fetch(`/setDelta?side=${side}&value=${delta}`, { method: 'POST' })
-            .then(response => response.text())
-            .then(data => console.log(data))
-            .catch(error => console.error('Error:', error));
+      const delta = document.getElementById(`${side}Delta`).value;
+      fetch(`setDelta?side=${side}&value=${delta}`, { method: 'POST' })
+        .then(response => response.text())
+        .then(data => console.log(data))
+        .catch(error => console.error('Error:', error));
     }
-
-       
-
-
 
     function requestData() {
+      fetch('sensors')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("pin34").innerText = data.pin34 ?? "?";
+          document.getElementById("pin39").innerText = data.pin39 ?? "?";
+          document.getElementById("pin5").innerText = data.pin5 ?? "?";
 
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', 'sensors');
-
-      xhr.onload = function() {
-        if (xhr.status === 200) {
-
-          if (xhr.responseText) { // if the returned data is not null, update the values
-
-            var data = JSON.parse(xhr.responseText);
-
-            document.getElementById("pin34").innerText = data.pin34;
-            document.getElementById("pin39").innerText = data.pin39;
-            document.getElementById("pin5").innerText = data.pin5;
-
-          } else { // a problem occurred
-
-            document.getElementById("pin34").innerText = "?";
-            document.getElementById("pin39").innerText = "?";
-            document.getElementById("pin5").innerText = "?";
-          }
-        } else {
-          console.log('Request failed.  Returned status of ' + xhr.status);
-
+          updateChart(data.pin34, data.pin39, data.pin5);
+        })
+        .catch(() => {
           document.getElementById("pin34").innerText = "?";
           document.getElementById("pin39").innerText = "?";
           document.getElementById("pin5").innerText = "?";
-
-        }
-      };
-      
-      xhr.send();
+        });
     }
 
-    requestData(); // get intial data straight away 
-    // request data updates every 5000 milliseconds
+    requestData();
     setInterval(requestData, 1000);
 
-    
+
+
+
+    function updateScoreboard() {
+        fetch('scoreboard')
+            .then(res => res.json()) // Parse the response as JSON
+            .then(data => {
+                 // Format scores as double digits
+                const scoreLeft = data.scoreLeft.toString().padStart(2, '0');
+                const scoreRight = data.scoreRight.toString().padStart(2, '0');
+
+                // Update the scoreboard with the formatted scores
+                document.getElementById('scoreLeft').innerText = scoreLeft;
+                document.getElementById('scoreRight').innerText = scoreRight;
+                document.getElementById('time').innerText = data.time ?? "??:??";
+                document.getElementById('period').innerText = data.period ?? "?";
+
+                const gameStatusGif = document.getElementById('gameStatusGif');
+                let gameStatus = "?";
+                switch(data.gameStatus) {
+                    case 0:
+                        gameStatus = "eON";
+                        gameStatusGif.src = "https://giphy.com/gifs/TeamColorCodes-gnrmDwZDVj0gHYUevN"; 
+                        // https://giphy.com/gifs/WarChildNorthAmerica-warchild-playtofree-play-to-free-BeY2MQgCQjmDwap41Z
+                        break;
+                    case 1:
+                        gameStatus = "eINTRO";
+                        gameStatusGif.src = "https://giphy.com/gifs/nes-snes-7OWs6QPW3smYAKTFav";
+                        break;
+                    case 2:
+                        gameStatus = "eGOALLEFT";
+                        gameStatusGif.src = "https://giphy.com/gifs/ice-hockey-warrior-covert-qrl-3q4TRsKsx8g4mMcE4F";
+                        break;
+                    case 3:
+                        gameStatus = "eGOALRIGHT";
+                        gameStatusGif.src = "https://giphy.com/gifs/southparkgifs-26ufi5IIOGQBjpzUs";
+                        break;
+                    case 4:
+                        gameStatus = "ePERIOD_BELL";
+                        gameStatusGif.src = "https://giphy.com/gifs/nes-snes-5qFZgpOSdzfkakIDdm";
+                        break;
+                    case 5:
+                        gameStatus = "eDROP_PUCK";
+                        gameStatusGif.src = "https://giphy.com/gifs/SportsManias-emoji-sportsmanias-YllMTZ8ZVswBVvvdA8";
+                        break;
+                    case 6:
+                        gameStatus = "ePAUSE";
+                        gameStatusGif.src = "https://giphy.com/gifs/nes-snes-5qFZgpOSdzfkakIDdm";
+                        break;    
+                    default:
+                        gameStatusGif.src = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHB0Y28wOGtkNWhjNDBqYnBoY3NmNzJqdXQxN2N6M2I4eHB0aGY5eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/4aj9pOvliF488/giphy.gif";
+                        gameStatus = "?";
+                }                
+                document.getElementById('gameStatus').innerText = `Game Status: ${gameStatus}`;
+            })
+            .catch(error => {
+                console.error('Error fetching scoreboard:', error);
+                // Handle errors by showing default values
+                document.getElementById('scoreLeft').innerText = "00";
+                document.getElementById('scoreRight').innerText = "00";
+                document.getElementById('time').innerText = "??:??";
+                document.getElementById('period').innerText = "?";
+                document.getElementById('gameStatus').innerText = "Game Status: ?";
+            });
+}
+
+    updateScoreboard(); // Call immediately on load
+    setInterval(updateScoreboard, 500);
+   
+
+
   </script>
 </body>
-
 </html>

@@ -107,7 +107,7 @@ namespace Hockey
         {
             unsigned long elapsedSeconds;
             unsigned int minutes, seconds;
-            String timeString;
+            
 
             // Actualize time values
             unsigned long currentTime  = millis();  
@@ -201,7 +201,8 @@ namespace Hockey
 
                 case HOCKEY_state::eDROP_PUCK:
                         Serial.print("DROPPUCK");
-                        asciiDisplay.displayString(scoreString.c_str());
+                        //asciiDisplay.displayString(" GO ");
+                        //asciiDisplay.displayString(scoreString.c_str());
                         tictac++;
                         if(tictac >= GOAL_DELAY*2) { 
                             tictac = 0;   
@@ -272,7 +273,15 @@ namespace Hockey
         }
 
 
-       
+        String getScoreString()         {       return scoreString;         }
+        String gettimeString()          {       return timeString;          }
+
+        int getPeriod()                 {       return period;              }
+        
+        void setPeriod(int p) { period = p; }
+        void setScoreLeft(int s) { scoreLeft = s; } 
+        void setScoreRight(int s) { scoreRight = s; }
+
 
         
     private:
@@ -286,12 +295,14 @@ namespace Hockey
         bool bSwitch = false;
     
         String scoreString = "00:00";
+        String timeString = "00:00";
 
         char* goalLeftStatus;
     };
 
 }
 
-
-Hockey::Hockey hockey = Hockey::Hockey();
+//  because of pragma_once, this will only be delared once if include in multiple h files 
+// (should be declare extern to declare in different cpp)
+Hockey::Hockey hockey = Hockey::Hockey();  //  single global instance
 
