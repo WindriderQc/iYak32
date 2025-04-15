@@ -5,39 +5,23 @@ class Header extends HTMLElement {
   
     connectedCallback() {
       this.innerHTML = `
-        <style>
-          nav {
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color:  #0a0a23;
-          }
-  
-          ul {
-            padding: 0;
-          }
-          
-          a {
-            font-weight: 700;
-            margin: 0 25px;
-            color: #fff;
-            text-decoration: none;
-          }
-          
-          a:hover {
-            padding-bottom: 5px;
-            box-shadow: inset 0 -2px 0 0 #fff;
-          }
-        </style>
         <header>
             <nav class="topnav">
-                <a id="home-link" href="index.html">Home</a>
-                <a id="setup-link" href="setup.html">Setup</a>
-                <a id="tides-link" href="tides.html">Tides</a>
-                <a id="mqtt-link" href="mqtt.html">MQTTViewer</a>
-                <a id="hockey-link" href="hockey/Scoreboard.html">Hockey</a>
-                <a id="about-link" href="about.html">About</a>
+                 <ul>
+                    <li><a id="home-link" href="index.html">Home</a></li>
+                    <li><a id="setup-link" href="setup.html">Setup</a></li>
+                    <li>
+                        <a id="apps-link" href="#">Web Apps</a>
+                        <div class="dropdown">
+                            <a id="hockey-link" href="hockey/Scoreboard.html">Hockey</a>
+                            <a id="boat-link" href="boat/index.html">Boat</a>
+                            <a id="tides-link" href="tides.html">Tides</a>
+                            <a id="dashio-link" href="dashio.html">DashIO</a>
+                        </div>
+                    </li>
+                    <li><a id="mqtt-link" href="mqtt.html">MQTTViewer</a></li>
+                    <li><a id="about-link" href="about.html">About</a></li>
+                </ul>
             </nav>
 
         </header>

@@ -115,3 +115,5 @@
 
 
    
+//  because of pragma_once, this will only be delared once if include in multiple h files 
+//Esp32::Hourglass hourglass = Esp32::Hourglass();  //  single global instance

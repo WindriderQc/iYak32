@@ -11,6 +11,7 @@ namespace Storage {
 
 
 
+    int startingAddress = 0; // New starting address for IP in EEPROM
 
     void IPtoEEPROM(IPAddress IPaddr) 
     {
@@ -22,12 +23,22 @@ namespace Storage {
         }*/
         for (int n = 0; n < 4; n++) // adjust for number of digits
         {
-            EEPROM.write(n , IPaddr[n]);
+            EEPROM.write(startingAddress + n , IPaddr[n]);
             Serial.println( IPaddr[n]);
         }
 
         EEPROM.commit() ? Serial.println(F("\nEEPROM successfully committed")) : Serial.println(F("\nERROR! EEPROM commit failed"));
     }
+
+    IPAddress readIPFromEEPROM() {
+        int startingAddress = 0; // Same starting address
+        byte ip[4];
+        for (int n = 0; n < 4; n++) {
+            ip[n] = EEPROM.read(startingAddress + n); // Read IP starting at address 10
+        }
+        return IPAddress(ip[0], ip[1], ip[2], ip[3]);
+    }
+
 
     //////////////////////////////////////////////
     // FileSystem features

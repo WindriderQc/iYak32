@@ -66,15 +66,14 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     byte vBATSampleSize = 5;    // How many time we sample the battery
 
     // Pin qty per model definitions
-    #define HUZZAH32  39
-    #define WEMOSIO   20  // tbd..    
-    Pin* ios[HUZZAH32];  //  39 pins for esp32   //  TODO: could be #defines NBRPIN selon le model WEMOSIO, EPS, etc.
+    #define HUZZAH32  39    //  39 pins for esp32   
+    #define WEMOSIO   20    // tbd..    
+    Pin* ios[HUZZAH32];  
 
 
     WifiManager wifiManager;
-    Hourglass hourglass;
     Buzzer buzzer;  //  TODO:  devrait etre un device configurable...  pas dans le namespace ESP32
-    
+    Hourglass hourglass;
 
 
 
@@ -308,7 +307,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
 
         //  if not on access point, synchronize system time
         if(Esp32::wifiManager.isConnected()) {
-            if(Esp32::hourglass.setupTimeSync()) Esp32::hourglass.getDateTimeString(true);
+            if(hourglass.setupTimeSync()) hourglass.getDateTimeString(true);
         }
 
 
@@ -398,10 +397,10 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     void setup() 
     {
        
-        Serial.println("\nStarting internal SPIFFS filesystem");
+        Serial.println("\nEsp32 setup\nStarting internal SPIFFS filesystem");
 
         if(!SPIFFS.begin(false)) {
-            Serial.println("SPIFFS Mount failed\nDid not find filesystem - this can happen on first-run initialisation; starting format"); 
+            Serial.println("SPIFFS Mount failed\nDid not find filesystem - this can happen on first-run initialisation\n  Formatting..."); 
             ioBlink(LED_BUILTIN,100, 100, 4); // Show SPIFFS failure
             // format if begin fails
             if (!SPIFFS.begin(true)) {
@@ -409,11 +408,11 @@ namespace Esp32   //  ESP 32 configuration and helping methods
                 ioBlink(LED_BUILTIN,100, 100, 8); // Show SPIFFS failure
                 spiffsMounted = false;
             } else {
-                Serial.println("Formatting");
+                Serial.println("Formatting...");
                 spiffsMounted = false;
             }
         } else {
-            Serial.println("setup -> SPIFFS mounted successfully");
+            Serial.println("SPIFFS mounted successfully");
             spiffsMounted = true;
             Storage::listDir("/", 4);  //  TODO : show only files on root, not folders....  
 

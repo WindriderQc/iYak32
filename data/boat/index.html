@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ESP32 Web Server</title>
+  <title>ESP32 Boat Server</title>
   <!-- Include p5.js library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
   
@@ -16,22 +16,24 @@
     
     <header-component>Header</header-component>
 
-</br></br>  </br></br>  </br></br>
+  <!-- The display frame div -->
+  <div id="canvasDiv"></div> 
     <div class='content-wrapper bg-transparent'>
 
 
     <div class='container-fluid text-center '>  
 
 
-  <h1>ESP32 Web Server</h1>
 
-
-  <p>GPIO state: <strong> %STATE%</strong></p>
+  <h1>ESP32 Boat Server</h1>
+</br>
+ <p>Current Time   --   %TIME% </p>
+ 
   <p>
-    <a href="/on"><button class="button">ON</button></a>
-    <a href="/off"><button class="button button2">OFF</button></a>
+    latitude: <span id="latitude"> %LON% </span>&deg;<br />
+    longitude: <span id="longitude"> %LAT% </span>&deg;
   </p>
-  </br></br>
+ </br>
 
 
 
@@ -39,26 +41,25 @@
     <h3>Weather</h3>
     <p>Temperature: <strong> %TEMP%</strong></p>
     <p>Pression: <strong> %PRESSION%</strong></p>
-
-
-  
-  
+    <h3>Boat Stats</h3>
+    <p>Speed: <strong> %SPEED%</strong></p>
+    <p>Direction: <strong> %DIR%</strong></p>
+    <p><a href="/speedUp"><button class="button button2">Speed Up</button></a></p>
+    <p><a href="/slowDown"><button class="button ">Slow Down</button></a></p>
  </form>
 
-  </br><p></p></br>
-
-  <p>Current Time   --   %TIME% </p>
- 
+  <p>GPIO state: <strong> %STATE%</strong></p>
   <p>
-    latitude: <span id="latitude"> %LON% </span>&deg;<br />
-    longitude: <span id="longitude"> %LAT% </span>&deg;
-
+    <a href="/on"><button class="button">ON</button></a>
+    <a href="/off"><button class="button button2">OFF</button></a>
   </p>
+  </br></br><p></p></br>
+
+ 
 
 
   </div>
   </div>
-
 
 
 <footer-component>Footer</footer-component>

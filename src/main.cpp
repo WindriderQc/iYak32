@@ -1,5 +1,5 @@
 //#define VERBOSE
-#define HOCKEY
+//#define HOCKEY
 //#define BOAT
 
 #include <Arduino.h>
