@@ -29,9 +29,9 @@ on /esp32 channel, the device id is then used and commands structure follows....
 namespace Mqtt 
 {
     bool isEnabled = false;
-    bool isConfigFromServer = false;
+ 
     
-    IPAddress server_ip;
+    String server_ip;
     int port_;
     String mqttUser = "";
     String mqttPass = "";
@@ -138,7 +138,7 @@ namespace Mqtt
             return false;
         }
 
-        Serial.println("mqtt.txt found for user and password");
+        Serial.println("mqtt.txt found for user:password");
 
         if(configFile.available()) {
             String line = configFile.readStringUntil('\n');
@@ -156,7 +156,7 @@ namespace Mqtt
     }
 
 
-    bool setup( String deviceName, IPAddress mqttIP, int server_port = 1883)
+    bool setup( String deviceName, String mqttIP, int server_port = 1883)
     {
         server_ip = mqttIP; 
         port_ = server_port;
@@ -166,8 +166,8 @@ namespace Mqtt
 
         IPAddress default_ip(0, 0, 0, 0);
 
-        if(server_ip == default_ip)  mqttClient.setServer("specialblend.ca", port_);
-        else                         mqttClient.setServer(server_ip, port_);
+        if(server_ip == "")  mqttClient.setServer("specialblend.ca", port_);
+        else                 mqttClient.setServer(server_ip.c_str(), port_);
        
         //mqttClient.setBufferSize(512);  Semble pas marcher...  build flag dans platformio a la place
         //mqttClient.setCallback(incomingCallback);
@@ -182,7 +182,7 @@ namespace Mqtt
              
             Serial.print(F("MQTT server...")); // Attempt to connect
             if (mqttClient.connect(clientId.c_str(), mqttUser.c_str(), mqttPass.c_str())) {
-                Serial.println(F("connected\n"));
+                Serial.println(F("connected"));
                 mqttClient.publish("esp32", String("hello from Esp32 " + deviceName).c_str() ); //Once connected, publish an announcement...
                 subcription(deviceName);// ... and resubscribe
                

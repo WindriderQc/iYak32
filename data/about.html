@@ -4,49 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-        }
-        .container {
-            width: 300px;
-            height: 300px;
-            border: 2px solid #ccc;
-            margin: 50px auto;
-            text-align: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-        }
-        h1 {
-            margin-top: 10px;
-            margin-bottom: 5px;
-        }
-        p {
-            margin: 5px 0;
-        }
-    </style>
-    <link rel="stylesheet" type="text/css" href="style.css">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="colors.css">
+    <link rel="stylesheet" type="text/css" href="esp32.css">
+    
+    <script src="components/topMenu.js" type="text/javascript" defer></script>
+    <script src="components/footer.js" type="text/javascript" defer></script>
 </head>
 <body>
-    <div class="topnav">
-        <a class="active" href="index.html">Home</a>
-        <a href="tides.html">Tides</a>
-        <a href="#mqtt">MQTTViewer</a>
-        <a href="about.html">About</a>
-      </div>
-    <div class="container">
-        <img src="logo.png" alt="Logo">
+    <header-component></header-component>
+   
+    <div class="box card-4">
+        <img src="favicon.ico" alt="Logo">
         <h1>iYak32 - for ESP32 and MQTT</h1>
-        <p>Version: 1.0</p>
-        <p>Support Email: <a href="mailto:sbqc@gmail.com">sbqc@gmail.com</a></p>
+        <p>Version: 1.20</p>
+        <p>Support: <a href="mailto:sbqc@gmail.com">sbqc@gmail.com</a></p>
     </div>
+
+    <footer-component></footer-component>
 </body>
 </html>

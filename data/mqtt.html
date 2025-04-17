@@ -5,8 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MQTT WebSocket Test</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="colors.css">
+    <link rel="stylesheet" type="text/css" href="esp32.css">
+    
+    <script src="components/topMenu.js" type="text/javascript" defer></script>
+    <script src="components/footer.js" type="text/javascript" defer></script>
 </head>
 <body>
+    <header-component></header-component>
     
 <h1>MQTT WebSocket Test</h1>
 <form id="mqttForm">
@@ -119,5 +127,7 @@
     resetConnection();
 </script>
 
+
+<footer-component></footer-component>
 </body>
 </html>

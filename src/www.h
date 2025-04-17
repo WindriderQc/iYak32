@@ -40,15 +40,13 @@ namespace www
         if(var == "SSID")     {  return String(Esp32::wifiManager.getSSID());       }
 
 
-        if(var == "MQTTIP")   {  return Mqtt::server_ip.toString();                 }
-        if(var == "IP0")      {  return String(Mqtt::server_ip[0]);                 }
-        if(var == "IP1")      {  return String(Mqtt::server_ip[1]);                 }
-        if(var == "IP2")      {  return String(Mqtt::server_ip[2]);                 }
-        if(var == "IP3")      {  return String(Mqtt::server_ip[3]);                 }
+        if(var == "MQTTURL")   {  return Mqtt::server_ip;                            }
+       
         if(var == "CONFIG")   {  
             JsonDocument d = Esp32::configJson_;
             d["pass"] = "";   //  suppress password for security.  this forces user to enter it back everytime.
-            return Esp32::getJsonString(d, true);     
+            return Esp32::getJsonString(d, true); 
+            
         }
 
         return String();
@@ -120,20 +118,21 @@ namespace www
     
     void setup() 
     {
-        Serial.print(F("WWW from SPIFFS setup")); 
+        Serial.print(F("\nWWW from SPIFFS setup... ")); 
 
         server
             .serveStatic("/", SPIFFS, "/")
             .setDefaultFile("index.html")
+            .setCacheControl("no-cache")
             .setTemplateProcessor(processor);
 
         server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request){
                 JsonDocument cnf;
                 String cnfStr = "";
                 Serial.println("Loading config from json: ");
-                if(Esp32::loadConfig(&cnf)) {  
+                if(Esp32::loadConfig(false, &cnf)) {  
                     cnfStr = Esp32::getJsonString(cnf, true);
-                    Serial.println(cnfStr);
+                    Serial.println(Esp32::configString_);
                     request->send(200, "application/json", cnfStr); // Send the JSON response with the appropriate content type
                 } else {
                     request->send(500, "text/plain", "Error loading config"); // Handle the case when loading the config fails
@@ -181,10 +180,10 @@ namespace www
                 Serial.println(error.c_str());
                 return;
             }else{
-                Serial.println("Saving receved config: ");
+                Serial.println("Saving received config: ");
                 String strCnf = Esp32::getJsonString(jsonBuffer, true); 
                 Serial.println(strCnf);
-                Esp32::saveConfig(jsonBuffer, false);  //  saves new config json and  dont REBOOT device
+                Esp32::saveConfig(jsonBuffer);  //  saves new config json on SPIFF and 
 
                 request->send(200, "text/plain",strCnf);
             }/* else {

@@ -49,8 +49,8 @@ namespace Esp32   //  ESP 32 configuration and helping methods
 {
    
     const String DEVICE_NAME = String("ESP_") + String((uint16_t)(ESP.getEfuseMac()>>32));
-
-    const String CONFIG_FILENAME =  "/esp32config.json";
+    bool isConfigFromServer = false;
+    const String CONFIG_FILENAME =  "/esp32config.json";  //  {"isMqtt":false,"isConfigFromServer":false,"ssid":"","pass":"","mqttport":1883,"mqtturl":"","profileName":"default_ESP32"}
     const int CONFIG_FILE_MAX_SIZE = 1024;   // TODO: really required? Since JSON is dynamic...
     JsonDocument configJson_;
     String configString_;
@@ -181,7 +181,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     }
 
 
-    // Helper function to convert a json to a string
+    // Helper function to convert a json to a string     TODO:  a mettre dans jsTools
     String getJsonString(JsonDocument doc, bool isPretty = false) 
     {
         String str = "";
@@ -211,7 +211,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     
         if(topicStr.indexOf(Esp32::DEVICE_NAME) >= 0) //  If the topic contains your ID 
         {    
-            if(topicStr.indexOf("/config") >= 0)  //  If the topic contains ... 
+            if(topicStr.indexOf("/configIOs") >= 0)  //  If the topic contains ... 
             {
                         JsonDocument config;
                         DeserializationError error = deserializeJson(config, message, length);  // Deserialize the JSON document  
@@ -254,7 +254,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
                                     Als::pins[Esp32::LED2_PIN].setup("LED2", act);
                                     */             
                         }
-                        Serial.println(F("Config received and completed")); 
+                        Serial.println(F("IO Config received and completed")); 
             }
             else if(topicStr.indexOf("/io/") >= 0)  //  If the topic contains ... 
             {
@@ -296,7 +296,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
 
 
     
-    void executeConfig()
+    void executeJsonConfig()
     {
         Serial.println("\nExecuting Config!");
 
@@ -311,23 +311,26 @@ namespace Esp32   //  ESP 32 configuration and helping methods
         }
 
 
-        Mqtt::isEnabled =           configJson_["isMqtt"];     
-        Mqtt::isConfigFromServer =  configJson_["isConfigFromServer"]; 
-        Mqtt::port_ =               configJson_["mqttport"];
+        Mqtt::isEnabled =            configJson_["isMqtt"];     
+        Esp32::isConfigFromServer =  configJson_["isConfigFromServer"]; 
+        Mqtt::port_ =                configJson_["mqttport"];
 
-        IPAddress mqttIP = IPAddress(configJson_["ip0"], configJson_["ip1"], configJson_["ip2"], configJson_["ip3"]);
+        String mqtturl =             configJson_["mqtturl"];
         
+        //  TODO  consider string mqtt url
+
+
         if(Mqtt::isEnabled) {
             Mqtt::mqttClient.setCallback(mqttIncoming);
 
-            if (!Mqtt::setup(DEVICE_NAME, mqttIP, Mqtt::port_ ))     Serial.print("Mqtt setup fail"); 
-            else                                                     Serial.print("Mqtt setup completed");                    
+            if (!Mqtt::setup(DEVICE_NAME, mqtturl, Mqtt::port_ ))     Serial.print("Mqtt setup fail\n\n"); 
+            else                                                      Serial.print("Mqtt setup completed\n\n");                    
                                                                                                                 
         } 
     }
 
 
-    bool loadConfig(JsonDocument* returnDoc = nullptr, bool doExecuteConfig = false)
+    bool loadConfig( bool doExecuteConfig = false,JsonDocument* returnDoc = nullptr)
     {   
         String name = Esp32::CONFIG_FILENAME;
          if (!SPIFFS.exists(name)) {
@@ -356,12 +359,12 @@ namespace Esp32   //  ESP 32 configuration and helping methods
 
             Storage::dumpFile(Esp32::CONFIG_FILENAME);
 
-            if (returnDoc)  *returnDoc = doc; // if a return doc is provded, Copy the content of doc into returnDoc
+            if (returnDoc)  *returnDoc = doc; // if a return doc is provided, Copy the content of doc into returnDoc
 
             configJson_ = doc; 
-            configString_ = getJsonString(configJson_);
+            configString_ = getJsonString(configJson_, true);
 
-            if(doExecuteConfig)  executeConfig(); 
+            if(doExecuteConfig)  executeJsonConfig(); 
 
             return true;
         } 
@@ -374,7 +377,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
         Serial.println(Esp32::CONFIG_FILENAME);
 
         configJson_ = config;
-        configString_ = getJsonString(configJson_);
+        configString_ = getJsonString(configJson_, true);  //  TODO  getJsonString  est apellé bcp trop pour rien...   a simplifier
 
         Storage::writeFile(Esp32::CONFIG_FILENAME, configString_);
 
@@ -426,10 +429,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
                 configDoc["ssid"] = "";
                 configDoc["pass"] ="";
                 configDoc["mqttport"] = 1883;
-                configDoc["ip0"] = "";
-                configDoc["ip1"] = "";
-                configDoc["ip2"] = "";
-                configDoc["ip3"] = "";
+                configDoc["mqtturl"] = "";
                 configDoc["profileName"] = "default_ESP32";
                 Serial.println("setup -> Could not read Config file -> initializing new file");
                
@@ -437,10 +437,10 @@ namespace Esp32   //  ESP 32 configuration and helping methods
             
             }
             else { 
-                Serial.println("ConfigJson was retreved and configuration executed...");              
+                Serial.println("ConfigJson was retreived and configuration executed...");              
             }
             
-            executeConfig();  
+            executeJsonConfig();  
         }
 
 

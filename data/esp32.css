@@ -1,0 +1,305 @@
+html { font-family: Helvetica;    display: inline-block;    margin: 0px auto;    text-align: center;  }
+body { margin: 0;        padding: 0;        font-family: Arial, sans-serif;        color: white;        background: #333;      }
+h1 { color: #ff1010;    padding: 2vh;  }
+p { font-size: 1.5rem;  }
+
+.gridContainer {    display: grid;    grid-template-columns: auto auto auto;    padding: 10px;  }
+
+.btn{border:none;display:inline-block;padding:8px 16px;vertical-align:middle;overflow:hidden;text-decoration:none;color:inherit;background-color:inherit;text-align:center;cursor:pointer;white-space:nowrap}
+.btn:hover{box-shadow:0 8px 16px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19)}  
+.disabled,.btn:disabled{cursor:not-allowed;opacity:0.3}
+.btn.disabled:hover,.btn:disabled:hover{box-shadow:none}
+
+.badge,.tag{background-color:#000;color:#fff;display:inline-block;padding-left:8px;padding-right:8px;text-align:center}.badge{border-radius:50%}
+.ul{list-style-type:none;padding:0;margin:0}
+.ul li{padding:8px 16px;border-bottom:1px solid #ddd}
+.ul li:last-child{border-bottom:none}
+
+
+.input{padding:8px;display:block;border:none;border-bottom:1px solid #ccc;width:100%}
+.select{padding:9px 0;width:100%;border:none;border-bottom:1px solid #ccc}
+.check,.radio{width:24px;height:24px;position:relative;top:6px}
+
+
+.topnav {
+    background-color: #333;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    }
+    
+.topnav a {
+    float: left;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 25px;
+    }
+
+.topnav a:hover {    box-shadow: inset 0 -2px 0 0 #fff;    }
+.topnav a.active {    background-color: #04AA6D;    color: white;    }
+  
+
+.sidebar{height:100%;width:200px;background-color:#fff;position:fixed!important;z-index:1;overflow:auto}
+      
+
+
+.dropdown-click,.dropdown-hover{position:relative;display:inline-block;cursor:pointer}
+.dropdown-hover:hover .dropdown-content{display:block;}
+.dropdown-hover:first-child,.dropdown-click:hover{background-color:#ccc;color:#000}
+.dropdown-hover:hover > .btn:first-child,.dropdown-click:hover > .btn:first-child{background-color:#ccc;color:#000}
+
+.dropdown-content {
+    position: absolute; /* Position dropdown content relative to the parent */
+    top: 100%; /* Place it directly below the parent */
+    left: 0;
+    z-index: 1; /* Ensure it appears above other elements */
+    display: none; /* Initially hide the dropdown */
+    background-color: #04AA6D;
+    min-width: 160px;
+    padding: 1px 0;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-hover:hover .dropdown-content {
+    display: block; /* Show dropdown content on hover */
+}
+.dropdown-content {
+    position: absolute; /* Position dropdown content relative to the parent */
+    left: 0;
+    z-index: 1; /* Ensure it appears above other elements */
+    display: none; /* Initially hide the dropdown */
+    background-color: #04aa6da6;
+    color:#000;
+    min-width: 160px;
+    padding: 1px 0;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-content a {
+    padding: 12px 16px; /* Padding for each item */
+    text-decoration: none; /* Remove underline */
+    display: block; /* Make it a block element */
+}
+.dropdown-content a:hover {    background-color: #04aa6de3;    }
+
+.top,.bottom{position:fixed;width:100%;z-index:1}.top{top:0}.bottom{bottom:0}
+.overlay{position:fixed;display:none;width:100%;height:100%;top:0;left:0;right:0;bottom:0;background-color:rgba(0,0,0,0.5);z-index:2}
+.display-topleft{position:absolute;left:0;top:0}.display-topright{position:absolute;right:0;top:0}
+.display-bottomleft{position:absolute;left:0;bottom:0}.display-bottomright{position:absolute;right:0;bottom:0}
+.display-middle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);-ms-transform:translate(-50%,-50%)}
+.display-left{position:absolute;top:50%;left:0%;transform:translate(0%,-50%);-ms-transform:translate(-0%,-50%)}
+.display-right{position:absolute;top:50%;right:0%;transform:translate(0%,-50%);-ms-transform:translate(0%,-50%)}
+.display-topmiddle{position:absolute;left:50%;top:0;transform:translate(-50%,0%);-ms-transform:translate(-50%,0%)}
+.display-bottommiddle{position:absolute;left:50%;bottom:0;transform:translate(-50%,0%);-ms-transform:translate(-50%,0%)}
+
+.circle{border-radius:50%}
+.round-small{border-radius:2px}.round,.round-medium{border-radius:4px}.round-large{border-radius:8px}.round-xlarge{border-radius:16px}.round-xxlarge{border-radius:32px}
+
+.card{box-shadow:0 2px 5px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12); border:1px solid black}
+.card-4,.hover-shadow:hover{box-shadow:0 4px 10px 0 rgba(0,0,0,0.2),0 4px 20px 0 rgba(0,0,0,0.19);}
+
+.spin{animation:spin 2s infinite linear}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(359deg)}}
+.animate-fading{animation:fading 10s infinite}@keyframes fading{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
+.animate-opacity{animation:opac 0.8s}@keyframes opac{from{opacity:0} to{opacity:1}}
+.animate-top{position:relative;animation:animatetop 0.4s}@keyframes animatetop{from{top:-300px;opacity:0} to{top:0;opacity:1}}
+.animate-left{position:relative;animation:animateleft 0.4s}@keyframes animateleft{from{left:-300px;opacity:0} to{left:0;opacity:1}}
+.animate-right{position:relative;animation:animateright 0.4s}@keyframes animateright{from{right:-300px;opacity:0} to{right:0;opacity:1}}
+.animate-bottom{position:relative;animation:animatebottom 0.4s}@keyframes animatebottom{from{bottom:-300px;opacity:0} to{bottom:0;opacity:1}}
+.animate-zoom {animation:animatezoom 0.6s}@keyframes animatezoom{from{transform:scale(0)} to{transform:scale(1)}}
+.animate-input{transition:width 0.4s ease-in-out}.animate-input:focus{width:100%!important}
+
+.opacity,.hover-opacity:hover{opacity:0.60}.opacity-off,.hover-opacity-off:hover{opacity:1}
+.opacity-max{opacity:0.25}.opacity-min{opacity:0.75}
+
+.tiny{font-size:10px!important}
+.small{font-size:12px!important}
+.medium{font-size:15px!important}
+.large{font-size:18px!important}
+.xlarge{font-size:24px!important}
+.xxlarge{font-size:36px!important}
+.xxxlarge{font-size:48px!important}
+.jumbo{font-size:64px!important}
+.left-align{text-align:left!important}
+.right-align{text-align:right!important}
+.justify{text-align:justify!important}
+.center{text-align:center!important}
+
+.border-none{border:0!important}
+.border{border:1px solid #ccc!important}
+.border-top{border-top:1px solid #ccc!important}
+.border-bottom{border-bottom:1px solid #ccc!important}
+.border-left{border-left:1px solid #ccc!important}
+.border-right{border-right:1px solid #ccc!important}
+.topbar{border-top:6px solid #ccc!important}
+.bottombar{border-bottom:6px solid #ccc!important}
+.leftbar{border-left:6px solid #ccc!important}
+.rightbar{border-right:6px solid #ccc!important}
+
+.left{float:left!important}
+.right{float:right!important}
+
+.transparent,.hover-none:hover{background-color:transparent!important}
+.hover-none:hover{box-shadow:none!important}
+
+
+.hide { visibility: hidden;}
+.show { visibility: visible; }
+
+.inline{ display:inline-block; }
+
+.topZ {    position: relative;    z-index: 2; /* Highest z-index */  }
+
+
+
+.semi-translucent-navbar {
+    background-color: rgba(255, 255, 255, 0.65); /* White with 80% opacity */
+}
+
+
+
+
+
+label {    display: block;    margin: 5px; }
+
+/*  take the full width of its parent */
+.full-width {
+    width: 100%;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+textarea {
+    padding: 10px;
+   
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit; 
+    font-size: 16px; 
+}
+
+
+form {
+    display: flex;
+    flex-direction: column; /* Stack elements vertically */
+    align-items: center; 
+    justify-content: center; 
+    padding: 20px; 
+    background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent white background */
+    border-radius: 9px; 
+
+}
+
+
+form .form-input {
+    border: 3px solid #4CAF50; 
+    border-radius: 8px;
+    padding: 10px; 
+    font-size: 16px;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    transition: border-color 0.3s ease; /* Smooth transition for border color */
+}
+
+form .form-input:focus {
+    border-color: #45a049; /* Darker green on focus */
+    outline: none; /* Remove default outline */
+}
+
+form p {    text-align:left;     padding: 5px;    margin: 5px;}
+
+
+
+
+.bigButton {
+    display: inline-block;
+    background-color: #008CBA;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    padding: 16px 40px;
+    text-decoration: none;
+    font-size: 30px;
+    margin: 2px;
+    cursor: pointer;
+  }
+
+.card {      border:1px solid black  }
+  
+
+
+/* Define styles for the display frame */
+#canvas {
+      border: 2px solid #ccc;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1; /* Set z-index to be below other elements  */
+    }
+
+
+ 
+
+    .info-form {
+      margin: 20px auto;
+      padding: 15px;
+      max-width: 400px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      font-family: Arial, sans-serif;
+  }
+  
+  /* Styling for each row */
+  .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+  }
+  
+  /* Styling for labels */
+  .info-label {
+      font-weight: bold;
+      color: #333;
+  }
+  
+  /* Styling for data */
+  .info-data {
+      color: #555;
+      font-style: italic;
+  }
+
+.box {
+    width: 300px;
+    /*height: 300px;*/
+    /*border: 2px solid #ccc;*/
+    background-color: #1e4674;
+    margin: 50px auto;
+    text-align: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.box a {
+    display: block;
+    margin: 10px 0;
+    text-decoration: none;
+    color: #fff;
+    background-color: #007bff;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+img {    width: 100px;    height: 100px;    border-radius: 50%;  }
+
+

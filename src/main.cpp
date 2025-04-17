@@ -143,7 +143,7 @@ void loop()
     case SYS_state::BOOT:
             
             if(Mqtt::isEnabled)             Mqtt::mqttClient.publish("esp32/register", Esp32::DEVICE_NAME.c_str() ); //Once connected, publish an announcement...    
-            if(Mqtt::isConfigFromServer)    Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());  // Request IO config and profile from server
+            if(Esp32::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());  // Request IO config and profile from server
             
             Serial.println("BOOT done");
             state = SYS_state::DEVICES_CONFIG;

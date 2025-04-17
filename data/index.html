@@ -1,49 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ESP32 Web Server</title>
-  <!-- Include p5.js library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
-  
-<link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Web Server</title>
+    <!-- Include p5.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+   
 
-<script src="components/topMenu.js" type="text/javascript" defer></script>
-<script src="components/footer.js" type="text/javascript" defer></script>
-</head>
-<body class='bg-transparent sticky-footer' id='page-top'>  
+    <link rel="stylesheet" type="text/css" href="colors.css">
+    <link rel="stylesheet" type="text/css" href="esp32.css">
     
-    <header-component>Header</header-component>
+    <script src="components/topMenu.js" type="text/javascript" defer></script>
+    <script src="components/footer.js" type="text/javascript" defer></script>
+</head>
+<body>  
+    <header-component></header-component>
 
-</br></br>  </br></br>  </br></br>
-    <div class='content-wrapper bg-transparent'>
-
-
-    <div class='container-fluid text-center '>  
-
+   
 
   <h1>ESP32 Web Server</h1>
 
 
   <p>GPIO state: <strong> %STATE%</strong></p>
   <p>
-    <a href="/on"><button class="button">ON</button></a>
-    <a href="/off"><button class="button button2">OFF</button></a>
+    <a href="/on"><button class="btn bigButton ">ON</button></a>
+    <a href="/off"><button class="btn bigButton red">OFF</button></a>
   </p>
   </br></br>
 
 
-
-  <form class = 'card px-3'>
-    <h3>Weather</h3>
-    <p>Temperature: <strong> %TEMP%</strong></p>
-    <p>Pression: <strong> %PRESSION%</strong></p>
-
-
-  
-  
- </form>
+<div class="gridContainer">
+    <div ></div>
+    <div >
+        <form class = 'card-4 animate-right'>
+            <h3>Weather</h3>
+            <p>Temperature: <strong> %TEMP%</strong></p>
+            <p>Pression: <strong> %PRESSION%</strong></p>
+        </form>
+    </div>
+</div>
 
   </br><p></p></br>
 
@@ -52,16 +48,8 @@
   <p>
     latitude: <span id="latitude"> %LON% </span>&deg;<br />
     longitude: <span id="longitude"> %LAT% </span>&deg;
-
   </p>
 
-
-  </div>
-  </div>
-
-
-
-<footer-component>Footer</footer-component>
-
+  <footer-component></footer-component>
 </body>
 </html>
