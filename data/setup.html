@@ -92,8 +92,11 @@
 
   <script>
     const configJson = %CONFIG%
+    </script>
+    
+    <script>
     console.log(configJson)
-    console.log(configJson.ssid)
+    console.log('SSID:', configJson.ssid)
     actualizeFields(configJson)
 
    /* async function changeSSID() 

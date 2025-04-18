@@ -76,7 +76,6 @@ namespace www
     String setupProcessor(const String& var) {
         String processedVar = var; 
 
-        
         if (processedVar.indexOf("%TIME%") >= 0) {
             processedVar.replace("%TIME%", Esp32::hourglass.getDateTimeString());
         }
@@ -92,7 +91,7 @@ namespace www
         if (processedVar.indexOf("%CONFIG%") >= 0) {
             JsonDocument d = Esp32::configJson_;
             d["pass"] = ""; // Suppress password for security
-            processedVar.replace("%CONFIG%", Esp32::getJsonString(d, true));
+            processedVar.replace("%CONFIG%", Esp32::getJsonString(d));
         }
      
         return processedVar; 
@@ -120,7 +119,7 @@ namespace www
         if(var == "CONFIG")   {  
             JsonDocument d = Esp32::configJson_;
             d["pass"] = "";   //  suppress password for security.  this forces user to enter it back everytime.
-            return Esp32::getJsonString(d, true); 
+            return Esp32::getJsonString(d); 
             
         }
 
@@ -206,13 +205,23 @@ namespace www
             Serial.println("Failed to open sbqc.css");
         }*/
 
-        server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+        server.on("/esp32.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+            request->send(SPIFFS, "/esp32.css", "text/css");
+        });
+        server.on("/esp32.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+            request->send(SPIFFS, "/colors.css", "text/css");
+        });
+        server.on("/esp32.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+            request->send(SPIFFS, "/utilities.css", "text/css");
+        });
+
+       /* server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
             sendProcessedHtml(request, "/index.html", defaultProcessor);
-        });
+        });*/
     
-        server.on("/setup.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+        /*server.on("/setup.html", HTTP_GET, [](AsyncWebServerRequest *request) {
             sendProcessedHtml(request, "/setup.html", setupProcessor);
-        });
+        });*/
 
        
         server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -356,8 +365,8 @@ namespace www
         server
             .serveStatic("/", SPIFFS, "/")
             .setDefaultFile("index.html")
-            .setCacheControl("no-cache");
-          //  .setTemplateProcessor(processor);
+            .setCacheControl("no-cache")
+            .setTemplateProcessor(processor);
 
 
         // Send 404 for not Found
