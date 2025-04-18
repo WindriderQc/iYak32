@@ -23,8 +23,83 @@ namespace www
     
     AsyncWebServer server(serverPort);
    
+    
+    void sendProcessedHtml(AsyncWebServerRequest *request, const char *filePath, String (*processor)(const String&)) {
+        File file = SPIFFS.open(filePath, "r");
+        if (!file) {
+            request->send(500, "text/plain", "Failed to open file");
+            return;
+        }
+    
+        // Create a string to hold the processed HTML
+        String htmlContent;
+    
+        // Read the file line by line and process placeholders
+        while (file.available()) {
+            String line = file.readStringUntil('\n');
+            htmlContent += processor(line); // Use the provided processor function
+        }
+        file.close(); // Close the file after reading
+    
+        Serial.print("Free heap after reading file: ");
+        Serial.println(ESP.getFreeHeap());
+    
+        // Send the processed HTML with the correct Content-Type
+        request->send(200, "text/html", htmlContent);
+    }
 
-    String processor(const String& var)   //  this will be called for every %PLACEHOLDER% in the served html file
+
+
+    String defaultProcessor(const String& var) {
+        String processedVar = var; // Create a copy of the input string, where all replacements will be made
+    
+        if (processedVar.indexOf("%TIME%") >= 0) {
+            processedVar.replace("%TIME%", Esp32::hourglass.getDateTimeString());
+        }
+        if (processedVar.indexOf("%STATE%") >= 0) {
+            processedVar.replace("%STATE%", digitalRead(BUILTIN_LED) ? "ON" : "OFF");
+        }
+      
+ 
+        if (processedVar.indexOf("%LON%") >= 0) {
+            processedVar.replace("%LON%", String(Esp32::GPS::lon));
+        }
+        if (processedVar.indexOf("%LAT%") >= 0) {
+            processedVar.replace("%LAT%", String(Esp32::GPS::lat));
+        }
+        if (processedVar.indexOf("%TEMP%") >= 0) {
+            processedVar.replace("%TEMP%", String(Esp32::getCPUTemp()));
+        }
+        return processedVar; // Return the modified string
+    }
+
+    String setupProcessor(const String& var) {
+        String processedVar = var; 
+
+        
+        if (processedVar.indexOf("%TIME%") >= 0) {
+            processedVar.replace("%TIME%", Esp32::hourglass.getDateTimeString());
+        }
+        if (processedVar.indexOf("%LOCALIP%") >= 0) {
+            processedVar.replace("%LOCALIP%", Esp32::wifiManager.getIPString());
+        }
+        if (processedVar.indexOf("%SSID%") >= 0) {
+            processedVar.replace("%SSID%", String(Esp32::wifiManager.getSSID()));
+        }
+        if (processedVar.indexOf("%MQTTURL%") >= 0) {
+            processedVar.replace("%MQTTURL%", Mqtt::server_ip);
+        }
+        if (processedVar.indexOf("%CONFIG%") >= 0) {
+            JsonDocument d = Esp32::configJson_;
+            d["pass"] = ""; // Suppress password for security
+            processedVar.replace("%CONFIG%", Esp32::getJsonString(d, true));
+        }
+     
+        return processedVar; 
+    }
+
+    
+   String processor(const String& var)   //  this will be called for every %PLACEHOLDER% in the served html file
     {
 
         if(var == "STATE")    {  return digitalRead(BUILTIN_LED) ? "ON" : "OFF";    }
@@ -120,12 +195,26 @@ namespace www
     {
         Serial.print(F("\nWWW from SPIFFS setup... ")); 
 
-        server
-            .serveStatic("/", SPIFFS, "/")
-            .setDefaultFile("index.html")
-            .setCacheControl("no-cache")
-            .setTemplateProcessor(processor);
+       // Storage::dumpFile("/esp32.css");
+       /* File file = SPIFFS.open("/esp32.css", "r");
+        if (file) {
+            while (file.available()) {
+                Serial.write(file.read());
+            }
+            file.close();
+        } else {
+            Serial.println("Failed to open sbqc.css");
+        }*/
 
+        server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+            sendProcessedHtml(request, "/index.html", defaultProcessor);
+        });
+    
+        server.on("/setup.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+            sendProcessedHtml(request, "/setup.html", setupProcessor);
+        });
+
+       
         server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request){
                 JsonDocument cnf;
                 String cnfStr = "";
@@ -150,7 +239,7 @@ namespace www
           
         });
 
-
+       
         server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
             Serial.println("Led ON requested");
             digitalWrite(BUILTIN_LED, HIGH);
@@ -198,13 +287,10 @@ namespace www
         
 
 
-//
+        //
         /* hockey */
         //
       
-          
-    
-
         // Respond to /sensors route
         server.on("/hockey/sensors", HTTP_GET, [](AsyncWebServerRequest *request){
             int val34 = analogRead(34);
@@ -264,6 +350,14 @@ namespace www
 
 
         }); 
+
+        //server.serveStatic("/esp32.css", SPIFFS, "/esp32.css").setCacheControl("no-cache");
+
+        server
+            .serveStatic("/", SPIFFS, "/")
+            .setDefaultFile("index.html")
+            .setCacheControl("no-cache");
+          //  .setTemplateProcessor(processor);
 
 
         // Send 404 for not Found

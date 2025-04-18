@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP32 Web Server</title>
-    <!-- Include p5.js library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
-   
+    <link rel="icon" type="image/png" href="favicon.ico">
+    
+    
+    <link rel="stylesheet" type="text/css" href="esp32.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="colors.css">
-    <link rel="stylesheet" type="text/css" href="esp32.css">
+    
+    <link rel="stylesheet" type="text/css" href="utilities.css">
     
     <script src="components/topMenu.js" type="text/javascript" defer></script>
     <script src="components/footer.js" type="text/javascript" defer></script>
@@ -33,22 +35,43 @@
 <div class="gridContainer">
     <div ></div>
     <div >
-        <form class = 'card-4 animate-right'>
-            <h3>Weather</h3>
-            <p>Temperature: <strong> %TEMP%</strong></p>
-            <p>Pression: <strong> %PRESSION%</strong></p>
+ 
+
+        <form class="info-form card-4 ">
+            <div class="info-row">
+                <label class="info-label">Current Time:</label><span class="info-data">%TIME%</span>
+            </div>
+            <div class="info-row">
+                <label class="info-label">CPU Temp:</label> <span class="info-data">%TEMP%</span>
+            </div>
+            <br>
+            <div class="info-row">
+                <label class="info-label">Longitude:</label> <span class="info-data">%LON% &deg;</span>
+            </div>
+            <div class="info-row">
+                <label class="info-label">Latitude:</label><span class="info-data">%LAT% &deg;</span>
+            </div>
         </form>
+
+
     </div>
 </div>
 
-  </br><p></p></br>
 
-  <p>Current Time   --   %TIME% </p>
- 
-  <p>
-    latitude: <span id="latitude"> %LON% </span>&deg;<br />
-    longitude: <span id="longitude"> %LAT% </span>&deg;
-  </p>
+  <div class="gridContainer">
+    <div ></div>
+    <div >
+        <form class = 'info-form card-4 text-indigo '>
+            <h3>Weather</h3>
+           
+            <div class="info-row">
+                <label class="info-label">Pression:</label> <span class="info-data">%PRESSION%</span>
+            </div>
+
+           
+        </form>
+    </div>
+</div>
 
   <footer-component></footer-component>
 </body>
