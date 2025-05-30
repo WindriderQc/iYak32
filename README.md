@@ -21,6 +21,14 @@ Available features:
 - 4 digits 7-segments Display library based on TM1637Display to show String, Char and Int implemented  
 - Over The Air programming capabilities with platform.io implemented
     a) ESP IP address must be configured in platformio.ini and ESP must be connected a preferred wifi to be on the same network as the intended programming computer.  A first USB connection is obviously required  
+- **Hockey Scoreboard Application:**
+    - Implements a fully functional air hockey or table hockey scoreboard.
+    - Utilizes a TM1637 4-digit 7-segment display (via `SevenSegmentAscii.h`) to show game time and scores.
+    - Features goal detection using analog light sensors (`AnLux.h`) connected to analog pins.
+    - Manages game state including period tracking, game timer (configurable length), pause/reset functionality.
+    - Includes basic sounds for goals/period end via the buzzer.
+    - Saves game scores with timestamps to a file (`game_scores.txt`) on the ESP32's filesystem.
+    - Provides a web interface component under `/hockey/Scoreboard.html` for viewing scores (though primary display is the 7-segment).
 
 
 
