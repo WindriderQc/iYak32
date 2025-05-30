@@ -30,6 +30,60 @@ Available features:
     - Saves game scores with timestamps to a file (`game_scores.txt`) on the ESP32's filesystem.
     - Provides a web interface component under `/hockey/Scoreboard.html` for viewing scores (though primary display is the 7-segment).
 
+## Generic I/O Configuration Web Interface
+
+The iYak32 firmware includes a powerful web interface that allows for generic configuration and real-time status monitoring of the ESP32's GPIO pins. This feature makes it easy to adapt the ESP32 for various custom projects without needing to recompile the firmware for basic I/O changes.
+
+You can access this interface via the `io_control.html` page on the ESP32's web server (e.g., `http://<ESP32_IP>/io_control.html`).
+
+**Key Functionalities:**
+
+*   **Dynamic Status Display:** View the current state (HIGH/LOW or analog value) of configured I/O pins, updated periodically.
+*   **Pin Configuration:** For a list of available GPIOs, you can:
+    *   Assign custom **labels** (names).
+    *   Set the **mode:** `OUTPUT`, `INPUT`, `INPUT_PULLUP`, `INPUT_PULLDOWN`.
+    *   Define the **type:** `DIGITAL` or `ANALOG_INPUT`.
+    *   Specify an **initial state** for output pins (`LOW` or `HIGH`).
+*   **Configuration Management:**
+    *   Save the entire I/O pin configuration to the ESP32. These settings are stored in `/io_config.json` on the device's SPIFFS filesystem and are applied at boot.
+    *   View the current configuration in JSON format directly in the UI.
+*   **Real-time Graphing:** Select pins to visualize their status over time on a line graph, powered by Chart.js.
+
+**I/O Configuration JSON Structure:**
+
+The I/O settings are stored in a JSON file named `/io_config.json`. The structure is as follows:
+
+```json
+{
+  "io_pins": [
+    {
+      "gpio": 21,
+      "label": "Builtin LED",
+      "mode": "OUTPUT",
+      "type": "DIGITAL",
+      "initial_state": "LOW",
+      "graph": false
+    },
+    {
+      "gpio": 34,
+      "label": "Light Sensor",
+      "mode": "INPUT",
+      "type": "ANALOG_INPUT",
+      "graph": true
+    }
+  ]
+}
+```
+Each object in the `io_pins` array defines a single GPIO pin's configuration.
+
+**Supporting API Endpoints:**
+
+The web interface interacts with the ESP32 through the following HTTP API endpoints:
+
+*   `GET /api/io/status`: Retrieves the current status (values) of all configured pins.
+*   `GET /api/io/config`: Retrieves the currently saved `/io_config.json`.
+*   `POST /api/io/config`: Accepts a new I/O configuration JSON payload, saves it to `/io_config.json`, and applies the settings to the ESP32's GPIOs.
+
 
 
  // Set the SSID (name) and password of the Access Point
