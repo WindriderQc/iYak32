@@ -46,21 +46,8 @@ namespace Hockey
 
     // Sensors and Static ISR function for the interrupts
 
-    portMUX_TYPE mutex = portMUX_INITIALIZER_UNLOCKED;   //  initialize mutex for interrupt handling
-
     Sensor::AnLux senseLeft;
-    static void IRAM_ATTR senseLeft_isr() {
-            portENTER_CRITICAL_ISR(&mutex);
-            senseLeft.handleInterrupt();
-            portEXIT_CRITICAL_ISR(&mutex);
-    }
-
     Sensor::AnLux senseRight;
-    static void IRAM_ATTR senseRight_isr() {
-            portENTER_CRITICAL_ISR(&mutex);
-            senseRight.handleInterrupt();
-            portEXIT_CRITICAL_ISR(&mutex);
-    }
 
    
 
@@ -86,12 +73,8 @@ namespace Hockey
 
             asciiDisplay.displayString(scoreString.c_str()); 
 
-            senseLeft.action.mode_ = RISING; 
-            senseLeft.action.callback_ = senseLeft_isr;  
             senseLeft.setup("senseLeft", Esp32::DEVICE_NAME, LEFTGOAL, true );
 
-            senseRight.action.mode_ = RISING; 
-            senseRight.action.callback_ = senseRight_isr;   
             senseRight.setup("senseRight", Esp32::DEVICE_NAME, RIGHTGOAL, true ); 
 
         }

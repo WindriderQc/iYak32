@@ -85,19 +85,40 @@ namespace Mqtt
     {
         //  Slicing topic string into tokens and convert message from byte to array or string.  //  Allows access to each segment of the mqtt message   
         MqttMsg mqttMsg; // char topicChar[128];  //  create a copy because strtok modifies the original array
-        int i;   
+        // int i; // Original loop variable, no longer needed here for copying loops
        
-        for (i = 0; i < (strlen(topic)); i++) {
-            mqttMsg.topicChar[i] = topic[i];
-            mqttMsg.topicStr += topic[i];
-        }    
-        mqttMsg.topicChar[i] = '\0'; 
+        // Topic Processing
+        size_t input_topic_len = strlen(topic);
+        size_t max_topic_buf_len = sizeof(mqttMsg.topicChar) - 1;
+        size_t chars_to_copy_topic = input_topic_len;
 
-        for (i = 0; i < length; i++) {
-            mqttMsg.msgArray[i] = (char)message[i];
-            mqttMsg.msgStr += (char)message[i];
-        }  
-        mqttMsg.msgArray[i] = '\0';      
+        if (input_topic_len >= sizeof(mqttMsg.topicChar)) {
+            Serial.println(F("ERROR: MQTT topic too long, truncating."));
+            chars_to_copy_topic = max_topic_buf_len;
+        }
+        strncpy(mqttMsg.topicChar, topic, chars_to_copy_topic);
+        mqttMsg.topicChar[chars_to_copy_topic] = '\0'; // Ensure null termination
+
+        mqttMsg.topicStr = ""; // Clear it first
+        for (size_t k = 0; k < chars_to_copy_topic; ++k) {
+            mqttMsg.topicStr += mqttMsg.topicChar[k];
+        }
+
+        // Message (Payload) Processing
+        size_t max_msg_buf_len = sizeof(mqttMsg.msgArray) - 1;
+        size_t chars_to_copy_msg = length;
+
+        if (length >= sizeof(mqttMsg.msgArray)) {
+            Serial.println(F("ERROR: MQTT message payload too long, truncating."));
+            chars_to_copy_msg = max_msg_buf_len;
+        }
+
+        mqttMsg.msgStr = ""; // Clear it first
+        for (unsigned int k = 0; k < chars_to_copy_msg; ++k) {
+            mqttMsg.msgArray[k] = (char)message[k];
+            mqttMsg.msgStr += (char)message[k]; // Build String version from (truncated) payload
+        }
+        mqttMsg.msgArray[chars_to_copy_msg] = '\0'; // Ensure null termination
 
         char *ptr = NULL;
         byte index = 0;

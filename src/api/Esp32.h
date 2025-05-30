@@ -7,6 +7,7 @@
 #include <ArduinoJson.h>   
 
 #include <Wire.h>    // TODO Dépends de si on utilise i2C...  ne devrait ptete pas etre aussi générique
+#include <EEPROM.h>
 
 #include "IPin.h"
 #include "Storage.h"
@@ -119,7 +120,10 @@ namespace Esp32   //  ESP 32 configuration and helping methods
 
     void configPin(int gpio ,  const char* pinMode,  const char* label = "", bool isAnalog = false)/* Accept  "INPULL", "INPULLD", "IN" and "OUT" as pinMode.   */
     {
-       // if(ios[gpio] != nullptr) delete(ios[gpio]); 
+       if(ios[gpio] != nullptr) {
+           delete ios[gpio];
+           ios[gpio] = nullptr;
+       }
         ios[gpio] = new Pin(pinMode,gpio, label, isAnalog);
     }
 
@@ -401,6 +405,11 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     {
        
         Serial.println("\nEsp32 setup\nStarting internal SPIFFS filesystem");
+
+        // Initialize EEPROM
+        const int EEPROM_SIZE_FOR_APP = 64; // Define an appropriate size for EEPROM data
+        EEPROM.begin(EEPROM_SIZE_FOR_APP);
+        Serial.println(F("EEPROM Initialized with size for app."));
 
         if(!SPIFFS.begin(false)) {
             Serial.println("SPIFFS Mount failed\nDid not find filesystem - this can happen on first-run initialisation\n  Formatting..."); 
