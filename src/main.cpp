@@ -35,19 +35,19 @@ bool bmxConnected = false;
 //     FIRSTLOOP,
 //     LOOP
 // };
-static SYS_state state = SYS_state::BOOT; // Uses SYS_state from SystemState.h, now static
+static SYS_state global_system_state_temp = SYS_state::BOOT; // Renamed
 
 // Accessor functions for the static 'state' variable
-SYS_state get_current_system_state() {
-    return state;
+SYS_state get_current_system_state_temp() { // Renamed
+    return global_system_state_temp;
 }
 
-void set_current_system_state(SYS_state new_state) {
+void set_current_system_state_temp(SYS_state new_state) { // Renamed
     // Optional: Log state changes centrally
-    // if (state != new_state) {
-    //    Serial.printf("System State: %d -> %d (via setter)\n", static_cast<int>(state), static_cast<int>(new_state));
+    // if (global_system_state_temp != new_state) {
+    //    Serial.printf("System State: %d -> %d (via setter)\n", static_cast<int>(global_system_state_temp), static_cast<int>(new_state));
     // }
-    state = new_state;
+    global_system_state_temp = new_state;
 }
 
 
@@ -151,7 +151,7 @@ void loop()
     Esp32::loop(); //  Handle OTA,  MQTT,  NTP,  etc...
     
 
-    switch(state) 
+    switch(global_system_state_temp) // Updated to use renamed static variable
     {
     case SYS_state::BOOT:
             
@@ -159,7 +159,7 @@ void loop()
             if(Esp32::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());  // Request IO config and profile from server
             
             Serial.println("BOOT done");
-            set_current_system_state(SYS_state::DEVICES_CONFIG);
+            set_current_system_state_temp(SYS_state::DEVICES_CONFIG); // Updated to use renamed setter
             break;
 
     case SYS_state::DEVICES_CONFIG:
@@ -179,7 +179,7 @@ void loop()
 #endif
 
             Serial.println("SENSORS & ALARMLib CONFIG done");
-            set_current_system_state(SYS_state::HEATUP);
+            set_current_system_state_temp(SYS_state::HEATUP); // Updated to use renamed setter
             break;
     
     case SYS_state::HEATUP:
@@ -190,7 +190,7 @@ void loop()
                 Serial.print("."); Serial.print(millis()); Serial.print("."); 
             }  
             else {
-                set_current_system_state(SYS_state::FIRSTLOOP);
+                set_current_system_state_temp(SYS_state::FIRSTLOOP); // Updated to use renamed setter
                 Serial.println(" On Fire! :)");
                 }
             break;
@@ -208,7 +208,7 @@ void loop()
             //Lux::loop(); 
             
             Serial.println("FIRST LOOP done -- Let's roll!\n");
-            set_current_system_state(SYS_state::LOOP);
+            set_current_system_state_temp(SYS_state::LOOP); // Updated to use renamed setter
             break;
 
     case SYS_state::LOOP:       

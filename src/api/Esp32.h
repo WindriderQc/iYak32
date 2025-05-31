@@ -40,6 +40,7 @@ namespace Esp32 {
     extern bool buzzer_enabled_;
     extern int configured_buzzer_pin_;
     extern int mqtt_data_interval_seconds_;
+    extern int state_test_variable; // Added for linker diagnostics
 
     // Function Declarations
     void setVerboseLog();
