@@ -8,7 +8,8 @@ Add to platformio.ini:
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 #include <HTTPClient.h>
-
+#include <SPIFFS.h>      // Added for SPIFFS object usage
+#include "api/Mqtt.h"    // Added for Mqtt namespace usage
 #include "api/Esp32.h"
 #include "Hockey.h"
 

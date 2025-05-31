@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <vector>
+#include <SPIFFS.h> // Added for SPIFFS access
 
 #include "api/devices/SevenSegmentAscii.h"
 #include "api/devices/sensors/ISensor.h"

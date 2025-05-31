@@ -18,8 +18,9 @@ namespace Esp32 {
     bool spiffsMounted = false;
     String batteryText = "";
     float vBAT = 0.0f;
+    byte vBATSampleSize = 5; // Definition added
     int battery_monitor_pin_ = 35; // Default from previous setup, will be overridden by JSON config if present
-    Pin* ios[HUZZAH32];
+    Esp32::Pin* ios[HUZZAH32]; // Explicitly namespaced
     WifiManager wifiManager;
     Buzzer buzzer;
     Hourglass hourglass;
@@ -60,7 +61,7 @@ namespace Esp32 {
         }
     }
 
-    void configPin(int gpio ,  const char* pinModeStr,  const char* label = "", bool isAnalog = false) {
+    void configPin(int gpio ,  const char* pinModeStr,  const char* label, bool isAnalog) {
        if(gpio >= 0 && gpio < HUZZAH32) { // Added bounds check
            if(ios[gpio] != nullptr) {
                delete ios[gpio];
@@ -339,7 +340,7 @@ namespace Esp32 {
     }
 
     namespace GPS { // Assuming GPS namespace is part of Esp32 or globally accessible
-        const int lon = 77; // These should remain in .h if they are truly fixed constants for the app
-        const int lat = 55; // Or be loaded from config if they can change
+        // const int lon = 77; // Defined in Esp32.h
+        // const int lat = 55; // Defined in Esp32.h
     }
 } // namespace Esp32

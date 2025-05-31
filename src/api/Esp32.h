@@ -2,11 +2,15 @@
 
 #include <Arduino.h> // For String, byte, etc.
 #include <ArduinoJson.h> // For JsonDocument (declaration needed for extern)
-// Forward declarations for classes used in extern variables
-class WifiManager;
-class Buzzer;
-class Hourglass;
-class Pin; // Assuming Pin is a class name from IPin.h
+
+// Full header includes for classes used in Esp32 namespace extern declarations
+#include "WifiManager.h"    // Provides definition for WifiManager
+#include "devices/Buzzer.h" // Provides definition for Buzzer
+#include "Hourglass.h"      // Provides definition for Hourglass
+#include "IPin.h"           // Provides definition for Pin (which is in IPin.h)
+// Note: Storage.h and Mqtt.h might also be needed if Esp32.h itself declares/uses them directly,
+// but the immediate issue is for the types of the extern objects.
+// Esp32.cpp includes them for its own implementation needs.
 
 namespace Esp32 {
     // Constants and Defines (remain in .h)
@@ -26,8 +30,9 @@ namespace Esp32 {
     extern bool spiffsMounted;
     extern String batteryText;
     extern float vBAT;
+    extern byte vBATSampleSize; // Added extern declaration
     extern int battery_monitor_pin_;
-    extern Pin* ios[HUZZAH32]; // Size must match definition
+    extern Esp32::Pin* ios[HUZZAH32]; // Size must match definition, explicitly namespaced
     extern WifiManager wifiManager;
     extern Buzzer buzzer;
     extern Hourglass hourglass;
