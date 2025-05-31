@@ -35,9 +35,20 @@ bool bmxConnected = false;
 //     FIRSTLOOP,
 //     LOOP
 // };
-SYS_state state = SYS_state::BOOT; // Uses SYS_state from SystemState.h
+static SYS_state state = SYS_state::BOOT; // Uses SYS_state from SystemState.h, now static
 
+// Accessor functions for the static 'state' variable
+SYS_state get_current_system_state() {
+    return state;
+}
 
+void set_current_system_state(SYS_state new_state) {
+    // Optional: Log state changes centrally
+    // if (state != new_state) {
+    //    Serial.printf("System State: %d -> %d (via setter)\n", static_cast<int>(state), static_cast<int>(new_state));
+    // }
+    state = new_state;
+}
 
 
 void sendHeartbeat()
@@ -148,7 +159,7 @@ void loop()
             if(Esp32::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());  // Request IO config and profile from server
             
             Serial.println("BOOT done");
-            state = SYS_state::DEVICES_CONFIG;
+            set_current_system_state(SYS_state::DEVICES_CONFIG);
             break;
 
     case SYS_state::DEVICES_CONFIG:
@@ -168,7 +179,7 @@ void loop()
 #endif
 
             Serial.println("SENSORS & ALARMLib CONFIG done");
-            state = SYS_state::HEATUP;
+            set_current_system_state(SYS_state::HEATUP);
             break;
     
     case SYS_state::HEATUP:
@@ -179,7 +190,8 @@ void loop()
                 Serial.print("."); Serial.print(millis()); Serial.print("."); 
             }  
             else {
-                state = SYS_state::FIRSTLOOP; Serial.println(" On Fire! :)");
+                set_current_system_state(SYS_state::FIRSTLOOP);
+                Serial.println(" On Fire! :)");
                 }
             break;
 
@@ -196,7 +208,7 @@ void loop()
             //Lux::loop(); 
             
             Serial.println("FIRST LOOP done -- Let's roll!\n");
-            state = SYS_state::LOOP;
+            set_current_system_state(SYS_state::LOOP);
             break;
 
     case SYS_state::LOOP:       
