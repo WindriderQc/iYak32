@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include "api/Esp32.h"
+#include "api/Mqtt.h"    // Added for direct Mqtt namespace usage
 #include "api/devices/BMX280.h"  //  TODO : devrait etre encaps dans un device...   device = gestion IO = main config n feature focus
 #include "api/devices/Oled.h"
 
