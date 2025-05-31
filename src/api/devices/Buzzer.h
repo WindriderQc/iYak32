@@ -14,7 +14,7 @@ namespace Esp32
         ePERIOD_BELL
     };
     
-    BUZZER_state state = BUZZER_state::eOFF; // This global state might need rethinking if multiple buzzer instances were used.
+    BUZZER_state buzzer_state = BUZZER_state::eOFF; // This global state might need rethinking if multiple buzzer instances were used.
                                           // For a single global Esp32::buzzer, it's usable but less encapsulated.
 
     class Buzzer
@@ -45,11 +45,11 @@ namespace Esp32
 
             // Existing state machine for complex sounds like siren - can be kept or refactored
             // For now, playSiren will only work if pin_ is valid due to checks within it.
-            switch(state) 
+            switch(buzzer_state) 
             {
                 case BUZZER_state::eINTRO:
                         playSiren();               
-                        state = BUZZER_state::eOFF; // Reset state after playing
+                        buzzer_state = BUZZER_state::eOFF; // Reset state after playing
                         break;
                 // BUZZER_state::eON and eOFF are not used by timed beep logic,
                 // but could be used by external logic to set complex states.

@@ -41,7 +41,7 @@ namespace Hockey
         ePAUSE
     };
     
-    HOCKEY_state state = HOCKEY_state::eINTRO;
+    HOCKEY_state hockey_state = HOCKEY_state::eINTRO;
     unsigned int tictac = 0;
 
 
@@ -89,9 +89,9 @@ namespace Hockey
 
         void loop() 
         {
-            if (state != previous_state_) {
+            if (hockey_state != previous_state_) {
                 Serial.print(F("Hockey Game State: "));
-                switch (state) {
+                switch (hockey_state) {
                     case HOCKEY_state::eINTRO:
                         Serial.println(F("Intro"));
                         break;
@@ -122,7 +122,7 @@ namespace Hockey
                         Serial.println(F("Unknown State"));
                         break;
                 }
-                previous_state_ = state;
+                previous_state_ = hockey_state;
             }
             unsigned long elapsedSeconds;
             unsigned int minutes, seconds;
@@ -147,7 +147,7 @@ namespace Hockey
 
             String msg;
            
-            switch(state) 
+            switch(hockey_state) 
             {
                 case HOCKEY_state::eINTRO:    
                         time = periodLength;
@@ -164,7 +164,7 @@ namespace Hockey
                          
                         updateSevenSegmentDisplay("COOL");
                         tictac++;
-                        if(tictac >= GOAL_DELAY) { tictac = 0;   state = HOCKEY_state::eDROP_PUCK; }
+                        if(tictac >= GOAL_DELAY) { tictac = 0;   hockey_state = HOCKEY_state::eDROP_PUCK; }
                         break;
 
                 case HOCKEY_state::eON:
@@ -187,7 +187,7 @@ namespace Hockey
                         if(time <= 0) {
                             time = 0;
                             period++;
-                            state = HOCKEY_state::ePERIOD_BELL;
+                            hockey_state = HOCKEY_state::ePERIOD_BELL;
                         }
                         
                         msg = senseLeft.loop();
@@ -202,7 +202,7 @@ namespace Hockey
                         
                         updateSevenSegmentDisplay("GOAL");
                         tictac++;
-                        if(tictac >= GOAL_DELAY*0.6) { tictac = 0; state = HOCKEY_state::eDROP_PUCK; }
+                        if(tictac >= GOAL_DELAY*0.6) { tictac = 0; hockey_state = HOCKEY_state::eDROP_PUCK; }
                         break;
 
                 case HOCKEY_state::eGAMEOVER:
@@ -222,7 +222,7 @@ namespace Hockey
                             tictac++;
                             if(tictac >= GOAL_DELAY*2) { 
                                 tictac = 0; 
-                                state = HOCKEY_state::eDROP_PUCK; 
+                                hockey_state = HOCKEY_state::eDROP_PUCK; 
                                 time = periodLength;
                                 Serial.println(F("PERIOD FINISH - Next puck drop..."));
                             }
@@ -248,7 +248,7 @@ namespace Hockey
                                     Serial.println("Failed to open game_scores.txt for writing");
                                 }
 
-                                state = HOCKEY_state::eGAMEOVER;
+                                hockey_state = HOCKEY_state::eGAMEOVER;
                                 period = 3;
                                 tictac = 0;
                         }
@@ -260,7 +260,7 @@ namespace Hockey
                         tictac++;
                         if(tictac >= GOAL_DELAY) { 
                             tictac = 0;   
-                            state = HOCKEY_state::eON;
+                            hockey_state = HOCKEY_state::eON;
                             Serial.println(F("GO!"));
                             }
                         break;
@@ -296,17 +296,17 @@ namespace Hockey
             tictac = 0;
             time = periodLength;
             Serial.println(F("Game RESET."));
-            state = HOCKEY_state::eINTRO;
+            hockey_state = HOCKEY_state::eINTRO;
         }
 
         void pause() 
         { 
-            if( state == HOCKEY_state::ePAUSE)  {
+            if( hockey_state == HOCKEY_state::ePAUSE)  {
                 Serial.println(F("Timer RESUMED."));
-                state = HOCKEY_state::eDROP_PUCK;
+                hockey_state = HOCKEY_state::eDROP_PUCK;
             } else {
                 Serial.println(F("Timer PAUSED."));
-                state = HOCKEY_state::ePAUSE;
+                hockey_state = HOCKEY_state::ePAUSE;
             }
         }
         
@@ -314,14 +314,14 @@ namespace Hockey
         { 
             scoreLeft++;
             Serial.println(F("Left Goal Scored!"));
-            state = HOCKEY_state::eGOALLEFT;
+            hockey_state = HOCKEY_state::eGOALLEFT;
         }
 
         void goalRight() 
         { 
             scoreRight++;
             Serial.println(F("Right Goal Scored!"));
-            state = HOCKEY_state::eGOALRIGHT;
+            hockey_state = HOCKEY_state::eGOALRIGHT;
         }
 
         int getScoreLeft() { return scoreLeft; }

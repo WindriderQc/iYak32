@@ -306,7 +306,7 @@ namespace www
             json += "\"time\":\""      + String(hockey.gettimeString()) + "\",";
             json += "\"period\":"  + String(hockey.getPeriod()) + ",";
             json += "\"periodLength\":"  + String(hockey.getPeriodLength()) + ",";
-            json += "\"gameStatus\":"  + String(Hockey::state);
+            json += "\"gameStatus\":"  + String(Hockey::hockey_state);
             json += "}";
 
             request->send(200, "application/json", json);
