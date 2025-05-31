@@ -57,11 +57,14 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     String configString_;
    
     bool spiffsMounted = false;
+    bool buzzer_enabled_ = false;
+    int configured_buzzer_pin_ = -1;
 
 
     const int ADC_Max = 4095;    
 
-    #define BATTERY_READ_PIN 35 // Pin used to read battery voltag   (Huzzah32 - A13 - pin 35)   //   TODO :  devrait plus etre lié a la config / profile 
+    // #define BATTERY_READ_PIN 35 // Replaced by configurable battery_monitor_pin_
+    int battery_monitor_pin_ = -1; // Configurable battery monitor pin, -1 if not set
     String batteryText;         // String variable to hold text for battery voltage
     float vBAT = 0;             // Float variable to hold battery voltage
     byte vBATSampleSize = 5;    // How many time we sample the battery
@@ -161,7 +164,12 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     // Check the battery voltage     vBAT = between 0 and 4.2 expressed as volts
     float getBatteryVoltage()
     {
-        vBAT = (127.0f / 100.0f) * 3.30f * float(analogRead(BATTERY_READ_PIN)) / 4095.0f; // Calculates the voltage left in the battery
+        if (battery_monitor_pin_ == -1) {
+            Serial.println(F("Error: Battery monitor pin not configured. Cannot read voltage."));
+            vBAT = 0.0f; // Or some other error indicator
+            return vBAT;
+        }
+        vBAT = (127.0f / 100.0f) * 3.30f * float(analogRead(battery_monitor_pin_)) / 4095.0f; // Calculates the voltage left in the battery
         return vBAT;                                                                       
     }
     //  Convert batt voltage to %
@@ -328,10 +336,20 @@ namespace Esp32   //  ESP 32 configuration and helping methods
             if(hourglass.setupTimeSync()) hourglass.getDateTimeString(true);
         }
 
+        // Configure Buzzer
+        Esp32::buzzer_enabled_ = configJson_["buzzer_enabled"] | false;
+        Esp32::configured_buzzer_pin_ = configJson_["buzzer_pin"] | -1;
+
+        if (Esp32::buzzer_enabled_ && Esp32::configured_buzzer_pin_ != -1) {
+            Esp32::buzzer.init(Esp32::configured_buzzer_pin_);
+        } else {
+            Esp32::buzzer.init(-1); // Ensure it's explicitly not initialized with a valid pin
+            Serial.println(F("Buzzer: Disabled or pin not set in config."));
+        }
 
         Mqtt::isEnabled =            configJson_["isMqtt"];     
         Esp32::isConfigFromServer =  configJson_["isConfigFromServer"]; 
-        Mqtt::port_ =                configJson_["mqttport"];
+        Mqtt::port =                configJson_["mqttport"]; // Changed Mqtt::port_ to Mqtt::port
 
         String mqtturl =             configJson_["mqtturl"];
         
@@ -425,6 +443,8 @@ namespace Esp32   //  ESP 32 configuration and helping methods
         EEPROM.begin(EEPROM_SIZE_FOR_APP);
         Serial.println(F("EEPROM Initialized with size for app."));
 
+        Esp32::battery_monitor_pin_ = 35; // Default for now, until full JSON IO config is active
+
         if(!SPIFFS.begin(false)) {
             Serial.println("SPIFFS Mount failed\nDid not find filesystem - this can happen on first-run initialisation\n  Formatting..."); 
             ioBlink(LED_BUILTIN,100, 100, 4); // Show SPIFFS failure
@@ -456,6 +476,8 @@ namespace Esp32   //  ESP 32 configuration and helping methods
                 configDoc["profileName"] = "default_ESP32";
                 configDoc["gmtOffset_sec"] = -18000; // Default GMT offset (e.g., EST)
                 configDoc["daylightOffset_sec"] = 3600;  // Default DST offset
+                configDoc["buzzer_enabled"] = false; // Default to false
+                configDoc["buzzer_pin"] = -1;      // Default to no pin / invalid
                 Serial.println("setup -> Could not read Config file -> initializing new file");
                
                 if (saveConfig(configDoc)) Serial.println("setup -> Config file saved");   
@@ -482,7 +504,9 @@ namespace Esp32   //  ESP 32 configuration and helping methods
         //timeSinceBoot += millis();     TODO: timeSinceboot devrait etre extern
         wifiManager.loop();   //  reconnect if connection is lost and handle OTA
        //TODO  devrait y avoir un readIO ici, non??
-        buzzer.loop();     
+        if (Esp32::buzzer_enabled_) {
+            Esp32::buzzer.loop();
+        }
 
         if(Mqtt::isEnabled) Mqtt::loop();   // listen for incomming subscribed topic, process receivedCallback, and manages msg publish queue   
     }
