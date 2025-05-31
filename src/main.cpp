@@ -78,9 +78,10 @@ void sendData()
 
     names.push_back("battery");     values.push_back(String(Esp32::getBattRemaining()));
 
-    names.push_back("tempBM_280");  values.push_back(String(BMX280::temp));
-    names.push_back("pressure");    values.push_back(String(BMX280::pressure));
-    names.push_back("altitude");    values.push_back(String(BMX280::altitude));
+    names.push_back("tempBM_280");  values.push_back(String(BMX280::getTemperature()));
+    names.push_back("pressure");    values.push_back(String(BMX280::getPressure()));
+    names.push_back("altitude");    values.push_back(String(BMX280::getAltitude()));
+    // names.push_back("humidity");    values.push_back(String(BMX280::getHumidity())); // Example if humidity is added
     /*names.push_back("co2");         values.push_back(String(Weather::co2));
     names.push_back("smoke");       values.push_back(String(Weather::smoke));
     names.push_back("lpg");         values.push_back(String(Weather::lpg));
@@ -109,9 +110,10 @@ void printOled()
    // Oled::oled.printf("Dir: %d\n", boat.getDir()); 
     Oled::oled.setTextSize(1);  
     Oled::oled.println(Esp32::wifiManager.getIP());
-    Oled::oled.printf("\nKPa: %.2f", BMX280::pressure); 
-    Oled::oled.printf("\ntC: %.1f", BMX280::temp);
-    Oled::oled.printf("\nAlt: %.1f", BMX280::altitude);
+    Oled::oled.printf("\nKPa: %.2f", BMX280::getPressure());
+    Oled::oled.printf("\ntC: %.1f", BMX280::getTemperature());
+    Oled::oled.printf("\nAlt: %.1f", BMX280::getAltitude());
+    // Oled::oled.printf("\nHum: %.1f", BMX280::getHumidity()); // Example
 
     Oled::oled.display(); 
 }
@@ -239,7 +241,7 @@ void loop()
 
                 if(bmxConnected) BMX280::actualizeWeather();  
 #ifdef BOAT  
-                boat.pressure = BMX280::pressure;
+                Boat::boat.pressure = BMX280::getPressure(); // Assuming Boat::boat is the global instance
 #endif                
                 
                 //Lux::loop(); 
