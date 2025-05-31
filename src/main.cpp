@@ -219,7 +219,7 @@ void loop()
                 if(Mqtt::isEnabled) sendHeartbeat();  
             }
 
-            if (millis() - startTime5 >= 5000UL)
+            if (millis() - startTime5 >= (static_cast<unsigned long>(Esp32::mqtt_data_interval_seconds_) * 1000UL))
             {
                 startTime5 = millis(); 
 

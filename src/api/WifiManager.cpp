@@ -137,24 +137,24 @@ bool WifiManager::tryConnectToPreferredNetworks()
 
     if (!configFile) {    Serial.println("Failed to open config file");    return false;  }
 
+    Serial.println("SPIFFS mounted and config.txt found for SSID and credentials. Reading all entries.");
 
-        Serial.println("SPIFFS mounted and config.txt found for SSID and credentials");
+    preferredSsids_.clear();
+    preferredPasswords_.clear();
 
-    int i = 0;
-    while (configFile.available() && i < numPreferredNetworks) {
+    while (configFile.available()) {
         String line = configFile.readStringUntil('\n');
         line.trim();
         int separatorIndex = line.indexOf(':');
 
         if (separatorIndex != -1) {
-        preferredSsids_[i] = line.substring(0, separatorIndex).c_str();
-        preferredPasswords_[i] = line.substring(separatorIndex + 1).c_str();
-        i++;
+            preferredSsids_.push_back(line.substring(0, separatorIndex));
+            preferredPasswords_.push_back(line.substring(separatorIndex + 1));
         }
     }
     configFile.close();
 
-    for (int i = 0; i < numPreferredNetworks; i++) {
+    for (size_t i = 0; i < preferredSsids_.size(); i++) { // Iterate using vector's size
             const char* ssid = preferredSsids_[i].c_str();
             const char* password = preferredPasswords_[i].c_str();
 

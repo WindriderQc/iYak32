@@ -59,6 +59,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     bool spiffsMounted = false;
     bool buzzer_enabled_ = false;
     int configured_buzzer_pin_ = -1;
+    int mqtt_data_interval_seconds_ = 5; // Default interval 5 seconds
 
 
     const int ADC_Max = 4095;    
@@ -350,6 +351,11 @@ namespace Esp32   //  ESP 32 configuration and helping methods
         Mqtt::isEnabled =            configJson_["isMqtt"];     
         Esp32::isConfigFromServer =  configJson_["isConfigFromServer"]; 
         Mqtt::port =                configJson_["mqttport"]; // Changed Mqtt::port_ to Mqtt::port
+        Esp32::mqtt_data_interval_seconds_ = configJson_["mqttDataIntervalSec"] | 5;
+        if (Esp32::mqtt_data_interval_seconds_ < 1) {
+            Esp32::mqtt_data_interval_seconds_ = 1;
+        }
+        Serial.printf("Esp32: MQTT data send interval set to %d seconds.\n", Esp32::mqtt_data_interval_seconds_);
 
         String mqtturl =             configJson_["mqtturl"];
         
@@ -478,6 +484,7 @@ namespace Esp32   //  ESP 32 configuration and helping methods
                 configDoc["daylightOffset_sec"] = 3600;  // Default DST offset
                 configDoc["buzzer_enabled"] = false; // Default to false
                 configDoc["buzzer_pin"] = -1;      // Default to no pin / invalid
+                configDoc["mqttDataIntervalSec"] = 5; // Default value
                 Serial.println("setup -> Could not read Config file -> initializing new file");
                
                 if (saveConfig(configDoc)) Serial.println("setup -> Config file saved");   

@@ -10,13 +10,13 @@ class Header extends HTMLElement {
                 <div class=" topnav  card-4" id="topNav">
                     <a class=" " href="index.html" >Home</a>
                     <a class=" " href="setup.html">Setup</a>
+                    <a class=" " id="iocontrol-link" href="io_control.html">I/O Control</a>
                     <div class="dropdown-hover">
                        <a class=""> Web Apps</a>
                         <div class="dropdown-content ">
                             <a class=" " id="hockey-link" href="hockey/Scoreboard.html">Hockey</a>
                             <a class=" " id="boat-link" href="boat/index.html">Boat</a>
                             <a class=" " id="tides-link" href="tides.html">Tides</a>
-                            <a class=" " id="dashio-link" href="dashio.html">DashIO</a>
                         </div>
                     </div>
                     <a  class="" id="mqtt-link" href="mqtt.html">MQTTViewer</a>
