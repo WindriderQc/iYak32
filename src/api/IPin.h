@@ -4,91 +4,6 @@
 
 namespace Esp32
 {
-   
-    class IPin
-    {    
-        public:   
-            IPin(byte pinmode, int io, String pinlabel)
-            {
-                label = pinlabel ;
-                mode = pinmode;
-                pinID = io;
-                pinMode(pinID, mode);
-            }
-
-            virtual int read() = 0;
-      
-            int pinID;
-            byte mode;
-            String label;   
-    };
-
-    class DigitalInput : public Esp32::IPin
-    {    
-        public:   
-            DigitalInput(int io, String label) : IPin(INPUT, io, label) 
-            { }
-
-            virtual int read() override 
-            {    
-                return digitalRead(pinID);
-            }
- 
-    };
-
-    class PullupInput : public Esp32::IPin
-    {    
-        public:   
-            PullupInput(int io, String label) : IPin(INPUT_PULLUP, io, label) 
-            { }
-
-            virtual int read() override 
-            {    
-                return digitalRead(pinID);
-            }
- 
-    };
-
-
-
-    class DigitalOutput : public Esp32::IPin
-    {    
-        public:   
-            DigitalOutput(int io, String label) : IPin(OUTPUT, io, label) 
-            { }
-
-            virtual int read() override 
-            {    
-                return digitalRead(pinID);
-            }
-
-            virtual void write(int state)  
-            {    
-                digitalWrite(pinID, state);
-                //return digitalRead(pinID);
-            }
- 
-    };
-
-
-    class AnalogInput : public Esp32::IPin
-    {    
-        public:   
-            AnalogInput(int io, String label) : IPin(INPUT_PULLUP, io, label) 
-            { }
-
-            virtual int read() override 
-            {    
-                return analogRead(pinID);
-            }
- 
-    };
-
-
-
-
-
-
     struct PinConfig
     {
         byte pinMode = OUTPUT;
@@ -132,17 +47,4 @@ namespace Esp32
       
             PinConfig config;
     };
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

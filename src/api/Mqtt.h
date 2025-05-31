@@ -31,8 +31,8 @@ namespace Mqtt
     bool isEnabled = false;
  
     
-    String server_ip;
-    int port_;
+    String serverIp;
+    int port;
     String mqttUser = "";
     String mqttPass = "";
 
@@ -42,6 +42,7 @@ namespace Mqtt
     WiFiClient client;
     PubSubClient mqttClient(client);
 
+    const int MAX_MQTT_QUEUE_SIZE = 20; // Max number of messages in the queue
  
     struct MqttMsg 
     {
@@ -61,10 +62,17 @@ namespace Mqtt
 
         void add(String topic, String msg)
         {
+            if (topics.size() >= MAX_MQTT_QUEUE_SIZE) {
+                Serial.println(F("Mqtt Error: MQTT message queue full. Discarding new message."));
+                Serial.print(F("Topic: ")); Serial.println(topic); // Log discarded topic for debugging
+                return; // Do not add the new message
+            }
+
+            // Existing message length check (can be reviewed separately)
             if(msg.length() > 3)
             {
                 topics.push_back(topic);
-                messages.push_back(msg);//  TODO    Buffer overflow??  Top ressources?
+                messages.push_back(msg); // Original TODO about buffer overflow is now addressed by queue limit
             }
         }
         
@@ -146,9 +154,8 @@ namespace Mqtt
 
     bool getCredentials()
     {
-        
-        if (!SPIFFS.begin(true)) {   //  TODO:  probleme si on mount le SPIFF 2 fois??
-            Serial.println("Failed to mount SPIFFS");
+        if (!Esp32::spiffsMounted) {
+            Serial.println(F("Mqtt Error: SPIFFS not mounted. Cannot load MQTT credentials from mqtt.txt."));
             return false;
         }
 
@@ -177,18 +184,18 @@ namespace Mqtt
     }
 
 
-    bool setup( String deviceName, String mqttIP, int server_port = 1883)
+    bool setup( String deviceName, String mqttIP, int server_port_param = 1883) // Renamed server_port to avoid conflict
     {
-        server_ip = mqttIP; 
-        port_ = server_port;
-        Serial.print(F("MQTT server IP address retrieved: "));  Serial.println(server_ip);
+        serverIp = mqttIP;
+        port = server_port_param;
+        Serial.print(F("MQTT server IP address retrieved: "));  Serial.println(serverIp);
         
         mqttClient.disconnect();
 
         IPAddress default_ip(0, 0, 0, 0);
 
-        if(server_ip == "")  mqttClient.setServer("specialblend.ca", port_);
-        else                 mqttClient.setServer(server_ip.c_str(), port_);
+        if(serverIp == "")  mqttClient.setServer("specialblend.ca", port);
+        else                 mqttClient.setServer(serverIp.c_str(), port);
        
         //mqttClient.setBufferSize(512);  Semble pas marcher...  build flag dans platformio a la place
         //mqttClient.setCallback(incomingCallback);
@@ -250,12 +257,31 @@ namespace Mqtt
         }
 
         char json[docSize];
-        size_t n = serializeJson(doc, json, docSize);   //  TODO:  valider comment gerer si le json est plus gros que MAX MQTT
-        mqttClient.publish(topic.c_str(), json);
+        size_t n = serializeJson(doc, json, docSize);
 
-        if(print2console) {
-            String s = json;
-            Serial.println(s);
+        if (n == 0) {
+            Serial.println(F("Mqtt Error: JSON serialization failed (returned 0). Message not sent."));
+            if (print2console) {
+                Serial.println(F("Mqtt: (No message sent due to serialization error)"));
+            }
+        } else if (n >= docSize -1 ) {
+            Serial.print(F("Mqtt Error: JSON message likely too large for buffer or truncated (written bytes n="));
+            Serial.print(n);
+            Serial.print(F(", buffer size docSize="));
+            Serial.print(docSize);
+            Serial.println(F("). Message not sent."));
+            if (print2console) {
+                Serial.print(F("Mqtt: Truncated/Problematic JSON (not sent): "));
+                Serial.println(json);
+            }
+        } else {
+            // Serialization successful and fits well within the buffer
+            mqttClient.publish(topic.c_str(), json, n); // Publish with explicit length 'n'
+
+            if (print2console) {
+                Serial.print(F("Mqtt: Sent JSON (")); Serial.print(n); Serial.print(F(" bytes): "));
+                Serial.println(json);
+            }
         }
     }
 

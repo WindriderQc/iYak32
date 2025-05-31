@@ -13,14 +13,14 @@ void WifiManager::setup(bool enableOTA, String ssid, String password)
     WiFi.mode(WIFI_STA); // Start ESP32 in Station mode (client mode) 
     
     ssid_ = ssid;
-    pass_ = password;
+    password_ = password;
   
     bool check = tryConnectToUserNetwork(ssid, password);
     if(!check) tryConnectToPreferredNetworks(); 
     
 
     // If all preferred networks failed, start an Access Point
-    if (!isWifiConnected)  startAccessPoint();
+    if (!isWifiConnected_)  startAccessPoint();
 
     if(enableOTA) setupOTA(); // Initialize OTA
 
@@ -47,12 +47,25 @@ void WifiManager::setupOTA()
 
     // Initialize OTA with a hostname (optional)
     // By default, the hostname will be "esp32-[MAC address]"
-    //ArduinoOTA.setHostname("your_ota_hostname");
+    const char* hostname = "iyak32"; // Define your desired hostname
+    ArduinoOTA.setHostname(hostname);
 
-    isOTA = true;
+    isOTA_ = true;
 
    
     relaunchOTA(); // Start OTA
+
+    // Start mDNS for OTA discovery if WiFi is connected
+    if (WiFi.status() == WL_CONNECTED) {
+        if (MDNS.begin(hostname)) { // Pass only hostname
+            MDNS.addService("arduino", "tcp", 3232); // 3232 is default ESP32 OTA port. "arduino" is service type for PlatformIO
+            Serial.printf("mDNS responder started for OTA: http://%s.local. OTA on port 3232\n", hostname);
+        } else {
+            Serial.println(F("Error setting up MDNS responder for OTA!"));
+        }
+    } else {
+        Serial.println(F("WiFi not connected, MDNS for OTA not started."));
+    }
 }
 
 void WifiManager::relaunchOTA() 
@@ -63,11 +76,11 @@ void WifiManager::relaunchOTA()
 
 void WifiManager::loop() 
 {
-    if ((!isWifiConnected) && isAutoReconnect) {
-        if(!tryConnectToUserNetwork(ssid_, pass_)) tryConnectToPreferredNetworks(); 
-        //tryConnectToUserNetwork(ssid_, pass_);
+    if ((!isWifiConnected_) && isAutoReconnect_) {
+        if(!tryConnectToUserNetwork(ssid_, password_)) tryConnectToPreferredNetworks();
+        //tryConnectToUserNetwork(ssid_, password_);
     }
-    if(isOTA) handleOTA(); // Handle OTA updates
+    if(isOTA_) handleOTA(); // Handle OTA updates
 }
 
 void WifiManager::handleOTA() 
@@ -95,12 +108,12 @@ bool WifiManager::tryConnectToUserNetwork(String ssid, String password)
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-        isWifiConnected = true;
+        isWifiConnected_ = true;
       
-        ipAdress = WiFi.localIP();
+        ipAddress_ = WiFi.localIP();
 
         Serial.print("Connected to ");  Serial.println(ssid);
-        Serial.print("IP address: ");   Serial.println(ipAdress);
+        Serial.print("IP address: ");   Serial.println(ipAddress_);
         //String ipMask = WiFi.subnetMask().toString();
         return true;
     }
@@ -115,8 +128,8 @@ bool WifiManager::tryConnectToUserNetwork(String ssid, String password)
 
 bool WifiManager::tryConnectToPreferredNetworks() 
 {
-    if (!SPIFFS.begin(true)) {
-        Serial.println("Failed to mount SPIFFS");
+    if (!Esp32::spiffsMounted) {
+        Serial.println(F("WifiManager Error: SPIFFS not mounted. Cannot load preferred networks from config.txt."));
         return false;
     }
 
@@ -134,16 +147,16 @@ bool WifiManager::tryConnectToPreferredNetworks()
         int separatorIndex = line.indexOf(':');
 
         if (separatorIndex != -1) {
-        preferredSsids[i] = line.substring(0, separatorIndex).c_str();
-        preferredPasswords[i] = line.substring(separatorIndex + 1).c_str();
+        preferredSsids_[i] = line.substring(0, separatorIndex).c_str();
+        preferredPasswords_[i] = line.substring(separatorIndex + 1).c_str();
         i++;
         }
     }
     configFile.close();
 
     for (int i = 0; i < numPreferredNetworks; i++) {
-            const char* ssid = preferredSsids[i].c_str();
-            const char* password = preferredPasswords[i].c_str();
+            const char* ssid = preferredSsids_[i].c_str();
+            const char* password = preferredPasswords_[i].c_str();
 
             Serial.print("Attempting to connect to Preferred network: ");
             Serial.println(ssid);
@@ -157,12 +170,12 @@ bool WifiManager::tryConnectToPreferredNetworks()
             }
 
             if (WiFi.status() == WL_CONNECTED) {
-                isWifiConnected = true;
+                isWifiConnected_ = true;
                 ssid_ = (char*)ssid;
-                ipAdress = WiFi.localIP();
+                ipAddress_ = WiFi.localIP();
 
                 Serial.print("Connected to ");  Serial.println(ssid);
-                Serial.print("IP address: ");   Serial.println(ipAdress);
+                Serial.print("IP address: ");   Serial.println(ipAddress_);
                 //String ipMask = WiFi.subnetMask().toString();
                     
             
@@ -185,23 +198,23 @@ void WifiManager::startAccessPoint()
     WiFi.softAP(apSsid, apPassword);
 
     ssid_ = (char*)apSsid;
-    ipAdress = WiFi.softAPIP();
-    Serial.print(F("Access Point IP address: ")); Serial.println(ipAdress);
+    ipAddress_ = WiFi.softAPIP();
+    Serial.print(F("Access Point IP address: ")); Serial.println(ipAddress_);
   // Additional configurations for the Access Point can be done here
 }
 
 bool WifiManager::isConnected() 
 {
-  return isWifiConnected;
+  return isWifiConnected_;
 }
 
 String WifiManager::getSSID() {     return ssid_;    }
 
 void WifiManager::setSSID(String ssid) {     ssid_ =  ssid;  }
 
-//char* WifiManager::getPASS() {     return pass_;    }
+//char* WifiManager::getPASS() {     return password_;    } // Assuming getPASS should reflect new name
 
-void WifiManager::setPASS(String pass) {     pass_ =  pass;  }
+void WifiManager::setPASS(String pass) {     password_ =  pass;  }
 
 
 
@@ -222,13 +235,13 @@ int WifiManager::getWiFiStrength(int points)
 
 IPAddress WifiManager::getIP() 
 {
-     return ipAdress; 
+     return ipAddress_;
 }
 
 String WifiManager::getIPString()
 {  
   String s="";
-  IPAddress ip = WifiManager::getIP();
+  IPAddress ip = WifiManager::getIP(); // This will now call getIP() which returns ipAddress_
   for (int i=0; i<4; i++)
     s += i  ? "." + String(ip[i]) : String(ip[i]);
   return s;

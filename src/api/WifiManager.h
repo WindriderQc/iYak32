@@ -2,6 +2,7 @@
 
 #include <string> // Include the <string> header for std::string
 #include <WiFi.h>
+#include <ESPmDNS.h>
 
 
 
@@ -37,15 +38,15 @@ class WifiManager {
         bool tryConnectToUserNetwork(String ssid, String password);
         void startAccessPoint();
     
-        bool isWifiConnected = false;
+        bool isWifiConnected_ = false;
         const static int numPreferredNetworks = 3; // Update this based on your preferred SSID count  TODO:  ark.... lire le nbr de ligne dans config.txt? ou whatever?
-        String preferredSsids[numPreferredNetworks];
-        String preferredPasswords[numPreferredNetworks];
+        String preferredSsids_[numPreferredNetworks];
+        String preferredPasswords_[numPreferredNetworks];
 
-        bool isAutoReconnect = false;
-        bool isOTA = false;
+        bool isAutoReconnect_ = false;
+        bool isOTA_ = false;
    
-        IPAddress ipAdress;
-        String ssid_;
-        String pass_;
+        IPAddress ipAddress_;
+        String ssid_; // Stays as is (already has underscore, though not strictly private style, but per instructions)
+        String password_; // Renamed from pass_
 };

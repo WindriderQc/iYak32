@@ -86,7 +86,7 @@ namespace www
             processedVar.replace("%SSID%", String(Esp32::wifiManager.getSSID()));
         }
         if (processedVar.indexOf("%MQTTURL%") >= 0) {
-            processedVar.replace("%MQTTURL%", Mqtt::server_ip);
+            processedVar.replace("%MQTTURL%", Mqtt::serverIp);
         }
         if (processedVar.indexOf("%CONFIG%") >= 0) {
             JsonDocument d = Esp32::configJson_;
@@ -103,7 +103,6 @@ namespace www
 
         if(var == "STATE")    {  return digitalRead(BUILTIN_LED) ? "ON" : "OFF";    }
 
-        // if(var == "PRESSION") {  return String(boat.pressure);                   }
         if(var == "TIME")     {  return Esp32::hourglass.getDateTimeString();       }
         if(var == "TEMP")     {  return String(Esp32::getCPUTemp());                }
 
@@ -114,7 +113,7 @@ namespace www
         if(var == "SSID")     {  return String(Esp32::wifiManager.getSSID());       }
 
 
-        if(var == "MQTTURL")   {  return Mqtt::server_ip;                            }
+        if(var == "MQTTURL")   {  return Mqtt::serverIp;                            }
        
         if(var == "CONFIG")   {  
             JsonDocument d = Esp32::configJson_;
@@ -125,43 +124,6 @@ namespace www
 
         return String();
     }
-
-
- /*   void jsonPOST()   //  TODO : test function.  ca doit etre fini...
-    {        
-        String url;
-        url = "https://" + server_name  + "/data"; //+ ":" + Esp32::port
-        
-        if (!http.begin(url)) {
-            Serial.println("HTTP client failed to connect ...");
-        }
-        else {
-            http.addHeader("content-type" , "application/json");
-            http.addHeader("Connection" , "close");
-
-            String data =  "{ \"name\":\"John\", \"age\":30, \"car\":null }";
- 
-            Serial.println(data);
-     
-            int httpResponseCode = http.POST(data); //Send the actual POST request
-            
-
-            // Note that if the value returned is lesser that zero, then an error occurred on the connection. If it is greater than zero, then it’s a standard HTTP code.
-            if(httpResponseCode > 0) {
-
-                String response = http.getString();  //Get the response to the request
-            
-                Serial.println(httpResponseCode);   //Print return code
-                Serial.println(response);           //Print request answer
-            } else {
-                Serial.print("Error on sending POST: ");
-                Serial.println(httpResponseCode); 
-            }
-
-            http.end();  //Free resources
-        }
-          
-    }*/
 
 
     // hockey board
@@ -205,16 +167,6 @@ namespace www
             Serial.println("Failed to open sbqc.css");
         }*/
 
-        server.on("/esp32.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-            request->send(SPIFFS, "/esp32.css", "text/css");
-        });
-        server.on("/esp32.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-            request->send(SPIFFS, "/colors.css", "text/css");
-        });
-        server.on("/esp32.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-            request->send(SPIFFS, "/utilities.css", "text/css");
-        });
-
        /* server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
             sendProcessedHtml(request, "/index.html", defaultProcessor);
         });*/
@@ -229,6 +181,7 @@ namespace www
                 String cnfStr = "";
                 Serial.println("Loading config from json: ");
                 if(Esp32::loadConfig(false, &cnf)) {  
+                    cnf["pass"] = ""; // Blank out the password for security
                     cnfStr = Esp32::getJsonString(cnf, true);
                     Serial.println(Esp32::configString_);
                     request->send(200, "application/json", cnfStr); // Send the JSON response with the appropriate content type
