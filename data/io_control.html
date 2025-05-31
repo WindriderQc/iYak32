@@ -126,12 +126,12 @@
                 const modeSelect = document.createElement('select');
                 modeSelect.className = 'pin-mode-select';
                 modeSelect.setAttribute('data-gpio', pinData.gpio);
-                const modes = INPUT_ONLY_GPIOS.includes(pinData.gpio) ? ["IN", "INPULLUP", "INPULLDOWN"] : ["OUT", "IN", "INPULLUP", "INPULLDOWN"];
+                const modes = INPUT_ONLY_GPIOS.includes(pinData.gpio) ? ["INPUT", "INPUT_PULLUP", "INPUT_PULLDOWN"] : ["OUTPUT", "INPUT", "INPUT_PULLUP", "INPUT_PULLDOWN"];
                 modes.forEach(mode => {
                     const option = document.createElement('option');
-                    option.value = mode;
+                    option.value = mode; // JSON uses "OUTPUT", "INPUT" etc.
                     option.text = mode;
-                    if (pinData.mode === mode) option.selected = true;
+                    if (pinData.mode_str === mode) option.selected = true; // Expect mode_str
                     modeSelect.appendChild(option);
                 });
                 cellMode.appendChild(modeSelect);
@@ -141,21 +141,31 @@
                 const cellAnalog = document.createElement('td');
                 const analogCheckbox = document.createElement('input');
                 analogCheckbox.type = 'checkbox';
-                analogCheckbox.checked = pinData.isAnalog || false;
+                // Derive 'checked' state from type_str
+                analogCheckbox.checked = (pinData.type_str === "ANALOG_INPUT");
                 analogCheckbox.className = 'pin-analog-checkbox';
                 analogCheckbox.setAttribute('data-gpio', pinData.gpio);
-                // Disable if not an ADC pin or if output mode
-                if (pinData.mode === "OUT" || ![34,35,36,39,0,2,4,12,13,14,15,25,26,27,32,33].includes(pinData.gpio) ) { // Example ADC pins, adjust as per ESP32 variant
+
+                // Determine if pin is ADC capable (example list, refine with actual ESP32 ADC pins)
+                const ADC_CAPABLE_PINS = [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33, 34, 35, 36, 39]; // Approximation
+                const isAdcPin = ADC_CAPABLE_PINS.includes(pinData.gpio);
+
+                // Disable if not an ADC pin or if mode is OUTPUT
+                if (modeSelect.value === "OUTPUT" || !isAdcPin) {
                      analogCheckbox.disabled = true;
                 }
+
                 modeSelect.addEventListener('change', (event) => {
-                    if (event.target.value === "OUT") {
+                    if (event.target.value === "OUTPUT") {
                         analogCheckbox.checked = false;
                         analogCheckbox.disabled = true;
                     } else {
-                         if ([34,35,36,39,0,2,4,12,13,14,15,25,26,27,32,33].includes(pinData.gpio)) {
+                        if (isAdcPin) { // Only enable if it's an ADC pin
                             analogCheckbox.disabled = false;
-                         }
+                        } else {
+                            analogCheckbox.checked = false;
+                            analogCheckbox.disabled = true;
+                        }
                     }
                 });
                 cellAnalog.appendChild(analogCheckbox);
@@ -164,19 +174,22 @@
 
                 // State (Text)
                 const cellState = document.createElement('td');
-                cellState.textContent = pinData.state !== undefined ? (pinData.state ? 'HIGH' : 'LOW') : 'N/A';
+                // pinData.state might not be available from config, will be filled by status update
+                cellState.textContent = 'N/A';
                 cellState.className = 'pin-state';
                 row.appendChild(cellState);
 
                 // Value (Text)
                 const cellValue = document.createElement('td');
-                cellValue.textContent = pinData.value !== undefined ? pinData.value : 'N/A';
+                 // pinData.value might not be available from config, will be filled by status update
+                cellValue.textContent = 'N/A';
                 cellValue.className = 'pin-value';
                 row.appendChild(cellValue);
 
                 // Actions
                 const cellActions = document.createElement('td');
-                if (pinData.mode === "OUT" && !INPUT_ONLY_GPIOS.includes(pinData.gpio)) {
+                // Enable toggle only if mode_str is "OUTPUT"
+                if (pinData.mode_str === "OUTPUT" && !INPUT_ONLY_GPIOS.includes(pinData.gpio)) {
                     const toggleBtn = document.createElement('button');
                     toggleBtn.innerHTML = '<i class="fas fa-power-off"></i> Toggle';
                     toggleBtn.onclick = async () => {
@@ -207,16 +220,19 @@
                         backgroundColor: color,
                         fill: false,
                         tension: 0.1,
-                        hidden: true // Initially hide datasets, user can enable them
+                        hidden: true, // Initially hide datasets, user can enable them
+                        _gpio: pin.gpio // Store GPIO for reliable mapping
                     };
                 });
             }
 
-            function initializeChart(config) {
+            function initializeChart(pin_config_array) { // Expects the array of pin details
                 if (ioPinChart) {
                     ioPinChart.destroy();
                 }
-                const datasets = buildChartDatasets(config);
+                // Filter for chartable pins based on the 'graph' property from config
+                const chartablePins = pin_config_array.filter(pin => pin.graph && pin.type_str === "ANALOG_INPUT");
+                const datasets = buildChartDatasets(chartablePins); // Use filtered list
                 const data = {
                     labels: [], // Time labels
                     datasets: datasets
@@ -248,12 +264,11 @@
                 }
 
                 ioPinChart.data.datasets.forEach(dataset => {
-                    const gpio = parseInt(dataset.label.split(' ').pop()); // Extract GPIO from label
-                    let value = NaN; // Default to NaN if no value found
-                    if (pinValues.hasOwnProperty(gpio)) {
-                         value = pinValues[gpio];
+                    const gpioToFind = dataset._gpio; // Use stored GPIO
+                    let value = NaN;
+                    if (pinValues.hasOwnProperty(gpioToFind)) {
+                         value = pinValues[gpioToFind];
                     }
-
                     dataset.data.push(value);
                     if (dataset.data.length > 30) {
                         dataset.data.shift();
@@ -265,22 +280,37 @@
 
             async function fetchPinConfigAndPopulateTable() {
                 try {
-                    const response = await fetch('/io/list');
-                    if (!response.ok) throw new Error('Failed to fetch pin configuration');
-                    const config = await response.json();
-                    currentPinConfig = config.pins || []; // Assuming the config is wrapped in a "pins" array
+                    const response = await fetch('/api/io/config'); // Corrected URL
+                    if (!response.ok) throw new Error(`Failed to fetch pin configuration (${response.status})`);
+                    const configFromServer = await response.json();
+                    // Backend sends {"io_pins": [...]} or {"io_pins":[]}
+                    currentPinConfig = configFromServer.io_pins || [];
 
                     tableBody.innerHTML = ''; // Clear existing rows
                     AVAILABLE_GPIOS.forEach(gpio => {
                         let pinData = currentPinConfig.find(p => p.gpio === gpio);
-                        if (!pinData) { // If pin not in current server config, use default
-                            pinData = { gpio: gpio, mode: "IN", label: `GPIO ${gpio}`, isAnalog: false, state: undefined, value: undefined };
+                        if (!pinData) {
+                            // Pin not in server config, create a default representation for UI
+                            pinData = {
+                                gpio: gpio,
+                                mode_str: INPUT_ONLY_GPIOS.includes(gpio) ? "INPUT" : "OUTPUT", // Sensible default
+                                label: `GPIO ${gpio}`,
+                                type_str: "DIGITAL",
+                                initial_state_str: "",
+                                graph: false
+                            };
+                        } else {
+                            // Ensure all expected fields for createPinRow are present, even if from server
+                            pinData.mode_str = pinData.mode_str || (INPUT_ONLY_GPIOS.includes(gpio) ? "INPUT" : "OUTPUT");
+                            pinData.type_str = pinData.type_str || "DIGITAL";
+                            pinData.initial_state_str = pinData.initial_state_str || "";
+                            pinData.graph = pinData.graph || false;
                         }
                         const row = createPinRow(pinData);
                         tableBody.appendChild(row);
                     });
-                    initializeChart(currentPinConfig); // Initialize chart with current config
-                    fetchAllPinStatuses(); // Fetch initial statuses for all pins
+                    initializeChart(currentPinConfig);
+                    fetchAllPinStatuses();
                     displayStatusMessage('Pin configuration loaded.', true);
                 } catch (error) {
                     displayStatusMessage(`Error loading pin configuration: ${error.message}`, false);
@@ -297,73 +327,94 @@
 
             async function fetchPinStatus(gpio) {
                 try {
-                    const response = await fetch(`/io/status?gpio=${gpio}`);
-                    if (!response.ok) { // Allow 404 if pin not configured on server
-                        if (response.status === 404) {
-                             console.warn(`GPIO ${gpio} not configured on server or read error.`);
-                             return null; // Or some default error state
-                        }
-                        throw new Error(`Failed to fetch status for GPIO ${gpio}`);
-                    }
-                    const status = await response.json();
-                    const row = tableBody.querySelector(`tr[data-gpio="${gpio}"]`);
-                    if (row) {
-                        const stateCell = row.querySelector('.pin-state');
-                        const valueCell = row.querySelector('.pin-value');
-                        if(stateCell) stateCell.textContent = status.state !== undefined ? (status.state ? 'HIGH' : 'LOW') : 'N/A';
-                        if(valueCell) valueCell.textContent = status.value !== undefined ? status.value : (status.state !== undefined ? (status.state ? '1':'0') : 'N/A');
-
-                        // Update currentPinConfig for chart
-                        const pinInConfig = currentPinConfig.find(p => p.gpio === gpio);
-                        if (pinInConfig) {
-                            pinInConfig.state = status.state;
-                            pinInConfig.value = status.value !== undefined ? status.value : (status.state ? 1 : 0);
-                        }
-                        return { [gpio]: pinInConfig.value }; // Return value for chart
-                    }
-                     return null;
+                    // This function will now be called by fetchAllPinStatuses with data
+                    // No direct fetch here anymore.
                 } catch (error) {
-                    // displayStatusMessage(`Error fetching status for GPIO ${gpio}: ${error.message}`, false);
-                    console.error(`Error fetching status for GPIO ${gpio}: ${error.message}`);
-                    return null;
+                    console.error(`Error updating UI for GPIO ${gpio}: ${error.message}`);
                 }
             }
 
             async function fetchAllPinStatuses() {
-                let allPinValuesForChart = {};
-                for (const gpio of AVAILABLE_GPIOS) {
-                    const pinValue = await fetchPinStatus(gpio); // fetchPinStatus now returns {gpio: value} or null
-                    if (pinValue) {
-                        Object.assign(allPinValuesForChart, pinValue);
+                try {
+                    const response = await fetch('/api/io/status'); // Corrected URL
+                    if (!response.ok) throw new Error(`Failed to fetch statuses (${response.status})`);
+                    const statusData = await response.json(); // Expects {"statuses": [{"gpio": XX, "value": YY}, ...]}
+
+                    const pinValuesForChart = {};
+
+                    if (statusData.statuses && Array.isArray(statusData.statuses)) {
+                        statusData.statuses.forEach(status => {
+                            const row = tableBody.querySelector(`tr[data-gpio="${status.gpio}"]`);
+                            if (row) {
+                                const stateCell = row.querySelector('.pin-state');
+                                const valueCell = row.querySelector('.pin-value');
+                                // Assuming 'value' from backend is the direct value (analog or 0/1 for digital)
+                                // For digital, state can be derived.
+                                if (valueCell) valueCell.textContent = status.value;
+
+                                const pinCfg = currentPinConfig.find(p => p.gpio === status.gpio);
+                                if (pinCfg && pinCfg.type_str === "DIGITAL") {
+                                    if (stateCell) stateCell.textContent = status.value ? 'HIGH' : 'LOW';
+                                } else if (pinCfg && pinCfg.type_str === "ANALOG_INPUT") {
+                                    if (stateCell) stateCell.textContent = 'N/A'; // State is not applicable for analog in this context
+                                }
+
+                                if (pinCfg) { // Update value in currentPinConfig for chart
+                                     pinCfg.value = status.value;
+                                     if (pinCfg.graph && pinCfg.type_str === "ANALOG_INPUT"){
+                                        pinValuesForChart[status.gpio] = status.value;
+                                     }
+                                }
+                            }
+                        });
                     }
+                    updateChart(pinValuesForChart);
+                } catch (error) {
+                    displayStatusMessage(`Error fetching all pin statuses: ${error.message}`, false);
+                    console.error(`Error fetching all pin statuses: ${error.message}`);
                 }
-                updateChart(allPinValuesForChart); // Update chart with all collected values
             }
 
             async function saveConfiguration() {
-                const newConfig = [];
+                const payload = { io_pins: [] };
                 tableBody.querySelectorAll('tr').forEach(row => {
                     const gpio = parseInt(row.dataset.gpio);
                     const label = row.querySelector('.pin-label-input').value;
-                    const mode = row.querySelector('.pin-mode-select').value;
-                    const isAnalog = row.querySelector('.pin-analog-checkbox').checked;
-                    newConfig.push({ gpio, label, mode, isAnalog });
+                    const mode_str = row.querySelector('.pin-mode-select').value; // mode_str from select
+                    const isAnalogChecked = row.querySelector('.pin-analog-checkbox').checked;
+                    const type_str = isAnalogChecked ? "ANALOG_INPUT" : "DIGITAL";
+
+                    // initial_state_str and graph are not in the UI for saving yet. Send defaults.
+                    payload.io_pins.push({
+                        gpio: gpio,
+                        label: label,
+                        mode: mode_str, // Send mode as "mode" to match C++ JsobObject key
+                        type: type_str,  // Send type as "type"
+                        initial_state: "", // Default
+                        graph: row.querySelector('.pin-analog-checkbox').checked && isAnalogChecked // Only graph if analog checkbox is checked
+                               // This assumes graph is only for analog. If digital can be graphed, UI needs a graph checkbox.
+                               // For now, let's only enable graph for analog pins if their checkbox is checked.
+                               // A more robust way would be a dedicated "graph this pin" checkbox.
+                               // For simplicity, let's assume `graph` is true if it's an analog input and checkbox is checked.
+                               // This part of save logic for 'graph' might need refinement based on UI.
+                               // The C++ side expects 'graph' field.
+                    });
                 });
 
                 try {
-                    const response = await fetch('/io/save', {
+                    const response = await fetch('/api/io/config', { // Corrected URL
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ pins: newConfig })
+                        body: JSON.stringify(payload) // Send the correct structure
                     });
                     if (!response.ok) {
-                         const errorData = await response.text();
-                         throw new Error(`Failed to save configuration: ${errorData}`);
+                         const errorData = await response.json(); // Try to parse error response as JSON
+                         throw new Error(errorData.message || `Failed to save configuration (${response.status})`);
                     }
                     const result = await response.json();
                     displayStatusMessage(result.message || 'Configuration saved successfully. Refreshing.', true);
-                    currentPinConfig = newConfig; // Update local config
-                    // Re-populate to reflect changes and re-attach event listeners if necessary
+                    // currentPinConfig = payload.io_pins; // Update local config with what was sent
+                    // It's better to re-fetch the canonical config from server after save
                     await fetchPinConfigAndPopulateTable();
                 } catch (error) {
                     displayStatusMessage(`Error saving configuration: ${error.message}`, false);

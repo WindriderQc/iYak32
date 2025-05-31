@@ -221,6 +221,76 @@ namespace www
             digitalWrite(BUILTIN_LED, LOW);
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
+
+        // Generic I/O Configuration Endpoints
+        server.on("/api/io/status", HTTP_GET, [](AsyncWebServerRequest *request){
+            String status_json = Esp32::getIOStatusJsonString();
+            request->send(200, "application/json", status_json);
+        });
+
+        server.on("/api/io/config", HTTP_GET, [](AsyncWebServerRequest *request){
+            if (SPIFFS.exists(Esp32::CONFIG_IO_FILENAME)) {
+                File file = SPIFFS.open(Esp32::CONFIG_IO_FILENAME, "r");
+                if (file && !file.isDirectory()) {
+                    request->send(file, Esp32::CONFIG_IO_FILENAME, "application/json");
+                    // File is closed by the send() method
+                    return;
+                } else {
+                    Serial.println(F("Error: Failed to open /io_config.json for reading."));
+                    request->send(500, "application/json", "{\"status\":\"error", \"message\":\"Error reading I/O config file.\"}");
+                }
+            } else {
+                // If no config file exists, send a default valid empty structure
+                request->send(200, "application/json", "{\"io_pins\":[]}");
+            }
+        });
+
+        server.on("/api/io/config", HTTP_POST,
+            [](AsyncWebServerRequest *request){
+                // Not used for JSON body, but required by API
+            },
+            NULL, // onUpload handler
+            [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+                static String body_content_post_io; // Distinct static variable
+
+                if (index == 0) {
+                    body_content_post_io = "";
+                    if (request->contentType() != "application/json") {
+                       request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Invalid Content-Type, must be application/json\"}");
+                       // To fully stop processing for this request, you might need more, like request->client()->stop();
+                       // For simplicity, we'll let it try to parse, which will likely fail if not JSON.
+                    }
+                }
+
+                for (size_t i = 0; i < len; i++) {
+                    body_content_post_io += (char)data[i];
+                }
+
+                if (index + len == total) {
+                    Serial.println(F("WWW: Received new I/O config via POST /api/io/config:"));
+                    Serial.println(body_content_post_io);
+
+                    DynamicJsonDocument doc(2048); // Adjust size as needed
+                    DeserializationError error = deserializeJson(doc, body_content_post_io);
+                    body_content_post_io = ""; // Clear static buffer
+
+                    if (error) {
+                        Serial.print(F("WWW Error: deserializeJson() failed for /api/io/config: "));
+                        Serial.println(error.f_str());
+                        request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Invalid JSON format.\"}");
+                        return;
+                    }
+
+                    if (Esp32::saveAndApplyIOConfiguration(doc)) {
+                        request->send(200, "application/json", "{\"status\":\"success\", \"message\":\"I/O Configuration saved and applied.\"}");
+                    } else {
+                        request->send(500, "application/json", "{\"status\":\"error\", \"message\":\"Failed to save or apply I/O configuration.\"}");
+                    }
+                }
+            }
+        );
+
+        // General config endpoint (ensure it doesn't conflict if path is similar)
         server.on("/config", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
             
             JsonDocument jsonBuffer;
