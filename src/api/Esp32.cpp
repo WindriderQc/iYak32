@@ -27,7 +27,7 @@ namespace Esp32 {
     bool buzzer_enabled_ = false;
     int configured_buzzer_pin_ = -1;
     int mqtt_data_interval_seconds_ = 5;
-    int state_test_variable = 123; // Added for linker diagnostics
+   
 
     // Function Definitions
     void setVerboseLog() { esp_log_level_set("*", ESP_LOG_DEBUG); }
