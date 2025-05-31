@@ -346,18 +346,20 @@ namespace Esp32 {
     // I/O Configuration Core Logic Implementations
     void applyIOConfiguration(const JsonDocument& doc) {
         Esp32::configured_pins.clear();
-        JsonArray io_pins_array = doc["io_pins"].as<JsonArray>();
-
-        if (io_pins_array.isNull()) {
-            Serial.println(F("Esp32: No 'io_pins' array found in I/O config or it's not an array."));
+        // JsonArray io_pins_array = doc["io_pins"].as<JsonArray>(); // V6
+        JsonVariantConst io_pins_variant = doc["io_pins"]; // V7 style for const JsonDocument&
+        if (io_pins_variant.isNull() || !io_pins_variant.is<JsonArray>()) {
+            Serial.println(F("Esp32 Error: 'io_pins' is missing, null, or not an array in I/O config."));
+            // Esp32::configured_pins.clear(); // Already cleared above
             return;
         }
+        JsonArrayConst io_pins_array = io_pins_variant.as<JsonArrayConst>(); // V7 for const array
 
         Serial.printf("Esp32: Applying I/O configuration for %d pin(s).\n", io_pins_array.size());
 
-        for (JsonObject pin_obj : io_pins_array) {
+        for (JsonObjectConst pin_obj : io_pins_array) { // V7 for const JsonObject
             int gpio = pin_obj["gpio"] | -1;
-            String label = pin_obj["label"] | "";
+            String label = pin_obj["label"] | ""; // .as<String>() could be more robust if type might vary
             String mode_str_json = pin_obj["mode"] | "INPUT";
             String type_str = pin_obj["type"] | "DIGITAL";
             String initial_state_str = pin_obj["initial_state"] | "";
@@ -436,7 +438,7 @@ namespace Esp32 {
             Serial.printf("Esp32: Loading I/O config from %s\n", Esp32::CONFIG_IO_FILENAME.c_str());
             String file_content = Storage::readFile(Esp32::CONFIG_IO_FILENAME);
             if (file_content.length() > 0) {
-                StaticJsonDocument<2048> doc; // May need adjustment for more pins
+                JsonDocument doc; // ArduinoJson V7 uses dynamic allocation by default
                 DeserializationError error = deserializeJson(doc, file_content);
                 if (!error) {
                     Esp32::applyIOConfiguration(doc);
@@ -452,15 +454,15 @@ namespace Esp32 {
     }
 
     String getIOStatusJsonString() {
-        StaticJsonDocument<1024> status_doc; // Adjust size as needed
-        JsonArray statuses_array = status_doc.createNestedArray("statuses");
+        JsonDocument status_doc; // ArduinoJson V7 uses dynamic allocation by default
+        JsonArray statuses_array = status_doc["statuses"].to<JsonArray>(); // V7 syntax
 
         if (Esp32::configured_pins.empty()) {
             // Optional: Serial.println(F("Esp32: No I/O pins configured to report status."));
         }
 
         for (const IO_Pin_Detail& pin_detail : Esp32::configured_pins) {
-            JsonObject pin_status = statuses_array.createNestedObject();
+            JsonObject pin_status = statuses_array.add<JsonObject>(); // V7 syntax
             pin_status["gpio"] = pin_detail.gpio;
 
             if (pin_detail.type_str == "ANALOG_INPUT") {
