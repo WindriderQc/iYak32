@@ -237,7 +237,7 @@ namespace www
                     return;
                 } else {
                     Serial.println(F("Error: Failed to open /io_config.json for reading."));
-                    request->send(500, "application/json", "{\"status\":\"error", \"message\":\"Error reading I/O config file.\"}");
+                    request->send(500, "application/json", "{\"status\":\"error\", \"message\":\"Error reading I/O config file.\"}");
                 }
             } else {
                 // If no config file exists, send a default valid empty structure
@@ -270,7 +270,7 @@ namespace www
                     Serial.println(F("WWW: Received new I/O config via POST /api/io/config:"));
                     Serial.println(body_content_post_io);
 
-                    DynamicJsonDocument doc(2048); // Adjust size as needed
+                    JsonDocument doc; // V7 uses dynamic allocation by default
                     DeserializationError error = deserializeJson(doc, body_content_post_io);
                     body_content_post_io = ""; // Clear static buffer
 
