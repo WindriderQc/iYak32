@@ -22,7 +22,7 @@ namespace Esp32 {
     int battery_monitor_pin_ = 35; // Default from previous setup, will be overridden by JSON config if present
     Esp32::Pin* ios[HUZZAH32]; // Explicitly namespaced
     WifiManager wifiManager;
-    Buzzer buzzer;
+    // Buzzer buzzer; // Removed, Buzzer is now a module (BuzzerModule)
     Hourglass hourglass;
     bool buzzer_enabled_ = false;
     int configured_buzzer_pin_ = -1;
@@ -197,9 +197,9 @@ namespace Esp32 {
         Esp32::configured_buzzer_pin_ = configJson_["buzzer_pin"] | -1;
 
         if (Esp32::buzzer_enabled_ && Esp32::configured_buzzer_pin_ != -1) {
-            Esp32::buzzer.init(Esp32::configured_buzzer_pin_);
+            BuzzerModule::init(Esp32::configured_buzzer_pin_); // Changed to BuzzerModule
         } else {
-            Esp32::buzzer.init(-1);
+            BuzzerModule::init(-1); // Changed to BuzzerModule
             Serial.println(F("Buzzer: Disabled or pin not set in config."));
         }
 
@@ -335,7 +335,7 @@ namespace Esp32 {
     void loop() {
         wifiManager.loop();
         if (Esp32::buzzer_enabled_) {
-            Esp32::buzzer.loop();
+            BuzzerModule::loop(); // Changed to BuzzerModule
         }
         if(Mqtt::isEnabled) Mqtt::loop();
     }

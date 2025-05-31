@@ -6,7 +6,7 @@
 
 // Full header includes for classes used in Esp32 namespace extern declarations
 #include "WifiManager.h"    // Provides definition for WifiManager
-#include "devices/Buzzer.h" // Provides definition for Buzzer
+// #include "devices/Buzzer.h" // Removed, Esp32.cpp will include it directly
 #include "Hourglass.h"      // Provides definition for Hourglass
 #include "IPin.h"           // Provides definition for Pin (which is in IPin.h)
 // Note: Storage.h and Mqtt.h might also be needed if Esp32.h itself declares/uses them directly,
@@ -35,7 +35,7 @@ namespace Esp32 {
     extern int battery_monitor_pin_;
     extern Esp32::Pin* ios[HUZZAH32]; // Size must match definition, explicitly namespaced
     extern WifiManager wifiManager;
-    extern Buzzer buzzer;
+    // extern Buzzer buzzer; // Removed, buzzer is now a module (BuzzerModule)
     extern Hourglass hourglass;
     extern bool buzzer_enabled_;
     extern int configured_buzzer_pin_;
