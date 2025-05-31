@@ -14,7 +14,6 @@ namespace BuzzerModule
         // Add more states as needed for different sound events
     };
 
-
     // Function Declarations
     void init(int buzzer_pin);
     void loop(); // Handles timed beeps and possibly state-driven sounds like sirens
@@ -24,6 +23,4 @@ namespace BuzzerModule
     void playSiren(); // Plays a predefined siren sound (blocking)
     void setMode(BUZZER_state new_mode); // Sets the current mode, potentially triggering a sound in loop()
 
-
 } // namespace BuzzerModule
-
