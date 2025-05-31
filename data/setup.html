@@ -75,7 +75,9 @@
             
      
             <label class="inline" for="mqttport">PORT</label> 
-            <input type="text" id="mqttport" value="1883">
+            <input type="text" id="mqttport" value="1883"><br>
+            <label class="inline" for="mqttDataInterval">Data Send Interval (seconds):</label>
+            <input type="number" id="mqttDataInterval" name="mqttDataInterval" value="5" min="1">
         </div>
     </div>
 
@@ -160,8 +162,13 @@
 
         let buzzerEnabled = document.getElementById("buzzerEnabled").checked;
         let buzzerPin = parseInt(document.getElementById("buzzerPin").value);
+
+        let mqttDataIntervalSec = parseInt(document.getElementById("mqttDataInterval").value);
+        if (isNaN(mqttDataIntervalSec) || mqttDataIntervalSec < 1) {
+            mqttDataIntervalSec = 5;
+        }
     
-        const data = {  isMqtt, isConfigFromServer, ssid, pass, mqtturl, mqttport, gmtOffset_sec: gmtOffset, daylightOffset_sec: dstOffset, buzzer_enabled: buzzerEnabled, buzzer_pin: buzzerPin };
+        const data = {  isMqtt, isConfigFromServer, ssid, pass, mqtturl, mqttport, gmtOffset_sec: gmtOffset, daylightOffset_sec: dstOffset, buzzer_enabled: buzzerEnabled, buzzer_pin: buzzerPin, mqttDataIntervalSec: mqttDataIntervalSec };
 
         console.log( "Saving:", data)
         const options = { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify(data) }
@@ -187,6 +194,7 @@
         document.getElementById("dstOffset").value = dataJson["daylightOffset_sec"] !== undefined ? dataJson["daylightOffset_sec"] : 3600;
         document.getElementById("buzzerEnabled").checked = dataJson["buzzer_enabled"] || false;
         document.getElementById("buzzerPin").value = dataJson["buzzer_pin"] !== undefined ? dataJson["buzzer_pin"] : -1;
+        document.getElementById("mqttDataInterval").value = dataJson["mqttDataIntervalSec"] !== undefined ? dataJson["mqttDataIntervalSec"] : 5;
     }
 
   </script>

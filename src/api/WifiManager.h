@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string> // Include the <string> header for std::string
+#include <vector> // Added for std::vector
 #include <WiFi.h>
 #include <ESPmDNS.h>
 
@@ -39,9 +40,9 @@ class WifiManager {
         void startAccessPoint();
     
         bool isWifiConnected_ = false;
-        const static int numPreferredNetworks = 3; // Update this based on your preferred SSID count  TODO:  ark.... lire le nbr de ligne dans config.txt? ou whatever?
-        String preferredSsids_[numPreferredNetworks];
-        String preferredPasswords_[numPreferredNetworks];
+        // const static int numPreferredNetworks = 3; // Removed
+        std::vector<String> preferredSsids_; // Changed to std::vector<String>
+        std::vector<String> preferredPasswords_; // Changed to std::vector<String>
 
         bool isAutoReconnect_ = false;
         bool isOTA_ = false;
