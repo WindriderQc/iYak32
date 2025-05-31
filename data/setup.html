@@ -78,6 +78,18 @@
             <input type="text" id="mqttport" value="1883">
         </div>
     </div>
+
+      <br><br>
+      <h3>Timezone Configuration</h3>
+      <div>
+          <label class="inline" for="gmtOffset">GMT Offset (seconds):</label>
+          <input type="number" id="gmtOffset" name="gmtOffset" value="-18000">
+      </div>
+      <div>
+          <label class="inline" for="dstOffset">Daylight Saving Offset (seconds):</label>
+          <input type="number" id="dstOffset" name="dstOffset" value="3600">
+      </div>
+
     <br>
     <button class="btn bigButton" onclick=saveNetworkConfig()> Save to ESP32 Config JSON </button>
   </form>
@@ -130,8 +142,11 @@
 
         let isMqtt = document.getElementById("isMqttEnabled").checked
         let isConfigFromServer = document.getElementById("isCnfServ").checked
+
+        let gmtOffset = parseInt(document.getElementById("gmtOffset").value);
+        let dstOffset = parseInt(document.getElementById("dstOffset").value);
     
-        const data = {  isMqtt, isConfigFromServer, ssid, pass, mqtturl, mqttport  }
+        const data = {  isMqtt, isConfigFromServer, ssid, pass, mqtturl, mqttport, gmtOffset_sec: gmtOffset, daylightOffset_sec: dstOffset };
 
         console.log( "Saving:", data)
         const options = { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify(data) }
@@ -153,6 +168,8 @@
         document.getElementById("isMqttEnabled").checked = dataJson["isMqtt"]
         document.getElementById("isCnfServ").checked = dataJson["isConfigFromServer"]
         document.getElementById("profileName").value = dataJson["profileName"]
+        document.getElementById("gmtOffset").value = dataJson["gmtOffset_sec"] !== undefined ? dataJson["gmtOffset_sec"] : -18000;
+        document.getElementById("dstOffset").value = dataJson["daylightOffset_sec"] !== undefined ? dataJson["daylightOffset_sec"] : 3600;
     }
 
   </script>

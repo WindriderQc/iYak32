@@ -14,7 +14,7 @@
 
             bool setupTimeSync() {
                   
-                configTime(gmtOffset_sec, daylightOffset_sec, ntp_primary, ntp_secondary);
+                configTime(gmtOffset_sec_, daylightOffset_sec_, ntp_primary, ntp_secondary);
                 
                 Serial.print(F("Waiting on time sync..."));
                 int j = 0;
@@ -99,16 +99,23 @@
                 Serial.print(year()); Serial.print("-"); Serial.print(month()); Serial.print("-"); Serial.print(day()); Serial.println();
             }*/
 
-
-
-
+            void setTimezone(long gmt_offset_seconds, int dst_offset_seconds) {
+                gmtOffset_sec_ = gmt_offset_seconds;
+                daylightOffset_sec_ = dst_offset_seconds;
+                Serial.printf("Hourglass: Timezone set GMT Offset: %ld, DST Offset: %d\n", gmtOffset_sec_, daylightOffset_sec_);
+                // If time is already synced, re-sync with new offsets
+                if (time(nullptr) > 1510644967) { // Check if time was ever synced
+                    Serial.println(F("Hourglass: Re-syncing time with new timezone."));
+                    setupTimeSync(); // This will now use the new member variable values
+                }
+            }
 
             private:
                 // Configuration for NTP
                 const char* ntp_primary = "time.google.com";
                 const char* ntp_secondary = "time.nist.gov";
-                const long  gmtOffset_sec = -18000;   //  -5 * 60 * 60  Eastern time
-                const int   daylightOffset_sec = 3600;
+                long  gmtOffset_sec_ = -18000;   //  -5 * 60 * 60  Eastern time
+                int   daylightOffset_sec_ = 3600;
     };
 
  }

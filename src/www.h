@@ -205,16 +205,6 @@ namespace www
             Serial.println("Failed to open sbqc.css");
         }*/
 
-        server.on("/esp32.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-            request->send(SPIFFS, "/esp32.css", "text/css");
-        });
-        server.on("/esp32.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-            request->send(SPIFFS, "/colors.css", "text/css");
-        });
-        server.on("/esp32.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-            request->send(SPIFFS, "/utilities.css", "text/css");
-        });
-
        /* server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
             sendProcessedHtml(request, "/index.html", defaultProcessor);
         });*/
@@ -229,6 +219,7 @@ namespace www
                 String cnfStr = "";
                 Serial.println("Loading config from json: ");
                 if(Esp32::loadConfig(false, &cnf)) {  
+                    cnf["pass"] = ""; // Blank out the password for security
                     cnfStr = Esp32::getJsonString(cnf, true);
                     Serial.println(Esp32::configString_);
                     request->send(200, "application/json", cnfStr); // Send the JSON response with the appropriate content type

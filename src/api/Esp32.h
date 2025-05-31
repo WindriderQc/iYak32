@@ -167,21 +167,30 @@ namespace Esp32   //  ESP 32 configuration and helping methods
     //  Convert batt voltage to %
     float getBattRemaining(bool print = false) 
     {
+        float voltage_sum = 0.0f; // Use a local variable for summing samples
+
         for (byte i = 0; i < vBATSampleSize; i++) // Average samples together to minimize false readings
         {
-            vBAT += ceilf(getBatteryVoltage() * 100) / 100; // Work out battery voltage from DAC and round to 2 decimal places
+            // Call getBatteryVoltage() to get a fresh instantaneous reading.
+            // The return value of getBatteryVoltage() is the one we want to sum.
+            // The fact that getBatteryVoltage() also updates global vBAT is fine,
+            // but for this loop, we use the direct return value for accumulation.
+            voltage_sum += ceilf(getBatteryVoltage() * 100) / 100; // Add the current sample, rounded
+            // Consider adding a small delay here if very rapid sampling is an issue, e.g., delay(10);
         }
 
-        vBAT /= vBATSampleSize;
+        float average_vBAT = voltage_sum / vBATSampleSize; // Calculate the average
+
+        vBAT = average_vBAT; // Update the global vBAT member with the final average
 
         if(print) {
-            batteryText = String(vBAT);
-            Serial.print("Battery Voltage: "); 
-            Serial.print(batteryText);  
-            Serial.println("V");  
+            batteryText = String(vBAT); // Use the correctly averaged global vBAT
+            Serial.print("Battery Voltage: ");
+            Serial.print(batteryText);
+            Serial.println("V");
         }
         
-        return vBAT;
+        return vBAT; // Return the correctly averaged global vBAT
     }
 
 
@@ -309,6 +318,11 @@ namespace Esp32   //  ESP 32 configuration and helping methods
 
         wifiManager.setup(true, configJson_["ssid"],configJson_["pass"] );  //  Set WIFI connection and OTA. Access point if cannot reach SSID
 
+        // Set timezone before setting up time sync
+        long gmt_offset = configJson_["gmtOffset_sec"] | -18000L; // Default if not present
+        int dst_offset = configJson_["daylightOffset_sec"] | 3600;   // Default if not present
+        hourglass.setTimezone(gmt_offset, dst_offset);
+
         //  if not on access point, synchronize system time
         if(Esp32::wifiManager.isConnected()) {
             if(hourglass.setupTimeSync()) hourglass.getDateTimeString(true);
@@ -419,11 +433,11 @@ namespace Esp32   //  ESP 32 configuration and helping methods
                 Serial.println("SPIFFS mount failed\nFormatting not possible - check if a SPIFFS partition is present for your board?");
                 ioBlink(LED_BUILTIN,100, 100, 8); // Show SPIFFS failure
                 spiffsMounted = false;
-            } else {
-                Serial.println("Formatting...");
-                spiffsMounted = false;
+            } else { // Successfully mounted WITH formatting
+                Serial.println(F("SPIFFS Formatting complete."));
+                spiffsMounted = true; // Correctly set to true after formatting
             }
-        } else {
+        } else { // Successfully mounted WITHOUT formatting
             Serial.println("SPIFFS mounted successfully");
             spiffsMounted = true;
             Storage::listDir("/", 4);  //  TODO : show only files on root, not folders....  
@@ -440,6 +454,8 @@ namespace Esp32   //  ESP 32 configuration and helping methods
                 configDoc["mqttport"] = 1883;
                 configDoc["mqtturl"] = "";
                 configDoc["profileName"] = "default_ESP32";
+                configDoc["gmtOffset_sec"] = -18000; // Default GMT offset (e.g., EST)
+                configDoc["daylightOffset_sec"] = 3600;  // Default DST offset
                 Serial.println("setup -> Could not read Config file -> initializing new file");
                
                 if (saveConfig(configDoc)) Serial.println("setup -> Config file saved");   

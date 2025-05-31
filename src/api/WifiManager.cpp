@@ -47,12 +47,25 @@ void WifiManager::setupOTA()
 
     // Initialize OTA with a hostname (optional)
     // By default, the hostname will be "esp32-[MAC address]"
-    //ArduinoOTA.setHostname("your_ota_hostname");
+    const char* hostname = "iyak32"; // Define your desired hostname
+    ArduinoOTA.setHostname(hostname);
 
     isOTA = true;
 
    
     relaunchOTA(); // Start OTA
+
+    // Start mDNS for OTA discovery if WiFi is connected
+    if (WiFi.status() == WL_CONNECTED) {
+        if (MDNS.begin(hostname)) { // Pass only hostname
+            MDNS.addService("arduino", "tcp", 3232); // 3232 is default ESP32 OTA port. "arduino" is service type for PlatformIO
+            Serial.printf("mDNS responder started for OTA: http://%s.local. OTA on port 3232\n", hostname);
+        } else {
+            Serial.println(F("Error setting up MDNS responder for OTA!"));
+        }
+    } else {
+        Serial.println(F("WiFi not connected, MDNS for OTA not started."));
+    }
 }
 
 void WifiManager::relaunchOTA() 
@@ -115,8 +128,8 @@ bool WifiManager::tryConnectToUserNetwork(String ssid, String password)
 
 bool WifiManager::tryConnectToPreferredNetworks() 
 {
-    if (!SPIFFS.begin(true)) {
-        Serial.println("Failed to mount SPIFFS");
+    if (!Esp32::spiffsMounted) {
+        Serial.println(F("WifiManager Error: SPIFFS not mounted. Cannot load preferred networks from config.txt."));
         return false;
     }
 

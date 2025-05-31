@@ -2,6 +2,7 @@
 
 #include <string> // Include the <string> header for std::string
 #include <WiFi.h>
+#include <ESPmDNS.h>
 
 
 

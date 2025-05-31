@@ -71,7 +71,7 @@ namespace Hockey
 
         
 
-            asciiDisplay.displayString(scoreString.c_str()); 
+            updateSevenSegmentDisplay(scoreString.c_str());
 
             senseLeft.setup("senseLeft", Esp32::DEVICE_NAME, LEFTGOAL, true );
 
@@ -162,7 +162,7 @@ namespace Hockey
                         timeString = String("") + doubleDigit(minutes) + String(":") + doubleDigit(seconds);
                       
                          
-                        asciiDisplay.displayString("COOL");
+                        updateSevenSegmentDisplay("COOL");
                         tictac++;
                         if(tictac >= GOAL_DELAY) { tictac = 0;   state = HOCKEY_state::eDROP_PUCK; }
                         break;
@@ -178,7 +178,7 @@ namespace Hockey
 
                         // Update time display
                         timeString = String("") + doubleDigit(minutes) + String(":") + doubleDigit(seconds);
-                        asciiDisplay.displayString(timeString.c_str());
+                        updateSevenSegmentDisplay(timeString.c_str());
                         
                         // Update time
                         time -= delta;
@@ -200,7 +200,7 @@ namespace Hockey
                 case HOCKEY_state::eGOALLEFT:
                 case HOCKEY_state::eGOALRIGHT:              
                         
-                        asciiDisplay.displayString("GOAL");
+                        updateSevenSegmentDisplay("GOAL");
                         tictac++;
                         if(tictac >= GOAL_DELAY*0.6) { tictac = 0; state = HOCKEY_state::eDROP_PUCK; }
                         break;
@@ -212,8 +212,8 @@ namespace Hockey
                             tictac = 0; 
                             bSwitch = !bSwitch;
                         }
-                        if(bSwitch)  asciiDisplay.displayString("Good");
-                        else         asciiDisplay.displayString("GAME");
+                        if(bSwitch)  updateSevenSegmentDisplay("Good");
+                        else         updateSevenSegmentDisplay("GAME");
                     break;
 
                 case HOCKEY_state::ePERIOD_BELL:
@@ -226,8 +226,8 @@ namespace Hockey
                                 time = periodLength;
                                 Serial.println(F("PERIOD FINISH - Next puck drop..."));
                             }
-                            if(tictac >= GOAL_DELAY) asciiDisplay.displayString(scoreString.c_str());
-                            else        asciiDisplay.displayString("COOL");
+                            if(tictac >= GOAL_DELAY) updateSevenSegmentDisplay(scoreString.c_str());
+                            else        updateSevenSegmentDisplay("COOL");
                         } else {
                                 // Game finished, save the score with date/time
                                 File file = SPIFFS.open("/game_scores.txt", FILE_APPEND);
@@ -255,7 +255,7 @@ namespace Hockey
                         break;
 
                 case HOCKEY_state::eDROP_PUCK:
-                        asciiDisplay.displayString(" GO ");
+                        updateSevenSegmentDisplay(" GO ");
                         //asciiDisplay.displayString(scoreString.c_str());
                         tictac++;
                         if(tictac >= GOAL_DELAY) { 
@@ -271,8 +271,8 @@ namespace Hockey
                             tictac = 0; 
                             bSwitch = !bSwitch;
                         }
-                        if(bSwitch)  asciiDisplay.displayString(scoreString.c_str());
-                        else         asciiDisplay.displayString("COOL");
+                        if(bSwitch)  updateSevenSegmentDisplay(scoreString.c_str());
+                        else         updateSevenSegmentDisplay("COOL");
                         break;
             }          
            
@@ -357,6 +357,14 @@ namespace Hockey
 
         char* goalLeftStatus;
         HOCKEY_state previous_state_;
+        String last_displayed_string_on_7segment_;
+
+    void updateSevenSegmentDisplay(const char* str_to_display) {
+        if (last_displayed_string_on_7segment_ != str_to_display) {
+            asciiDisplay.displayString(str_to_display);
+            last_displayed_string_on_7segment_ = str_to_display;
+        }
+    }
     };
 
 }

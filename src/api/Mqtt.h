@@ -146,9 +146,8 @@ namespace Mqtt
 
     bool getCredentials()
     {
-        
-        if (!SPIFFS.begin(true)) {   //  TODO:  probleme si on mount le SPIFF 2 fois??
-            Serial.println("Failed to mount SPIFFS");
+        if (!Esp32::spiffsMounted) {
+            Serial.println(F("Mqtt Error: SPIFFS not mounted. Cannot load MQTT credentials from mqtt.txt."));
             return false;
         }
 
