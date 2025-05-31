@@ -3,6 +3,7 @@
 #include <Arduino.h> // For String, byte, etc.
 #include <ArduinoJson.h> // For JsonDocument (declaration needed for extern)
 #include "SystemState.h"  // Added for SYS_state enum visibility
+#include <vector>       // For std::vector
 
 // Full header includes for classes used in Esp32 namespace extern declarations
 #include "WifiManager.h"    // Provides definition for WifiManager
@@ -17,6 +18,7 @@ namespace Esp32 {
     // Constants and Defines (remain in .h)
     const String DEVICE_NAME = String("ESP_") + String((uint16_t)(ESP.getEfuseMac()>>32));
     const String CONFIG_FILENAME =  "/esp32config.json";
+    const String CONFIG_IO_FILENAME = "/io_config.json"; // Added for I/O config
     const int CONFIG_FILE_MAX_SIZE = 1024;
     const int ADC_Max = 4095;
     #define HUZZAH32  39    //  39 pins for esp32   (Should match array size in .cpp)
@@ -41,6 +43,28 @@ namespace Esp32 {
     extern int configured_buzzer_pin_;
     extern int mqtt_data_interval_seconds_;
     extern int state_test_variable; // Added for linker diagnostics
+
+    // Generic I/O Configuration
+    struct IO_Pin_Detail {
+        int gpio;
+        String label;
+        String mode_str;      // e.g., "OUTPUT", "INPUT", "INPUT_PULLUP"
+        byte actual_mode;     // e.g., OUTPUT, INPUT, INPUT_PULLUP (Arduino constants)
+        String type_str;      // e.g., "DIGITAL", "ANALOG_INPUT"
+        String initial_state_str; // e.g., "LOW", "HIGH", or empty
+        bool graph;
+
+        // Constructor for easier initialization
+        IO_Pin_Detail(int g = -1, String l = "", String ms = "", byte am = 0, String ts = "", String iss = "", bool gr = false) :
+            gpio(g), label(l), mode_str(ms), actual_mode(am), type_str(ts), initial_state_str(iss), graph(gr) {}
+    };
+    extern std::vector<IO_Pin_Detail> configured_pins;
+
+    // I/O Configuration Core Logic
+    void applyIOConfiguration(const JsonDocument& doc); // Pass JsonDocument by const reference
+    bool saveAndApplyIOConfiguration(const JsonDocument& doc); // Pass JsonDocument by const reference
+    void loadAndApplyIOConfig();
+    String getIOStatusJsonString(); // Added declaration
 
     // Function Declarations
     void setVerboseLog();

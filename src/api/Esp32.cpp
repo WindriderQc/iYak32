@@ -28,6 +28,7 @@ namespace Esp32 {
     int configured_buzzer_pin_ = -1;
     int mqtt_data_interval_seconds_ = 5;
     int state_test_variable = 123; // Added for linker diagnostics
+    std::vector<IO_Pin_Detail> configured_pins; // Definition for the vector
 
     // Function Definitions
     void setVerboseLog() { esp_log_level_set("*", ESP_LOG_DEBUG); }
@@ -301,11 +302,13 @@ namespace Esp32 {
             } else {
                 Serial.println(F("SPIFFS Formatting complete."));
                 spiffsMounted = true;
+                Esp32::loadAndApplyIOConfig(); // Load and apply I/O config after formatting
             }
         } else {
             Serial.println("SPIFFS mounted successfully");
             spiffsMounted = true;
-            Storage::listDir("/", 4);
+            Storage::listDir("/", 1); // Changed levels to 1 as per earlier TODO suggestion
+            Esp32::loadAndApplyIOConfig(); // Load and apply I/O config
 
             if(!loadConfig(false, &configJson_)) { // Pass address of global configJson_
                 JsonDocument configDoc; // Local temp doc for default creation
@@ -338,6 +341,138 @@ namespace Esp32 {
             BuzzerModule::loop(); // Changed to BuzzerModule
         }
         if(Mqtt::isEnabled) Mqtt::loop();
+    }
+
+    // I/O Configuration Core Logic Implementations
+    void applyIOConfiguration(const JsonDocument& doc) {
+        Esp32::configured_pins.clear();
+        JsonArray io_pins_array = doc["io_pins"].as<JsonArray>();
+
+        if (io_pins_array.isNull()) {
+            Serial.println(F("Esp32: No 'io_pins' array found in I/O config or it's not an array."));
+            return;
+        }
+
+        Serial.printf("Esp32: Applying I/O configuration for %d pin(s).\n", io_pins_array.size());
+
+        for (JsonObject pin_obj : io_pins_array) {
+            int gpio = pin_obj["gpio"] | -1;
+            String label = pin_obj["label"] | "";
+            String mode_str_json = pin_obj["mode"] | "INPUT";
+            String type_str = pin_obj["type"] | "DIGITAL";
+            String initial_state_str = pin_obj["initial_state"] | "";
+            bool graph = pin_obj["graph"] | false;
+
+            if (gpio == -1 || label == "") {
+                Serial.printf("Esp32: Skipping invalid pin entry (GPIO: %d, Label: %s).\n", gpio, label.c_str());
+                continue;
+            }
+
+            String configPin_mode_str = "IN";
+            byte actual_mode_arduino = INPUT;
+
+            if (mode_str_json == "OUTPUT") {
+                configPin_mode_str = "OUT";
+                actual_mode_arduino = OUTPUT;
+            } else if (mode_str_json == "INPUT_PULLUP") {
+                configPin_mode_str = "INPULL";
+                actual_mode_arduino = INPUT_PULLUP;
+            } else if (mode_str_json == "INPUT_PULLDOWN") {
+                configPin_mode_str = "INPULLD";
+                actual_mode_arduino = INPUT_PULLDOWN;
+            } else if (mode_str_json == "INPUT") {
+                // configPin_mode_str = "IN"; // Already default
+                actual_mode_arduino = INPUT;
+            } else {
+                Serial.printf("Esp32: Unknown mode '%s' for GPIO %d. Defaulting to INPUT.\n", mode_str_json.c_str(), gpio);
+            }
+
+            if ((gpio == 34 || gpio == 35 || gpio == 36 || gpio == 39) && actual_mode_arduino == OUTPUT) {
+                Serial.printf("Esp32: Warning! GPIO %d is input-only. Forcing mode to INPUT.\n", gpio);
+                configPin_mode_str = "IN";
+                actual_mode_arduino = INPUT;
+                mode_str_json = "INPUT";
+            }
+
+            IO_Pin_Detail detail(gpio, label, mode_str_json, actual_mode_arduino, type_str, initial_state_str, graph);
+            Esp32::configured_pins.push_back(detail);
+
+            bool is_analog_type = (type_str == "ANALOG_INPUT");
+            Esp32::configPin(gpio, configPin_mode_str.c_str(), label.c_str(), is_analog_type);
+            Serial.printf("Esp32: Configured GPIO %d (%s) as %s (%s).\n", gpio, label.c_str(), mode_str_json.c_str(), type_str.c_str());
+
+            if (actual_mode_arduino == OUTPUT && !initial_state_str.isEmpty()) {
+                if (initial_state_str == "HIGH") {
+                    digitalWrite(gpio, HIGH);
+                    Serial.printf("Esp32: Set GPIO %d initial state to HIGH.\n", gpio);
+                } else if (initial_state_str == "LOW") {
+                    digitalWrite(gpio, LOW);
+                    Serial.printf("Esp32: Set GPIO %d initial state to LOW.\n", gpio);
+                }
+            }
+        }
+    }
+
+    bool saveAndApplyIOConfiguration(const JsonDocument& doc) {
+        String json_string;
+        serializeJson(doc, json_string);
+
+        if (Storage::writeFile(Esp32::CONFIG_IO_FILENAME, json_string)) {
+            Serial.println(F("Esp32: I/O configuration saved to file."));
+            Esp32::applyIOConfiguration(doc);
+            return true;
+        } else {
+            Serial.println(F("Esp32: Error saving I/O configuration to file."));
+            return false;
+        }
+    }
+
+    void loadAndApplyIOConfig() {
+        if (!Esp32::spiffsMounted) {
+            Serial.println(F("Esp32: SPIFFS not mounted, cannot load I/O config."));
+            return;
+        }
+        if (SPIFFS.exists(Esp32::CONFIG_IO_FILENAME)) {
+            Serial.printf("Esp32: Loading I/O config from %s\n", Esp32::CONFIG_IO_FILENAME.c_str());
+            String file_content = Storage::readFile(Esp32::CONFIG_IO_FILENAME);
+            if (file_content.length() > 0) {
+                StaticJsonDocument<2048> doc; // May need adjustment for more pins
+                DeserializationError error = deserializeJson(doc, file_content);
+                if (!error) {
+                    Esp32::applyIOConfiguration(doc);
+                } else {
+                    Serial.printf("Esp32: Failed to parse %s - %s. Applying no I/O config from file.\n", Esp32::CONFIG_IO_FILENAME.c_str(), error.c_str());
+                }
+            } else {
+                Serial.printf("Esp32: Failed to read %s or file is empty. Applying no I/O config from file.\n", Esp32::CONFIG_IO_FILENAME.c_str());
+            }
+        } else {
+            Serial.printf("Esp32: %s not found. No I/O pins configured by this system initially.\n", Esp32::CONFIG_IO_FILENAME.c_str());
+        }
+    }
+
+    String getIOStatusJsonString() {
+        StaticJsonDocument<1024> status_doc; // Adjust size as needed
+        JsonArray statuses_array = status_doc.createNestedArray("statuses");
+
+        if (Esp32::configured_pins.empty()) {
+            // Optional: Serial.println(F("Esp32: No I/O pins configured to report status."));
+        }
+
+        for (const IO_Pin_Detail& pin_detail : Esp32::configured_pins) {
+            JsonObject pin_status = statuses_array.createNestedObject();
+            pin_status["gpio"] = pin_detail.gpio;
+
+            if (pin_detail.type_str == "ANALOG_INPUT") {
+                pin_status["value"] = analogRead(pin_detail.gpio);
+            } else {
+                pin_status["value"] = digitalRead(pin_detail.gpio);
+            }
+        }
+
+        String output_json;
+        serializeJson(status_doc, output_json);
+        return output_json;
     }
 
     namespace GPS { // Assuming GPS namespace is part of Esp32 or globally accessible
