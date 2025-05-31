@@ -61,7 +61,6 @@ namespace Hockey
 
         void setup()  
         { 
-            Esp32::configPin(Esp32::buzzer.speakerPin, "OUT", "Buzzer");
             //Esp32::configPin(LEFTGOAL, "IN", "LEFTGOAL");   //  TODO  sera a changer avec le hardware
            // Esp32::configPin(RIGHTGOAL, "IN", "RIGHTGOAL");
             Esp32::configPin(RESET, "INPULL", "RESET");
