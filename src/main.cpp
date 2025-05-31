@@ -3,6 +3,7 @@
 //#define BOAT
 
 #include <Arduino.h>
+#include "SystemState.h" // Added for SYS_state enum
 #include "api/Esp32.h"
 #include "api/Mqtt.h"    // Added for direct Mqtt namespace usage
 #include "api/devices/BMX280.h"  //  TODO : devrait etre encaps dans un device...   device = gestion IO = main config n feature focus
@@ -27,14 +28,14 @@ bool oledConnected = false;
 bool bmxConnected = false;
 
 //  STATE Machine - System 
-enum class SYS_state {
-    BOOT,
-    DEVICES_CONFIG,
-    HEATUP,
-    FIRSTLOOP,
-    LOOP
-};
-SYS_state state = SYS_state::BOOT;
+// enum class SYS_state { // Moved to SystemState.h
+//     BOOT,
+//     DEVICES_CONFIG,
+//     HEATUP,
+//     FIRSTLOOP,
+//     LOOP
+// };
+SYS_state state = SYS_state::BOOT; // Uses SYS_state from SystemState.h
 
 
 
