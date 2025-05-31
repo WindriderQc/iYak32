@@ -9,5 +9,5 @@ enum class SYS_state {
 };
 
 // Accessor function declarations
-SYS_state get_current_system_state_temp();
-void set_current_system_state_temp(SYS_state new_state);
+SYS_state get_current_system_state();
+void set_current_system_state(SYS_state new_state);
