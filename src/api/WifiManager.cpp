@@ -1,4 +1,5 @@
 #include "WifiManager.h"
+#include "Esp32.h" // Added to access Esp32::spiffsMounted
 
 #include <ArduinoOTA.h> 
 #include <SPIFFS.h>

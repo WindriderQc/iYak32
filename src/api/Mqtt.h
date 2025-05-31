@@ -152,9 +152,9 @@ namespace Mqtt
         mqttClient.subscribe(String("esp32/" + deviceName + "/#").c_str());
     }
 
-    bool getCredentials()
+    bool getCredentials(bool isSpiffsMounted) // Added isSpiffsMounted parameter
     {
-        if (!Esp32::spiffsMounted) {
+        if (!isSpiffsMounted) { // Use parameter
             Serial.println(F("Mqtt Error: SPIFFS not mounted. Cannot load MQTT credentials from mqtt.txt."));
             return false;
         }
@@ -184,7 +184,7 @@ namespace Mqtt
     }
 
 
-    bool setup( String deviceName, String mqttIP, int server_port_param = 1883) // Renamed server_port to avoid conflict
+    bool setup( String deviceName, String mqttIP, bool isSpiffsMounted, int server_port_param = 1883) // Added isSpiffsMounted
     {
         serverIp = mqttIP;
         port = server_port_param;
@@ -201,7 +201,7 @@ namespace Mqtt
         //mqttClient.setCallback(incomingCallback);
       
 
-        getCredentials() ? Serial.println("MQTT Credentials retreived") : Serial.println("ERROR - could not retreive MQTT credentials in mqtt.txt");
+        getCredentials(isSpiffsMounted) ? Serial.println("MQTT Credentials retreived") : Serial.println("ERROR - could not retreive MQTT credentials in mqtt.txt");
 
         int i = 0;
         while (!mqttClient.connected()) 
