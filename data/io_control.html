@@ -188,30 +188,22 @@
 
                 // Actions
                 const cellActions = document.createElement('td');
-                // Enable toggle only if mode_str is "OUTPUT"
-                if (pinData.mode_str === "OUTPUT" && !INPUT_ONLY_GPIOS.includes(pinData.gpio)) {
-                    const toggleBtn = document.createElement('button');
-                    toggleBtn.innerHTML = '<i class="fas fa-power-off"></i> Toggle';
-                    toggleBtn.onclick = async () => {
-                        try {
-                            const response = await fetch(`/io/toggle?gpio=${pinData.gpio}`, { method: 'POST' });
-                            if (!response.ok) throw new Error('Failed to toggle pin state');
-                            const result = await response.json();
-                            displayStatusMessage(result.message || `GPIO ${pinData.gpio} toggled.`, true);
-                            fetchPinStatus(pinData.gpio); // Refresh status for this pin
-                        } catch (error) {
-                            displayStatusMessage(`Error toggling GPIO ${pinData.gpio}: ${error.message}`, false);
-                        }
-                    };
-                    cellActions.appendChild(toggleBtn);
+                // Show toggle button only for DIGITAL OUTPUT pins that are not input-only
+                if (pinData.type_str === "DIGITAL" && pinData.mode_str === "OUTPUT" && !INPUT_ONLY_GPIOS.includes(pinData.gpio)) {
+                    const toggleButton = document.createElement('button');
+                    toggleButton.textContent = 'Toggle';
+                    toggleButton.classList.add('pin-action-toggle', 'btn', 'btn-small');
+                    toggleButton.dataset.gpio = pinData.gpio; // Use pinData.gpio
+                    cellActions.appendChild(toggleButton);
                 }
                 row.appendChild(cellActions);
 
                 return row;
             }
 
-            function buildChartDatasets(config) {
-                return config.filter(pin => pin.isAnalog && pin.mode !== "OUT").map(pin => {
+            function buildChartDatasets(graphedPinsData) { // Parameter is already filtered for graph:true
+                console.log('Rebuilding chart datasets. Graphed pins data (label & GPIO):', graphedPinsData.map(p => ({label: p.label, gpio: p.gpio})));
+                return graphedPinsData.map(pin => {
                     const color = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`;
                     return {
                         label: pin.label || `GPIO ${pin.gpio}`,
@@ -231,8 +223,8 @@
                     ioPinChart.destroy();
                 }
                 // Filter for chartable pins based on the 'graph' property from config
-                const chartablePins = pin_config_array.filter(pin => pin.graph && pin.type_str === "ANALOG_INPUT");
-                const datasets = buildChartDatasets(chartablePins); // Use filtered list
+                const chartablePins = pin_config_array.filter(pin => pin.graph === true); // Include all types if graph is true
+                const datasets = buildChartDatasets(chartablePins);
                 const data = {
                     labels: [], // Time labels
                     datasets: datasets
@@ -253,6 +245,7 @@
             }
 
             function updateChart(pinValues) { // pinValues is an object {gpio: value, gpio2: value2 ...}
+                console.log('Attempting to update chart with pinValues:', pinValues);
                 if (!ioPinChart) return;
 
                 const now = new Date();
@@ -269,6 +262,7 @@
                     if (pinValues.hasOwnProperty(gpioToFind)) {
                          value = pinValues[gpioToFind];
                     }
+                    console.log('Chart: Processing dataset for label:', dataset.label, ', internal GPIO:', gpioToFind, ', found value:', value);
                     dataset.data.push(value);
                     if (dataset.data.length > 30) {
                         dataset.data.shift();
@@ -339,6 +333,7 @@
                     const response = await fetch('/api/io/status'); // Corrected URL
                     if (!response.ok) throw new Error(`Failed to fetch statuses (${response.status})`);
                     const statusData = await response.json(); // Expects {"statuses": [{"gpio": XX, "value": YY}, ...]}
+                    console.log('Fetched statuses for graph/table:', statusData); // Added console log
 
                     const pinValuesForChart = {};
 
@@ -348,20 +343,18 @@
                             if (row) {
                                 const stateCell = row.querySelector('.pin-state');
                                 const valueCell = row.querySelector('.pin-value');
-                                // Assuming 'value' from backend is the direct value (analog or 0/1 for digital)
-                                // For digital, state can be derived.
                                 if (valueCell) valueCell.textContent = status.value;
 
                                 const pinCfg = currentPinConfig.find(p => p.gpio === status.gpio);
-                                if (pinCfg && pinCfg.type_str === "DIGITAL") {
-                                    if (stateCell) stateCell.textContent = status.value ? 'HIGH' : 'LOW';
-                                } else if (pinCfg && pinCfg.type_str === "ANALOG_INPUT") {
-                                    if (stateCell) stateCell.textContent = 'N/A'; // State is not applicable for analog in this context
-                                }
-
-                                if (pinCfg) { // Update value in currentPinConfig for chart
-                                     pinCfg.value = status.value;
-                                     if (pinCfg.graph && pinCfg.type_str === "ANALOG_INPUT"){
+                                if (pinCfg) {
+                                     pinCfg.value = status.value; // Update currentPinConfig with fresh value
+                                    if (pinCfg.type_str === "DIGITAL") {
+                                        if (stateCell) stateCell.textContent = status.value ? 'HIGH' : 'LOW';
+                                    } else if (pinCfg.type_str === "ANALOG_INPUT") {
+                                        if (stateCell) stateCell.textContent = 'N/A';
+                                    }
+                                     // Populate pinValuesForChart for *any* pin marked for graphing
+                                     if (pinCfg.graph === true){
                                         pinValuesForChart[status.gpio] = status.value;
                                      }
                                 }
@@ -423,6 +416,33 @@
 
             refreshStatusBtn.addEventListener('click', fetchAllPinStatuses);
             saveConfigBtn.addEventListener('click', saveConfiguration);
+
+            ioPinTableBody.addEventListener('click', function(event) {
+                if (event.target.classList.contains('pin-action-toggle')) {
+                    const gpio = event.target.dataset.gpio;
+                    if (gpio) {
+                        handleTogglePin(parseInt(gpio));
+                    }
+                }
+            });
+
+            async function handleTogglePin(gpio) {
+                try {
+                    const response = await fetch(`/api/io/toggle?gpio=${gpio}`, { method: 'POST' });
+                    const result = await response.json();
+
+                    if (response.ok && result.status === 'success') {
+                        displayStatusMessage(result.message || `GPIO ${gpio} toggled successfully.`, true);
+                        fetchAllPinStatuses(); // Refresh all statuses
+                    } else {
+                        throw new Error(result.message || `Failed to toggle GPIO ${gpio}.`);
+                    }
+                } catch (error) {
+                    console.error('Error toggling pin:', error);
+                    // Display error message, ensuring 'isSuccess' is false for error styling
+                    displayStatusMessage(`Error: ${error.message}`, false);
+                }
+            }
 
             viewExportJsonBtn.addEventListener('click', () => {
                 const currentFullConfig = [];

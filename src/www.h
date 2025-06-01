@@ -291,6 +291,23 @@ namespace www
             }
         );
 
+        server.on("/api/io/toggle", HTTP_POST, [](AsyncWebServerRequest *request){
+            int gpio = -1;
+            if (request->hasParam("gpio")) {
+                gpio = request->getParam("gpio")->value().toInt();
+            }
+
+            if (gpio != -1) {
+                if (Esp32::togglePin(gpio)) {
+                    request->send(200, "application/json", "{\"status\":\"success\", \"message\":\"GPIO " + String(gpio) + " toggled.\"}");
+                } else {
+                    request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Failed to toggle GPIO " + String(gpio) + ". Not a configured digital output or not found?\"}");
+                }
+            } else {
+                request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Missing 'gpio' parameter.\"}");
+            }
+        });
+
         // General config endpoint (ensure it doesn't conflict if path is similar)
         server.on("/config", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
             

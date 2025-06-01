@@ -75,6 +75,7 @@ namespace Esp32 {
     bool validIO(String ioStr);
     void ioSwitch(int pin);
     void ioBlink(int pin, int timeon, int timeoff, int iteration);
+    bool togglePin(int gpio); // Added declaration
     Esp32::Pin* configPin(int gpio, const char* pinModeStr, const char* label = "", bool isAnalog = false); // Changed return type
     void reboot();
     int i2cScanner();
