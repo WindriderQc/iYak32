@@ -353,6 +353,8 @@ namespace Hockey
         void setPeriodLength(int length) { periodLength = length*60000; }
         HOCKEY_state getCurrentGameState() const { return current_game_state_; }
 
+        int getLeftDelta() const { return senseLeft.getFluctDetection(); }
+        int getRightDelta() const { return senseRight.getFluctDetection(); }
         
     private:
         int scoreLeft = 0;

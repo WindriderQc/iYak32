@@ -61,6 +61,8 @@ namespace Sensor {
             fluctDetection = variation;
         }  
 
+        int getFluctDetection() const { return fluctDetection; }
+
         void warmup()      {
              int value = analogRead(pin_id());
              lastValue = value;
