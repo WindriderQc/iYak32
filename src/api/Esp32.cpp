@@ -218,7 +218,7 @@ namespace Esp32 {
         }
 
         Esp32::buzzer_enabled_ = configJson_["buzzer_enabled"] | false;
-        Esp32::configured_buzzer_pin_ = configJson_["buzzer_pin"] | -1;
+        Esp32::configured_buzzer_pin_ = configJson_["buzzer_pin"] | 14;
 
         if (Esp32::buzzer_enabled_ && Esp32::configured_buzzer_pin_ != -1) {
             BuzzerModule::init(Esp32::configured_buzzer_pin_); // Changed to BuzzerModule
@@ -345,7 +345,7 @@ namespace Esp32 {
                 configDoc["gmtOffset_sec"] = -18000;
                 configDoc["daylightOffset_sec"] = 3600;
                 configDoc["buzzer_enabled"] = false;
-                configDoc["buzzer_pin"] = -1;
+                configDoc["buzzer_pin"] = 14;
                 configDoc["mqttDataIntervalSec"] = 5;
                 Serial.println("setup -> Could not read Config file -> initializing new file");
 
