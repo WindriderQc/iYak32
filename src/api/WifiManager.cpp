@@ -82,6 +82,39 @@ void WifiManager::loop()
         //tryConnectToUserNetwork(ssid_, password_);
     }
     if(isOTA_) handleOTA(); // Handle OTA updates
+
+    // Non-blocking WiFi Strength Sampling & Averaging
+    const unsigned int RSSI_SAMPLE_INTERVAL_MS = 200; // How often to take a new sample
+
+    if (isWifiConnected_ && WiFi.status() == WL_CONNECTED) {
+        if (millis() - last_rssi_sample_time_ >= RSSI_SAMPLE_INTERVAL_MS || last_rssi_sample_time_ == 0) {
+            last_rssi_sample_time_ = millis();
+            long current_rssi = WiFi.RSSI();
+
+            if (rssi_samples_.size() >= max_rssi_samples_) {
+                rssi_samples_.erase(rssi_samples_.begin()); // Remove the oldest sample
+            }
+            rssi_samples_.push_back(current_rssi);
+
+            if (!rssi_samples_.empty()) {
+                long sum_rssi = 0;
+                for (long sample : rssi_samples_) {
+                    sum_rssi += sample;
+                }
+                current_avg_rssi_ = sum_rssi / rssi_samples_.size();
+            } else {
+                current_avg_rssi_ = current_rssi;
+            }
+        }
+    } else if (isWifiConnected_ && WiFi.status() != WL_CONNECTED) {
+        // Was connected, now lost connection
+        rssi_samples_.clear();
+        current_avg_rssi_ = 0;
+    } else if (!isWifiConnected_ && !rssi_samples_.empty()) {
+        // Explicitly not connected, clear samples
+        rssi_samples_.clear();
+        current_avg_rssi_ = 0;
+    }
 }
 
 void WifiManager::handleOTA() 
@@ -220,18 +253,21 @@ void WifiManager::setPASS(String pass) {     password_ =  pass;  }
 
 
 
-int WifiManager::getWiFiStrength(int points)   
+int WifiManager::getWiFiStrength()
 {
-    long rssi = 0;
-    long avg_rssi = 0;
-//  TODO :  si on passe le Alarm.delay(20) en calback a la fonction a la place, on deviendrait indépendant de la solution de temps time/alarm
-    for (int i = 0; i < points; i++){
-        rssi += WiFi.RSSI();
-        delay(20);  
+    if (!isWifiConnected_ || rssi_samples_.empty()) {
+        return WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0; // Return current instant RSSI or 0
     }
+    return current_avg_rssi_;
+}
 
-    avg_rssi = rssi / points;
-    return avg_rssi;
+void WifiManager::setRssiMaxSamples(byte samples) {
+    if (samples > 0 && samples <= 50) {
+        max_rssi_samples_ = samples;
+        rssi_samples_.clear();
+        current_avg_rssi_ = 0;
+        last_rssi_sample_time_ = 0; // Force immediate new sample in loop
+    }
 }
 
 IPAddress WifiManager::getIP() 
