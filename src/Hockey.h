@@ -60,7 +60,8 @@ namespace Hockey
         Hockey() : previous_state_(HOCKEY_state::eGAMEOVER),
                    current_game_state_(HOCKEY_state::eINTRO),
                    tictac_(0),
-                   lastLoop(0) {} // Initialize lastLoop
+                   lastLoop(0),
+                   pause_button_last_state_(HIGH) {} // Initialize pause_button_last_state_
 
         ~Hockey() {}
 
@@ -147,7 +148,13 @@ namespace Hockey
             } 
 
             if(!digitalRead(RESET)) reset();
-            if(!digitalRead(PAUSE)) pause();
+
+            // Pause button edge detection logic
+            bool current_pause_button_state = digitalRead(PAUSE);
+            if (current_pause_button_state == LOW && pause_button_last_state_ == HIGH) {
+                pause();
+            }
+            pause_button_last_state_ = current_pause_button_state;
 
             String msg;
            
@@ -354,7 +361,7 @@ namespace Hockey
         unsigned long lastLoop;
         int periodLength = 60000;
         int time = 60000;
-        const int GOAL_DELAY = 100; 
+        const int GOAL_DELAY = 500; // Changed from 100 to 500
         bool bSwitch = false;
     
         String scoreString = "00:00";
@@ -363,8 +370,9 @@ namespace Hockey
         char* goalLeftStatus;
         HOCKEY_state previous_state_;
         String last_displayed_string_on_7segment_;
-        HOCKEY_state current_game_state_; // Added
-        unsigned int tictac_;             // Added
+        HOCKEY_state current_game_state_;
+        unsigned int tictac_;
+        bool pause_button_last_state_; // Added
 
     void updateSevenSegmentDisplay(const char* str_to_display) {
         if (last_displayed_string_on_7segment_ != str_to_display) {

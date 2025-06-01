@@ -102,7 +102,7 @@ user:password
     **Key Fields in the Standard JSON Wrapper:**
 
     *   `timestamp` (String, Required): ISO 8601 formatted UTC timestamp (e.g., `YYYY-MM-DDTHH:MM:SS.sssZ`). Indicates when the message was generated.
-    *   `sender_id` (String, Required): The unique identifier of the ESP32 device (e.g., "ESP_XXXXXX" from `Esp32::DEVICE_NAME`).
+    *   `sender` (String, Required): The unique identifier of the ESP32 device (e.g., "ESP_XXXXXX" from `Esp32::DEVICE_NAME`).
     *   `message_type` (String, Required): Defines the general category of the message. Common types include:
         *   `"sensor_data"`: For regular transmissions of sensor readings and device status.
         *   `"heartbeat"`: For keep-alive messages indicating the device is online.
@@ -121,7 +121,7 @@ user:password
     ```json
     {
       "timestamp": "2023-12-05T12:30:00.123Z",
-      "sender_id": "ESP_ABCDEF",
+      "sender": "ESP_ABCDEF",
       "message_type": "sensor_data",
       "status": "info",
       "payload_type": "sensor_readings_v1",
@@ -144,7 +144,7 @@ user:password
     ```json
     {
       "timestamp": "2023-12-05T12:31:00.456Z",
-      "sender_id": "ESP_ABCDEF",
+      "sender": "ESP_ABCDEF",
       "message_type": "heartbeat",
       "status": "info",
       "payload_type": "simple_status",
