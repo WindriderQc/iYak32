@@ -11,6 +11,7 @@ Add to platformio.ini:
 #include <SPIFFS.h>      // Added for SPIFFS object usage
 #include "api/Mqtt.h"    // Added for Mqtt namespace usage
 #include "api/Esp32.h"
+#include "api/JsonTools.h" // Added for JsonTools::getJsonString
 #include "Hockey.h"
 
 
@@ -92,7 +93,7 @@ namespace www
         if (processedVar.indexOf("%CONFIG%") >= 0) {
             JsonDocument d = Esp32::configJson_;
             d["pass"] = ""; // Suppress password for security
-            processedVar.replace("%CONFIG%", Esp32::getJsonString(d));
+            processedVar.replace("%CONFIG%", JsonTools::getJsonString(d)); // Changed to JsonTools
         }
      
         return processedVar; 
@@ -119,7 +120,7 @@ namespace www
         if(var == "CONFIG")   {  
             JsonDocument d = Esp32::configJson_;
             d["pass"] = "";   //  suppress password for security.  this forces user to enter it back everytime.
-            return Esp32::getJsonString(d); 
+            return JsonTools::getJsonString(d); // Changed to JsonTools
             
         }
 
@@ -183,7 +184,7 @@ namespace www
                 Serial.println("Loading config from json: ");
                 if(Esp32::loadConfig(false, &cnf)) {  
                     cnf["pass"] = ""; // Blank out the password for security
-                    cnfStr = Esp32::getJsonString(cnf, true);
+                    cnfStr = JsonTools::getJsonString(cnf, true); // Changed to JsonTools
                     Serial.println(Esp32::configString_);
                     request->send(200, "application/json", cnfStr); // Send the JSON response with the appropriate content type
                 } else {
@@ -303,7 +304,7 @@ namespace www
                 return;
             }else{
                 Serial.println("Saving received config: ");
-                String strCnf = Esp32::getJsonString(jsonBuffer, true); 
+                String strCnf = JsonTools::getJsonString(jsonBuffer, true); // Changed to JsonTools
                 Serial.println(strCnf);
                 Esp32::saveConfig(jsonBuffer);  //  saves new config json on SPIFF and 
 

@@ -75,12 +75,12 @@ namespace Esp32 {
     bool validIO(String ioStr);
     void ioSwitch(int pin);
     void ioBlink(int pin, int timeon, int timeoff, int iteration);
-    void configPin(int gpio, const char* pinModeStr, const char* label = "", bool isAnalog = false);
+    Esp32::Pin* configPin(int gpio, const char* pinModeStr, const char* label = "", bool isAnalog = false); // Changed return type
     void reboot();
     int i2cScanner();
     float getBatteryVoltage();
     float getBattRemaining(bool print = false);
-    String getJsonString(JsonDocument& doc, bool isPretty = false); // Pass JsonDocument by reference
+    // String getJsonString(JsonDocument& doc, bool isPretty = false); // Moved to JsonTools.h
     void mqttIncoming(char* topic, byte* message, unsigned int length);
     void executeJsonConfig();
     bool loadConfig(bool doExecuteConfig = false, JsonDocument* returnDoc = nullptr); // returnDoc for optional copy
