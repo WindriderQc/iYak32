@@ -1,4 +1,5 @@
 #include "Esp32.h"
+#include "JsonTools.h" // Added for JsonTools::getJsonString
 #include <ArduinoJson.h>
 #include "WifiManager.h" // For WifiManager object
 #include "devices/Buzzer.h" // For Buzzer object
@@ -63,15 +64,19 @@ namespace Esp32 {
         }
     }
 
-    void configPin(int gpio ,  const char* pinModeStr,  const char* label, bool isAnalog) {
+    Esp32::Pin* configPin(int gpio ,  const char* pinModeStr,  const char* label, bool isAnalog) {
        if(gpio >= 0 && gpio < HUZZAH32) { // Added bounds check
            if(ios[gpio] != nullptr) {
                delete ios[gpio];
                ios[gpio] = nullptr;
            }
+           // Pin class is within Esp32 namespace, so Esp32:: qualifier is optional here.
+           // However, ios array is Esp32::Pin*, so the type matches.
            ios[gpio] = new Pin(pinModeStr, gpio, label, isAnalog);
+           return ios[gpio];
        } else {
            Serial.printf("Error: GPIO %d is out of bounds for configuration.\n", gpio);
+           return nullptr;
        }
     }
 
@@ -128,15 +133,15 @@ namespace Esp32 {
         return vBAT;
     }
 
-    String getJsonString(JsonDocument& doc, bool isPretty) { // Changed to pass JsonDocument by reference
-        String str = "";
-        if (isPretty) {
-            serializeJsonPretty(doc, str);
-        } else {
-            serializeJson(doc, str);
-        }
-        return str;
-    }
+    // String getJsonString(JsonDocument& doc, bool isPretty) { // Moved to JsonTools.cpp
+    //     String str = "";
+    //     if (isPretty) {
+    //         serializeJsonPretty(doc, str);
+    //     } else {
+    //         serializeJson(doc, str);
+    //     }
+    //     return str;
+    // }
 
     void mqttIncoming(char* topic, byte* message, unsigned int length) {
         String topicStr = String(topic);
@@ -253,7 +258,7 @@ namespace Esp32 {
             }
 
             configJson_ = tempDoc; // Assign to global configJson_
-            configString_ = getJsonString(configJson_, true); // Update global configString_
+            configString_ = JsonTools::getJsonString(configJson_, true); // Update global configString_
 
             if(doExecuteConfig) executeJsonConfig();
             return true;
@@ -269,7 +274,7 @@ namespace Esp32 {
         Serial.println(Esp32::CONFIG_FILENAME);
 
         configJson_ = config; // Update global
-        configString_ = getJsonString(configJson_, true);
+        configString_ = JsonTools::getJsonString(configJson_, true);
 
         Storage::writeFile(Esp32::CONFIG_FILENAME, configString_);
         Storage::dumpFile(Esp32::CONFIG_FILENAME);
@@ -307,7 +312,7 @@ namespace Esp32 {
         } else {
             Serial.println("SPIFFS mounted successfully");
             spiffsMounted = true;
-            Storage::listDir("/", 1); // Changed levels to 1 as per earlier TODO suggestion
+            Storage::listDir("/", 0); // List only root directory contents
             Esp32::loadAndApplyIOConfig(); // Load and apply I/O config
 
             if(!loadConfig(false, &configJson_)) { // Pass address of global configJson_

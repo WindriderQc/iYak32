@@ -55,6 +55,17 @@ namespace Mqtt
     bool getCredentials(bool isSpiffsMounted);
     bool setup(String deviceName, String mqttIP, bool isSpiffsMounted, int server_port_param = 1883);
     void loop();
-    void sendJson(std::vector<String> names, std::vector<String> values, String topic, bool print2console = false);
+    void sendJson(std::vector<String> names, std::vector<String> values, String topic, bool print2console = false); // Old function
+
+    // New standardized message publishing function
+    void publishStandardMessage(
+        const String& topic,
+        const String& message_type,
+        const JsonObjectConst& payload,
+        const String& status = "",
+        const String& command_id = "",
+        const String& payload_type = "",
+        bool printToConsole = false
+    );
 
 } // namespace Mqtt

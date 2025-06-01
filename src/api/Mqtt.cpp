@@ -1,4 +1,5 @@
 #include "Mqtt.h"
+#include "api/Esp32.h"    // For Esp32::hourglass and Esp32::DEVICE_NAME
 #include <Arduino.h> // For Serial, String, random, delay, etc.
 #include <WiFi.h>      // For WiFiClient
 #include <PubSubClient.h> // For PubSubClient
@@ -161,6 +162,66 @@ namespace Mqtt {
             if (print2console) {
                 Serial.print(F("Mqtt: Sent JSON (")); Serial.print(n); Serial.print(F(" bytes): "));
                 Serial.println(json);
+            }
+        }
+    }
+
+    void publishStandardMessage(
+        const String& topic,
+        const String& message_type,
+        const JsonObjectConst& payload,
+        const String& status,
+        const String& command_id,
+        const String& payload_type,
+        bool printToConsole
+    ) {
+        if (!Mqtt::isEnabled) {
+            if (printToConsole) {
+                Serial.println(F("Mqtt: Publishing disabled, message not sent."));
+            }
+            return;
+        }
+
+        JsonDocument doc;
+
+        doc["timestamp"] = Esp32::hourglass.getDateTimeString(false, true);
+        doc["sender_id"] = Esp32::DEVICE_NAME;
+        doc["message_type"] = message_type;
+
+        if (!status.isEmpty()) {
+            doc["status"] = status;
+        }
+        if (!command_id.isEmpty()) {
+            doc["command_id"] = command_id;
+        }
+        if (!payload_type.isEmpty()) {
+            doc["payload_type"] = payload_type;
+        }
+
+        doc["payload"] = payload;
+
+        const int buffer_size = MQTT_MAX_PACKET_SIZE;
+        char json_buffer[buffer_size];
+        size_t n = serializeJson(doc, json_buffer, buffer_size);
+
+        if (n == 0) {
+            Serial.println(F("Mqtt Error: JSON serialization failed for standard message (returned 0). Message not sent."));
+            if (printToConsole) {
+                Serial.println(F("Mqtt: (No message sent due to serialization error)"));
+            }
+        } else if (n >= buffer_size - 1) {
+            Serial.print(F("Mqtt Error: Standard JSON message likely too large or truncated (n="));
+            Serial.print(n); Serial.print(F(", buffer_size=")); Serial.print(buffer_size);
+            Serial.println(F("). Message not sent."));
+            if (printToConsole) {
+                Serial.print(F("Mqtt: Truncated/Problematic JSON (not sent): "));
+                Serial.println(json_buffer);
+            }
+        } else {
+            Mqtt::mqttClient.publish(topic.c_str(), json_buffer, n);
+            if (printToConsole) {
+                Serial.print(F("Mqtt: Sent Standard JSON (")); Serial.print(n); Serial.print(F(" bytes) on topic '"));
+                Serial.print(topic); Serial.print(F("': ")); Serial.println(json_buffer);
             }
         }
     }

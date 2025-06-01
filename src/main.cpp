@@ -51,37 +51,49 @@ void set_current_system_state(SYS_state new_state) { // Reverted to original nam
 }
 
 
-void sendHeartbeat()
-{
-    std::vector<String> names;
-    std::vector<String> values;
-
-    names.push_back("sender");      values.push_back(Esp32::DEVICE_NAME);
-    names.push_back("time");        values.push_back(Esp32::hourglass.getDateTimeString());
-
+void sendHeartbeat() {
     #ifdef VERBOSE
-        Mqtt::sendJson( names, values, "esp32/alive/" + Esp32::DEVICE_NAME, true);   
+        bool printToConsole = true;
     #else
-        Mqtt::sendJson( names, values, "esp32/alive/" + Esp32::DEVICE_NAME, false);               
+        bool printToConsole = false;
     #endif
+
+    JsonDocument payload_doc;
+    // payload_doc["status"] = "online"; // Example, or keep empty
+    JsonObject payload_obj = payload_doc.to<JsonObject>();
+
+    Mqtt::publishStandardMessage(
+        "esp32/alive/" + Esp32::DEVICE_NAME, // topic
+        "heartbeat",                          // message_type
+        payload_obj,                          // payload
+        "info",                               // status
+        "",                                   // command_id
+        payload_obj.isNull() || payload_obj.size() == 0 ? "" : "simple_status", // payload_type
+        printToConsole
+    );
 }
 
-void sendData()
-{
-    std::vector<String> names;
-    std::vector<String> values;
+void sendData() {
+    #ifdef VERBOSE
+        bool printToConsole = true;
+    #else
+        bool printToConsole = false;
+    #endif
 
-    names.push_back("sender");      values.push_back(Esp32::DEVICE_NAME);
-    names.push_back("time");        values.push_back(Esp32::hourglass.getDateTimeString());
-    names.push_back("CPUtemp");     values.push_back(String(Esp32::getCPUTemp()));    
-    names.push_back("wifi");        values.push_back(String(Esp32::wifiManager.getWiFiStrength()));
+    JsonDocument payload_doc;
 
-    names.push_back("battery");     values.push_back(String(Esp32::getBattRemaining()));
+    payload_doc["cpu_temp_c"] = Esp32::getCPUTemp();
+    payload_doc["wifi_rssi"] = Esp32::wifiManager.getWiFiStrength();
+    payload_doc["battery_v"] = Esp32::getBattRemaining(false);
 
-    names.push_back("tempBM_280");  values.push_back(String(BMX280::getTemperature()));
-    names.push_back("pressure");    values.push_back(String(BMX280::getPressure()));
-    names.push_back("altitude");    values.push_back(String(BMX280::getAltitude()));
-    // names.push_back("humidity");    values.push_back(String(BMX280::getHumidity())); // Example if humidity is added
+    if (bmxConnected) {
+        payload_doc["bmx_temp_c"] = BMX280::getTemperature();
+        payload_doc["bmx_pressure_hpa"] = BMX280::getPressure();
+        payload_doc["bmx_altitude_m"] = BMX280::getAltitude();
+        // USE_BMPvsBME is handled by BMX280::getHumidity() which returns 0.0 for BMP
+        payload_doc["bmx_humidity_pct"] = BMX280::getHumidity();
+    }
+    // Add other sensor data here if any
     /*names.push_back("co2");         values.push_back(String(Weather::co2));
     names.push_back("smoke");       values.push_back(String(Weather::smoke));
     names.push_back("lpg");         values.push_back(String(Weather::lpg));
@@ -92,11 +104,17 @@ void sendData()
     names.push_back("visible");     values.push_back(String(Lux::visible_));
     names.push_back("lux");         values.push_back(String(Lux::lux_));*/
 
-    #ifdef VERBOSE
-        Mqtt::sendJson( names, values, "esp32/data/" + Esp32::DEVICE_NAME, true);   
-    #else
-        Mqtt::sendJson( names, values, "esp32/data/" + Esp32::DEVICE_NAME, false);               
-    #endif
+    JsonObject payload_obj = payload_doc.as<JsonObject>();
+
+    Mqtt::publishStandardMessage(
+        "esp32/data/" + Esp32::DEVICE_NAME,  // topic
+        "sensor_data",                       // message_type
+        payload_obj,                         // payload
+        "info",                              // status
+        "",                                  // command_id
+        "sensor_readings",                   // payload_type
+        printToConsole
+    );
 }
 
 void printOled()

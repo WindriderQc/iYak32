@@ -95,6 +95,69 @@ The web interface interacts with the ESP32 through the following HTTP API endpoi
     mqtt.txt  file must be in the data folder with a simple line:
 user:password
 
+    ### Standard MQTT Message Format
+
+    For many data-rich outgoing messages (such as sensor data updates and heartbeats), the ESP32 device publishes data to MQTT topics using a standardized JSON structure. This provides consistency for client applications consuming these messages.
+
+    **Key Fields in the Standard JSON Wrapper:**
+
+    *   `timestamp` (String, Required): ISO 8601 formatted UTC timestamp (e.g., `YYYY-MM-DDTHH:MM:SS.sssZ`). Indicates when the message was generated.
+    *   `sender_id` (String, Required): The unique identifier of the ESP32 device (e.g., "ESP_XXXXXX" from `Esp32::DEVICE_NAME`).
+    *   `message_type` (String, Required): Defines the general category of the message. Common types include:
+        *   `"sensor_data"`: For regular transmissions of sensor readings and device status.
+        *   `"heartbeat"`: For keep-alive messages indicating the device is online.
+        *   `"event"`: For discrete events (e.g., button press, specific trigger). (Future use)
+        *   `"log"`: For debug or operational log messages. (Future use)
+        *   `"command_response"`: For acknowledging or replying to a received command. (Future use)
+    *   `status` (String, Optional): Provides additional context, especially for responses or logs. Values can include `"info"`, `"success"`, `"warning"`, `"error"`. Often defaults to `"info"` for data packets.
+    *   `command_id` (String, Optional): Used to correlate a message (typically a response) with a specific command that was received.
+    *   `payload_type` (String, Optional but Recommended for complex payloads): A string that specifically describes the content/schema of the `payload` object, helping clients interpret it (e.g., `"sensor_readings_v1"`, `"system_info"`).
+    *   `payload` (JSON Object, Required): Contains the actual data specific to the `message_type`. The structure of this object can vary.
+
+    **Example: `message_type: "sensor_data"`**
+
+    Topic: `esp32/data/<DEVICE_NAME>`
+    Payload Wrapper Example:
+    ```json
+    {
+      "timestamp": "2023-12-05T12:30:00.123Z",
+      "sender_id": "ESP_ABCDEF",
+      "message_type": "sensor_data",
+      "status": "info",
+      "payload_type": "sensor_readings_v1",
+      "payload": {
+        "cpu_temp_c": 35.5,
+        "wifi_rssi": -60,
+        "battery_v": 3.85,
+        "bmx_temp_c": 22.1,
+        "bmx_pressure_hpa": 1012.5,
+        "bmx_altitude_m": 123.0,
+        "bmx_humidity_pct": 45.2
+      }
+    }
+    ```
+
+    **Example: `message_type: "heartbeat"`**
+
+    Topic: `esp32/alive/<DEVICE_NAME>`
+    Payload Wrapper Example:
+    ```json
+    {
+      "timestamp": "2023-12-05T12:31:00.456Z",
+      "sender_id": "ESP_ABCDEF",
+      "message_type": "heartbeat",
+      "status": "info",
+      "payload_type": "simple_status",
+      "payload": {
+        "status": "online"
+      }
+    }
+    ```
+    (Note: for heartbeat, the payload could also be an empty object `{}` if `payload_type` is omitted or indicates no specific data.)
+
+
+    **Note on Simpler Messages:** Some specific system messages (like initial device registration on `esp32/register` or config requests on `esp32/config`) may use simpler string payloads for compatibility with specific backend expectations and are not currently wrapped in this full JSON structure.
+
 
 
 Upcoming intentions:
