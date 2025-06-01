@@ -80,6 +80,24 @@ namespace Esp32 {
        }
     }
 
+    bool togglePin(int gpio) {
+        for (const IO_Pin_Detail& pin_detail : Esp32::configured_pins) {
+            if (pin_detail.gpio == gpio) {
+                if (pin_detail.type_str == "DIGITAL" && pin_detail.mode_str == "OUTPUT") {
+                    bool current_state = digitalRead(gpio);
+                    digitalWrite(gpio, !current_state);
+                    Serial.printf("Esp32: Toggled GPIO %d to %s\n", gpio, !current_state ? "HIGH" : "LOW");
+                    return true;
+                } else {
+                    Serial.printf("Esp32 Error: GPIO %d is not configured as DIGITAL OUTPUT. Cannot toggle.\n", gpio);
+                    return false;
+                }
+            }
+        }
+        Serial.printf("Esp32 Error: GPIO %d not found in configured_pins. Cannot toggle.\n", gpio);
+        return false;
+    }
+
     void reboot() {
         Serial.println(F("!!!  Rebooting device..."));
         delay(1500);
