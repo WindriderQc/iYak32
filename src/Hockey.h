@@ -361,7 +361,7 @@ namespace Hockey
         unsigned long lastLoop;
         int periodLength = 60000;
         int time = 60000;
-        const int GOAL_DELAY = 500; // Changed from 100 to 500
+        const int GOAL_DELAY = 3200; 
         bool bSwitch = false;
     
         String scoreString = "00:00";
