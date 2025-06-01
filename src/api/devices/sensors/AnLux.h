@@ -34,9 +34,22 @@ namespace Sensor {
             
 
             if(puckDetect && puckDropped) {
-                 msg = message("Goal: " + String(value));   
-                 puckDropped = false;
-                 puckDetect = false;
+                // Cooldown check
+                if (millis() - last_goal_report_time_ < GOAL_COOLDOWN_MS_) {
+                    msg = ""; // Do not generate a goal message during cooldown
+                    // Reset detection flags to prepare for a new event after cooldown
+                    puckDropped = false;
+                    puckDetect = false;
+                    // lastValue is not updated here to allow re-triggering if puck still present after cooldown
+                    return msg; // Exit, effectively skipping goal reporting during cooldown
+                }
+
+                // If not in cooldown, proceed to report goal
+                msg = message("Goal: " + String(value));
+                last_goal_report_time_ = millis(); // Update time of this reported goal
+
+                puckDropped = false;
+                puckDetect = false;
             }
 
 
@@ -51,6 +64,7 @@ namespace Sensor {
         void warmup()      {
              int value = analogRead(pin_id());
              lastValue = value;
+             last_goal_report_time_ = 0; // Initialize cooldown timer during warmup/reset
         }
 
     private:      
@@ -58,6 +72,8 @@ namespace Sensor {
         int fluctDetection = 1000;
         bool puckDropped = false;
         bool puckDetect = false;
+        unsigned long last_goal_report_time_ = 0;
+        static const unsigned int GOAL_COOLDOWN_MS_ = 2000; // Cooldown period of 2 seconds
     };
 }
 
