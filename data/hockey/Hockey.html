@@ -152,7 +152,10 @@
       const delta = document.getElementById(`${side}Delta`).value;
       fetch(`setDelta?side=${side}&value=${delta}`, { method: 'POST' })
         .then(response => response.text())
-        .then(data => console.log(data))
+        .then(data => {
+            console.log(data);
+            updateScoreboard(); // Refresh scoreboard after setting delta
+        })
         .catch(error => console.error('Error:', error));
     }
 
@@ -201,6 +204,13 @@
                 
                 console.log(`Game Status: ${gameStatus}`);             
                 document.getElementById('gameStatus').innerText = `Game Status: ${gameStatus}`;
+
+                // Update delta values
+                document.getElementById('leftValue').innerText = data.leftDeltaValue !== undefined ? data.leftDeltaValue : 'N/A';
+                document.getElementById('rightValue').innerText = data.rightDeltaValue !== undefined ? data.rightDeltaValue : 'N/A';
+                // Also update the input fields themselves
+                document.getElementById('leftDelta').value = data.leftDeltaValue !== undefined ? data.leftDeltaValue : '';
+                document.getElementById('rightDelta').value = data.rightDeltaValue !== undefined ? data.rightDeltaValue : '';
             })
             .catch(error => {
                 console.error('Error fetching scoreboard:', error);

@@ -394,7 +394,9 @@ namespace www
             json += "\"time\":\""      + String(hockey.gettimeString()) + "\",";
             json += "\"period\":"  + String(hockey.getPeriod()) + ",";
             json += "\"periodLength\":"  + String(hockey.getPeriodLength()) + ",";
-            json += "\"gameStatus\":"  + String(hockey.getCurrentGameState());
+            json += "\"gameStatus\":"  + String(hockey.getCurrentGameState()) + ","; // Add comma
+            json += "\"leftDeltaValue\":" + String(hockey.getLeftDelta()) + ",";
+            json += "\"rightDeltaValue\":" + String(hockey.getRightDelta());
             json += "}";
 
             request->send(200, "application/json", json);
