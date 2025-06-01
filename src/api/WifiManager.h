@@ -29,8 +29,9 @@ class WifiManager {
         void setSSID(String ssid);
         String getPASS();
         void setPASS(String pass);
-        int getWiFiStrength(int points = 10); 
+        int getWiFiStrength(); // Removed points parameter
         void relaunchOTA();
+        void setRssiMaxSamples(byte samples); // Setter for max_rssi_samples_
 
     private:
         void setupOTA();
@@ -50,4 +51,10 @@ class WifiManager {
         IPAddress ipAddress_;
         String ssid_; // Stays as is (already has underscore, though not strictly private style, but per instructions)
         String password_; // Renamed from pass_
+
+        // For non-blocking RSSI averaging
+        std::vector<long> rssi_samples_;
+        byte max_rssi_samples_ = 10;
+        unsigned long last_rssi_sample_time_ = 0;
+        long current_avg_rssi_ = 0;
 };
