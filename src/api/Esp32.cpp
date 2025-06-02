@@ -391,32 +391,42 @@ namespace Esp32 {
     }
 
     // I/O Configuration Core Logic Implementations
-    void applyIOConfiguration(const JsonDocument& doc) {
-    Serial.println(F("Esp32: Entered applyIOConfiguration. Received doc content:"));
-    String receivedDocStr;
-    serializeJsonPretty(doc, receivedDocStr); // Or serializeJson(doc, receivedDocStr);
-    Serial.println(receivedDocStr);
+    void Esp32::applyIOConfiguration(const String& jsonConfigString) {
+        Esp32::configured_pins.clear(); // Ensure this is at the very top
 
-    Serial.print(F("Esp32: applyIOConfiguration - !doc[\"io_pins\"].isNull(): "));
-    Serial.println(!doc["io_pins"].isNull() ? "true" : "false");
-    if(!doc["io_pins"].isNull()){ // Corrected the key string here
-        Serial.print(F("Esp32: applyIOConfiguration - doc[\"io_pins\"].is<JsonArray>(): "));
-        Serial.println(doc["io_pins"].is<JsonArray>() ? "true" : "false");
-    } else {
-        Serial.println(F("Esp32: applyIOConfiguration - doc[\"io_pins\"] is null."));
-    }
-        Esp32::configured_pins.clear();
-        // JsonArray io_pins_array = doc["io_pins"].as<JsonArray>(); // V6 Commented out or removed
-        // JsonVariantConst io_pins_variant = doc["io_pins"]; // V7 style for const JsonDocument& - Commented out or removed
+        JsonDocument parsedDocInApply;
+        DeserializationError error = deserializeJson(parsedDocInApply, jsonConfigString);
 
-        // New direct check:
-        if (doc["io_pins"].isNull() || !doc["io_pins"].is<JsonArray>()) {
-            Serial.println(F("Esp32 Error: 'io_pins' is missing, null, or not an array in I/O config (checked directly)."));
-            // Esp32::configured_pins.clear(); // Already cleared above, and Esp32::configured_pins.clear() is at the start of the function
+        Serial.println(F("Esp32: applyIOConfiguration - Attempting to parse received jsonConfigString."));
+        if (error) {
+            Serial.print(F("Esp32: applyIOConfiguration - Failed to parse jsonConfigString. Error: "));
+            Serial.println(error.c_str());
+            return; // Cannot proceed if parsing fails here.
+        }
+        Serial.println(F("Esp32: applyIOConfiguration - Successfully parsed jsonConfigString."));
+
+        // This was the old debug block, now it refers to parsedDocInApply
+        Serial.println(F("Esp32: applyIOConfiguration - Content of locally parsed 'parsedDocInApply':"));
+        String receivedDocStr; // Re-declare or ensure scope is fine
+        serializeJsonPretty(parsedDocInApply, receivedDocStr);
+        Serial.println(receivedDocStr);
+
+        Serial.print(F("Esp32: applyIOConfiguration - !parsedDocInApply[\"io_pins\"].isNull(): "));
+        Serial.println(!parsedDocInApply["io_pins"].isNull() ? "true" : "false");
+        if(!parsedDocInApply["io_pins"].isNull()){
+            Serial.print(F("Esp32: applyIOConfiguration - parsedDocInApply[\"io_pins\"].is<JsonArray>(): "));
+            Serial.println(parsedDocInApply["io_pins"].is<JsonArray>() ? "true" : "false");
+        } else {
+            Serial.println(F("Esp32: applyIOConfiguration - parsedDocInApply[\"io_pins\"] is null."));
+        }
+
+        // New direct check using parsedDocInApply:
+        if (parsedDocInApply["io_pins"].isNull() || !parsedDocInApply["io_pins"].is<JsonArray>()) {
+            Serial.println(F("Esp32 Error: 'io_pins' is missing, null, or not an array in I/O config (checked from locally parsed doc)."));
             return;
         }
         // If the above passes, then this should also work:
-        JsonArrayConst io_pins_array = doc["io_pins"].as<JsonArrayConst>();
+        JsonArrayConst io_pins_array = parsedDocInApply["io_pins"].as<JsonArrayConst>();
 
         Serial.printf("Esp32: Applying I/O configuration for %d pin(s).\n", io_pins_array.size());
 
@@ -478,13 +488,14 @@ namespace Esp32 {
         }
     }
 
-    bool saveAndApplyIOConfiguration(const JsonDocument& doc) {
+    bool saveAndApplyIOConfiguration(const JsonDocument& doc) { // doc here is the original doc from POST or file
         String json_string;
-        serializeJson(doc, json_string);
+        serializeJson(doc, json_string); // Serialize the original doc to save
 
         if (Storage::writeFile(Esp32::CONFIG_IO_FILENAME, json_string)) {
             Serial.println(F("Esp32: I/O configuration saved to file."));
-            Esp32::applyIOConfiguration(doc);
+            // Now call applyIOConfiguration with the string representation of the original doc
+            Esp32::applyIOConfiguration(json_string);
             return true;
         } else {
             Serial.println(F("Esp32: Error saving I/O configuration to file."));
@@ -526,8 +537,15 @@ namespace Esp32 {
             Serial.println(serializedDoc);
         }
 
-                if (!error) {
-                    Esp32::applyIOConfiguration(doc);
+                if (!error) { // If no error from deserializeJson
+            Serial.println(F("Esp32: deserializeJson successful. Preparing to call applyIOConfiguration.")); // Added for clarity
+
+            String jsonStringForApply;
+            serializeJson(doc, jsonStringForApply); // Serialize the good doc to a new string
+            Serial.println(F("Esp32: loadAndApplyIOConfig - Serialized 'doc' to jsonStringForApply:"));
+            Serial.println(jsonStringForApply);
+
+            Esp32::applyIOConfiguration(jsonStringForApply); // Pass the string
                 } else {
                     Serial.print(F("Esp32: Failed to parse "));
                     Serial.print(Esp32::CONFIG_IO_FILENAME);
