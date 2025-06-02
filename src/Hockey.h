@@ -59,9 +59,16 @@ namespace Hockey
     public:
         Hockey() : previous_state_(HOCKEY_state::eGAMEOVER),
                    current_game_state_(HOCKEY_state::eINTRO),
-                   tictac_(0),
-                   lastLoop(0),
-                   pause_button_last_state_(HIGH) {} // Initialize pause_button_last_state_
+                   tictac_(0), // tictac_ is the general purpose tick counter for states
+                   lastLoop(0), // Used for calculating delta in main loop, not directly for these state delays
+                   pause_button_last_state_(HIGH),
+                   introDurationTicks_(3000),         // Default: 3000 ticks
+                   goalCelebrationTicks_(1920),       // Default: 1920 ticks (matches old GOAL_DELAY*0.6)
+                   puckDropTicks_(3200),              // Default: 3200 ticks (matches old GOAL_DELAY)
+                   periodIntermissionTicks_(6400)     // Default: 6400 ticks (matches old GOAL_DELAY*2)
+    {
+        // Constructor body can be empty if all init is done in initializer list or at declaration
+    }
 
         ~Hockey() {}
 
@@ -175,7 +182,7 @@ namespace Hockey
                          
                         updateSevenSegmentDisplay("COOL");
                         tictac_++; // Use tictac_
-                        if(tictac_ >= GOAL_DELAY) { tictac_ = 0;   current_game_state_ = HOCKEY_state::eDROP_PUCK; } // Use tictac_ and current_game_state_
+                        if(tictac_ >= introDurationTicks_) { tictac_ = 0;   current_game_state_ = HOCKEY_state::eDROP_PUCK; } // Use tictac_ and current_game_state_
                         break;
 
                 case HOCKEY_state::eON:
@@ -213,13 +220,13 @@ namespace Hockey
                         
                         updateSevenSegmentDisplay("GOAL");
                         tictac_++; // Use tictac_
-                        if(tictac_ >= GOAL_DELAY*0.6) { tictac_ = 0; current_game_state_ = HOCKEY_state::eDROP_PUCK; } // Use tictac_ and current_game_state_
+                        if(tictac_ >= goalCelebrationTicks_) { tictac_ = 0; current_game_state_ = HOCKEY_state::eDROP_PUCK; } // Use tictac_ and current_game_state_
                         break;
 
                 case HOCKEY_state::eGAMEOVER:
 
                         tictac_++; // Use tictac_
-                        if(tictac_ >= GOAL_DELAY) {
+                        if(tictac_ >= puckDropTicks_) {
                             tictac_ = 0;
                             bSwitch = !bSwitch;
                         }
@@ -231,13 +238,13 @@ namespace Hockey
                      
                         if(period < 4) {   
                             tictac_++; // Use tictac_
-                            if(tictac_ >= GOAL_DELAY*2) {
+                            if(tictac_ >= periodIntermissionTicks_) {
                                 tictac_ = 0;
                                 current_game_state_ = HOCKEY_state::eDROP_PUCK; // Use current_game_state_
                                 time = periodLength;
                                 Serial.println(F("PERIOD FINISH - Next puck drop..."));
                             }
-                            if(tictac_ >= GOAL_DELAY) updateSevenSegmentDisplay(scoreString.c_str());
+                            if(tictac_ >= periodIntermissionTicks_ / 2) updateSevenSegmentDisplay(scoreString.c_str());
                             else        updateSevenSegmentDisplay("COOL");
                         } else {
                                 // Game finished, save the score with date/time
@@ -269,7 +276,7 @@ namespace Hockey
                         updateSevenSegmentDisplay(" GO ");
                         //asciiDisplay.displayString(scoreString.c_str());
                         tictac_++; // Use tictac_
-                        if(tictac_ >= GOAL_DELAY) {
+                        if(tictac_ >= puckDropTicks_) {
                             tictac_ = 0;
                             current_game_state_ = HOCKEY_state::eON; // Use current_game_state_
                             Serial.println(F("GO!"));
@@ -278,7 +285,7 @@ namespace Hockey
 
                 case HOCKEY_state::ePAUSE:
                         tictac_++; // Use tictac_
-                        if(tictac_ >= GOAL_DELAY) {
+                        if(tictac_ >= puckDropTicks_) {
                             tictac_ = 0;
                             bSwitch = !bSwitch;
                         }
@@ -357,6 +364,18 @@ namespace Hockey
 
         int getLeftDelta() const { return senseLeft.getFluctDetection(); }
         int getRightDelta() const { return senseRight.getFluctDetection(); }
+
+    // Setter methods for game event durations
+    void setIntroDurationTicks(unsigned int ticks) { introDurationTicks_ = ticks; }
+    void setGoalCelebrationTicks(unsigned int ticks) { goalCelebrationTicks_ = ticks; }
+    void setPuckDropTicks(unsigned int ticks) { puckDropTicks_ = ticks; }
+    void setPeriodIntermissionTicks(unsigned int ticks) { periodIntermissionTicks_ = ticks; }
+
+    // Getter methods for game event durations
+    unsigned int getIntroDurationTicks() const { return introDurationTicks_; }
+    unsigned int getGoalCelebrationTicks() const { return goalCelebrationTicks_; }
+    unsigned int getPuckDropTicks() const { return puckDropTicks_; }
+    unsigned int getPeriodIntermissionTicks() const { return periodIntermissionTicks_; }
         
     private:
         int scoreLeft = 0;
@@ -365,7 +384,6 @@ namespace Hockey
         unsigned long lastLoop;
         int periodLength = 60000;
         int time = 60000;
-        const int GOAL_DELAY = 3200; 
         bool bSwitch = false;
     
         String scoreString = "00:00";
@@ -377,6 +395,12 @@ namespace Hockey
         HOCKEY_state current_game_state_;
         unsigned int tictac_;
         bool pause_button_last_state_; // Added
+
+    // New duration member variables
+    unsigned int introDurationTicks_;
+    unsigned int goalCelebrationTicks_;
+    unsigned int puckDropTicks_;
+    unsigned int periodIntermissionTicks_;
 
     void updateSevenSegmentDisplay(const char* str_to_display) {
         if (last_displayed_string_on_7segment_ != str_to_display) {

@@ -69,6 +69,42 @@
     <p>Current Value: <span id="periodLenghtValue">0</span></p>
   </div>
 
+    <!-- Intro Duration -->
+    <div class="form-container">
+      <h3>Intro Duration</h3>
+      <label for="introDurationTicks">Intro Duration (ticks):</label>
+      <input type="number" id="introDurationTicks" placeholder="Enter ticks value">
+      <button class="button" onclick="setIntroDurationGui()">Set</button>
+      <p>Current Value: <span id="currentIntroDurationTicks">0</span> ticks</p>
+    </div>
+
+    <!-- Goal Celebration Duration -->
+    <div class="form-container">
+      <h3>Goal Celebration Duration</h3>
+      <label for="goalCelebrationTicks">Goal Celebration (ticks):</label>
+      <input type="number" id="goalCelebrationTicks" placeholder="Enter ticks value">
+      <button class="button" onclick="setGoalCelebrationDurationGui()">Set</button>
+      <p>Current Value: <span id="currentGoalCelebrationTicks">0</span> ticks</p>
+    </div>
+
+    <!-- Puck Drop Duration -->
+    <div class="form-container">
+      <h3>Puck Drop Duration</h3>
+      <label for="puckDropTicks">Puck Drop (ticks):</label>
+      <input type="number" id="puckDropTicks" placeholder="Enter ticks value">
+      <button class="button" onclick="setPuckDropDurationGui()">Set</button>
+      <p>Current Value: <span id="currentPuckDropTicks">0</span> ticks</p>
+    </div>
+
+    <!-- Period Intermission Duration -->
+    <div class="form-container">
+      <h3>Period Intermission Duration</h3>
+      <label for="periodIntermissionTicks">Period Intermission (ticks):</label>
+      <input type="number" id="periodIntermissionTicks" placeholder="Enter ticks value">
+      <button class="button" onclick="setPeriodIntermissionDurationGui()">Set</button>
+      <p>Current Value: <span id="currentPeriodIntermissionTicks">0</span> ticks</p>
+    </div>
+
   <h5>IO Status</h5>
   <p>Analog Pin 34: <span id='pin34'></span></p>
   <p>Analog Pin 39: <span id='pin39'></span></p>
@@ -139,6 +175,49 @@
         .catch(error => console.error('Error:', error));
     }
 
+    function setIntroDurationGui() {
+      const ticks = document.getElementById('introDurationTicks').value;
+      fetch(`/hockey/setIntroDuration?ticks=${ticks}`, { method: 'POST' })
+        .then(response => response.text())
+        .then(data => {
+          console.log(data);
+          updateScoreboard(); // Refresh scoreboard to show new value
+        })
+        .catch(error => console.error('Error setting intro duration:', error));
+    }
+
+    function setGoalCelebrationDurationGui() {
+      const ticks = document.getElementById('goalCelebrationTicks').value;
+      fetch(`/hockey/setGoalCelebrationDuration?ticks=${ticks}`, { method: 'POST' })
+        .then(response => response.text())
+        .then(data => {
+          console.log(data);
+          updateScoreboard();
+        })
+        .catch(error => console.error('Error setting goal celebration duration:', error));
+    }
+
+    function setPuckDropDurationGui() {
+      const ticks = document.getElementById('puckDropTicks').value;
+      fetch(`/hockey/setPuckDropDuration?ticks=${ticks}`, { method: 'POST' })
+        .then(response => response.text())
+        .then(data => {
+          console.log(data);
+          updateScoreboard();
+        })
+        .catch(error => console.error('Error setting puck drop duration:', error));
+    }
+
+    function setPeriodIntermissionDurationGui() {
+      const ticks = document.getElementById('periodIntermissionTicks').value;
+      fetch(`/hockey/setPeriodIntermissionDuration?ticks=${ticks}`, { method: 'POST' })
+        .then(response => response.text())
+        .then(data => {
+          console.log(data);
+          updateScoreboard();
+        })
+        .catch(error => console.error('Error setting period intermission duration:', error));
+    }
     function setPeriodLength() {
       const minutes = document.getElementById(`periodLength`).value;
       fetch(`setPeriodLength?minutes=${minutes}`, { method: 'POST' })
@@ -211,6 +290,19 @@
                 // Also update the input fields themselves
                 document.getElementById('leftDelta').value = data.leftDeltaValue !== undefined ? data.leftDeltaValue : '';
                 document.getElementById('rightDelta').value = data.rightDeltaValue !== undefined ? data.rightDeltaValue : '';
+
+                // Add updates for new duration parameters
+                document.getElementById('currentIntroDurationTicks').innerText = data.introDurationTicks ?? "0";
+                document.getElementById('introDurationTicks').value = data.introDurationTicks ?? "";
+
+                document.getElementById('currentGoalCelebrationTicks').innerText = data.goalCelebrationTicks ?? "0";
+                document.getElementById('goalCelebrationTicks').value = data.goalCelebrationTicks ?? "";
+
+                document.getElementById('currentPuckDropTicks').innerText = data.puckDropTicks ?? "0";
+                document.getElementById('puckDropTicks').value = data.puckDropTicks ?? "";
+
+                document.getElementById('currentPeriodIntermissionTicks').innerText = data.periodIntermissionTicks ?? "0";
+                document.getElementById('periodIntermissionTicks').value = data.periodIntermissionTicks ?? "";
             })
             .catch(error => {
                 console.error('Error fetching scoreboard:', error);
