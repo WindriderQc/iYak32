@@ -205,6 +205,7 @@ namespace Hockey
                         if(time <= 0) {
                             time = 0;
                             period++;
+                            BuzzerModule::setMode(BuzzerModule::ePERIOD_BELL); // Play end-of-period bell
                             current_game_state_ = HOCKEY_state::ePERIOD_BELL; // Use current_game_state_
                         }
                         
@@ -314,7 +315,9 @@ namespace Hockey
             elapsedTimeInState_ms_ = 0;
             time = periodLength;
             Serial.println(F("Game RESET."));
-            current_game_state_ = HOCKEY_state::eINTRO;
+
+            BuzzerModule::setMode(BuzzerModule::eINTRO); // Play intro sound
+            current_game_state_ = HOCKEY_state::eINTRO; // Use current_game_state_
         }
 
         void pause() 
