@@ -2,7 +2,7 @@
 
 #include "ISensor.h"
 
-#define DEBOUNCETIME 10
+#define DEBOUNCETIME 50
 
 
 namespace Sensor
