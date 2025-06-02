@@ -68,16 +68,16 @@ public:
     }
 
     void loop() {
-        Serial.println("BasicModeImpl::loop() executing");
+        // Serial.println("BasicModeImpl::loop() executing");
 
         String btn1_msg = button1_.loop();
-        Serial.print("btn1_msg: '"); Serial.print(btn1_msg); Serial.println("'");
+        // Serial.print("btn1_msg: '"); Serial.print(btn1_msg); Serial.println("'");
 
         String btn2_msg = button2_.loop();
-        Serial.print("btn2_msg: '"); Serial.print(btn2_msg); Serial.println("'");
+        // Serial.print("btn2_msg: '"); Serial.print(btn2_msg); Serial.println("'");
 
         String btn3_msg = button3_.loop();
-        Serial.print("btn3_msg: '"); Serial.print(btn3_msg); Serial.println("'");
+        // Serial.print("btn3_msg: '"); Serial.print(btn3_msg); Serial.println("'");
 
         if (!btn1_msg.isEmpty()) {
             Serial.println("BasicMode: Button 1 event detected by BasicModeImpl");
