@@ -113,6 +113,7 @@
   <canvas id="ioChart" height="100"></canvas>
 
   <script>
+    let isInitialScoreboardLoad = true;
     const MAX_POINTS = 50;
     const ioChartCtx = document.getElementById('ioChart').getContext('2d');
 
@@ -287,22 +288,30 @@
                 // Update delta values
                 document.getElementById('leftValue').innerText = data.leftDeltaValue !== undefined ? data.leftDeltaValue : 'N/A';
                 document.getElementById('rightValue').innerText = data.rightDeltaValue !== undefined ? data.rightDeltaValue : 'N/A';
-                // Also update the input fields themselves
-                document.getElementById('leftDelta').value = data.leftDeltaValue !== undefined ? data.leftDeltaValue : '';
-                document.getElementById('rightDelta').value = data.rightDeltaValue !== undefined ? data.rightDeltaValue : '';
 
-                // Add updates for new duration parameters
+                // Update "Current Value" spans (always)
                 document.getElementById('currentIntroDurationTicks').innerText = data.introDurationTicks ?? "0";
-                document.getElementById('introDurationTicks').value = data.introDurationTicks ?? "";
-
                 document.getElementById('currentGoalCelebrationTicks').innerText = data.goalCelebrationTicks ?? "0";
-                document.getElementById('goalCelebrationTicks').value = data.goalCelebrationTicks ?? "";
-
                 document.getElementById('currentPuckDropTicks').innerText = data.puckDropTicks ?? "0";
-                document.getElementById('puckDropTicks').value = data.puckDropTicks ?? "";
-
                 document.getElementById('currentPeriodIntermissionTicks').innerText = data.periodIntermissionTicks ?? "0";
-                document.getElementById('periodIntermissionTicks').value = data.periodIntermissionTicks ?? "";
+
+                // Update period length display span (always) - This was already present:
+                // document.getElementById('periodLenghtValue').innerText = data.periodLength ?? "0";
+
+
+                if (isInitialScoreboardLoad) {
+                    // Populate input fields only on the first run
+                    document.getElementById('periodLength').value = data.periodLength ?? "";
+                    document.getElementById('leftDelta').value = data.leftDeltaValue !== undefined ? data.leftDeltaValue : '';
+                    document.getElementById('rightDelta').value = data.rightDeltaValue !== undefined ? data.rightDeltaValue : '';
+
+                    document.getElementById('introDurationTicks').value = data.introDurationTicks ?? "";
+                    document.getElementById('goalCelebrationTicks').value = data.goalCelebrationTicks ?? "";
+                    document.getElementById('puckDropTicks').value = data.puckDropTicks ?? "";
+                    document.getElementById('periodIntermissionTicks').value = data.periodIntermissionTicks ?? "";
+
+                    isInitialScoreboardLoad = false; // Set flag to false after first population
+                }
             })
             .catch(error => {
                 console.error('Error fetching scoreboard:', error);
