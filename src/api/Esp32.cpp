@@ -463,7 +463,7 @@ namespace Esp32 {
             Serial.printf("Esp32: Loading I/O config from %s\n", Esp32::CONFIG_IO_FILENAME.c_str());
             String file_content = Storage::readFile(Esp32::CONFIG_IO_FILENAME);
             if (file_content.length() > 0) {
-                StaticJsonDocument<2048> doc;
+                JsonDocument doc;
                 DeserializationError error = deserializeJson(doc, file_content);
 
         Serial.print(F("Esp32: deserializeJson error code: "));
@@ -473,11 +473,14 @@ namespace Esp32 {
             Serial.println(F("Esp32: Parsed JsonDocument is null!"));
         } else {
             Serial.println(F("Esp32: Parsed JsonDocument is NOT null."));
-            Serial.print(F("Esp32: doc.containsKey(\"io_pins\"): "));
-            Serial.println(doc.containsKey("io_pins") ? "true" : "false");
-            if (doc.containsKey("io_pins")) {
+            Serial.print(F("Esp32: !doc[\"io_pins\"].isNull(): "));
+            Serial.println(!doc["io_pins"].isNull() ? "true" : "false");
+            // The is<JsonArray>() check can remain as is, or be combined:
+            if (!doc["io_pins"].isNull()) { // First check if the key exists and is not null
                 Serial.print(F("Esp32: doc[\"io_pins\"].is<JsonArray>(): "));
                 Serial.println(doc["io_pins"].is<JsonArray>() ? "true" : "false");
+            } else {
+                Serial.println(F("Esp32: doc[\"io_pins\"] is null, cannot check if it's an array."));
             }
             String serializedDoc;
             serializeJsonPretty(doc, serializedDoc); // Using Pretty for readability
