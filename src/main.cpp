@@ -1,6 +1,7 @@
 #define VERBOSE
-#define HOCKEY
+//#define HOCKEY
 //#define BOAT
+#define BASIC_MODE
 
 #include <Arduino.h>
 #include "SystemState.h" // Added for SYS_state enum
@@ -19,6 +20,7 @@
     #include "Hockey.h"
 #endif
 
+
 #include <TM1637Display.h> // Explicitly include for TM1637Display type
 
 // Define local constants in main.cpp to hold values from Hockey namespace
@@ -35,6 +37,11 @@ SevenSegmentAscii Hockey::asciiDisplay(local_display_ref, 5); // Use the local r
 Sensor::AnLux Hockey::senseLeft;
 Sensor::AnLux Hockey::senseRight;
 Hockey::Hockey hockey; // Definition for the global Hockey class instance
+
+#ifdef BASIC_MODE
+    #include "BasicMode.h"
+#endif
+
 
 const char* ver = "v1:7 ";
 
@@ -215,6 +222,10 @@ void loop()
             hockey.setup();
 #endif
 
+#ifdef BASIC_MODE
+        BasicMode::basicMode.setup();
+#endif
+
             Serial.println("SENSORS & ALARMLib CONFIG done");
             set_current_system_state(SYS_state::HEATUP); // Reverted to original setter
             break;
@@ -253,6 +264,10 @@ void loop()
 #ifdef HOCKEY  
             hockey.loop();
 #endif     
+
+#ifdef BASIC_MODE
+        BasicMode::basicMode.loop();
+#endif
             
 #ifdef BOAT  
             boat.loop();
