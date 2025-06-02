@@ -384,14 +384,17 @@ namespace Esp32 {
         Serial.println(F("Esp32: applyIOConfiguration - doc[\"io_pins\"] is null."));
     }
         Esp32::configured_pins.clear();
-        // JsonArray io_pins_array = doc["io_pins"].as<JsonArray>(); // V6
-        JsonVariantConst io_pins_variant = doc["io_pins"]; // V7 style for const JsonDocument&
-        if (io_pins_variant.isNull() || !io_pins_variant.is<JsonArray>()) {
-            Serial.println(F("Esp32 Error: 'io_pins' is missing, null, or not an array in I/O config."));
-            // Esp32::configured_pins.clear(); // Already cleared above
+        // JsonArray io_pins_array = doc["io_pins"].as<JsonArray>(); // V6 Commented out or removed
+        // JsonVariantConst io_pins_variant = doc["io_pins"]; // V7 style for const JsonDocument& - Commented out or removed
+
+        // New direct check:
+        if (doc["io_pins"].isNull() || !doc["io_pins"].is<JsonArray>()) {
+            Serial.println(F("Esp32 Error: 'io_pins' is missing, null, or not an array in I/O config (checked directly)."));
+            // Esp32::configured_pins.clear(); // Already cleared above, and Esp32::configured_pins.clear() is at the start of the function
             return;
         }
-        JsonArrayConst io_pins_array = io_pins_variant.as<JsonArrayConst>(); // V7 for const array
+        // If the above passes, then this should also work:
+        JsonArrayConst io_pins_array = doc["io_pins"].as<JsonArrayConst>();
 
         Serial.printf("Esp32: Applying I/O configuration for %d pin(s).\n", io_pins_array.size());
 
