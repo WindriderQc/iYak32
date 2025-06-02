@@ -9,6 +9,7 @@
 #include "api/devices/sensors/ISensor.h"
 #include "api/devices/sensors/Pushbtn.h"
 #include "api/devices/sensors/AnLux.h"
+#include <ArduinoJson.h> // Added for JsonObject
 
 // TODO  tictac methode vrmt pas bonne...   asciiDisplay.displayString("xxx");   fait vrmt étiré une loop...   ptete pas bon pour les watchdog timer :S
 namespace Hockey  
@@ -25,8 +26,8 @@ namespace Hockey
     // 14 =  buzzer pin  //  defined in esp32.h
 
     // XX:XX 7-segment display module 
-    TM1637Display display(CLK, DIO);
-    SevenSegmentAscii asciiDisplay(display, 5);  // Set the brightness level (0-7)
+    extern TM1637Display display;
+    extern SevenSegmentAscii asciiDisplay;
 
 
 
@@ -48,8 +49,8 @@ namespace Hockey
 
     // Sensors and Static ISR function for the interrupts
 
-    Sensor::AnLux senseLeft;
-    Sensor::AnLux senseRight;
+    extern Sensor::AnLux senseLeft;
+    extern Sensor::AnLux senseRight;
 
    
 
@@ -205,7 +206,6 @@ namespace Hockey
                         if(time <= 0) {
                             time = 0;
                             period++;
-                            BuzzerModule::setMode(BuzzerModule::ePERIOD_BELL); // Play end-of-period bell
                             current_game_state_ = HOCKEY_state::ePERIOD_BELL; // Use current_game_state_
                         }
                         
@@ -315,9 +315,7 @@ namespace Hockey
             elapsedTimeInState_ms_ = 0;
             time = periodLength;
             Serial.println(F("Game RESET."));
-
-            BuzzerModule::setMode(BuzzerModule::eINTRO); // Play intro sound
-            current_game_state_ = HOCKEY_state::eINTRO; // Use current_game_state_
+            current_game_state_ = HOCKEY_state::eINTRO;
         }
 
         void pause() 
@@ -379,6 +377,64 @@ namespace Hockey
     unsigned long getGoalCelebrationMs() const { return goalCelebration_ms_; }
     unsigned long getPuckDropMs() const { return puckDrop_ms_; }
     unsigned long getPeriodIntermissionMs() const { return periodIntermission_ms_; }
+
+    void applySettings(const JsonObjectConst& hockeyConfig) { // Changed to JsonObjectConst
+        Serial.println(F("Hockey: Applying settings from JSON..."));
+        if (hockeyConfig.isNull()) {
+            Serial.println(F("Hockey: hockeyConfig is null, cannot apply settings."));
+            return;
+        }
+
+        // Durations (stored in ms)
+        if (hockeyConfig["introDurationMs"].is<unsigned long>()) { // Simplified check
+            introDuration_ms_ = hockeyConfig["introDurationMs"].as<unsigned long>();
+        }
+        if (hockeyConfig["goalCelebrationMs"].is<unsigned long>()) { // Simplified check
+            goalCelebration_ms_ = hockeyConfig["goalCelebrationMs"].as<unsigned long>();
+        }
+        if (hockeyConfig["puckDropMs"].is<unsigned long>()) { // Simplified check
+            puckDrop_ms_ = hockeyConfig["puckDropMs"].as<unsigned long>();
+        }
+        if (hockeyConfig["periodIntermissionMs"].is<unsigned long>()) { // Simplified check
+            periodIntermission_ms_ = hockeyConfig["periodIntermissionMs"].as<unsigned long>();
+        }
+
+        // Period Length (stored as minutes in JSON, ms internally in Hockey class)
+        if (hockeyConfig["periodLengthMinutes"].is<int>()) { // Simplified check
+            int pl_minutes = hockeyConfig["periodLengthMinutes"].as<int>();
+            if (pl_minutes > 0) { // Basic validation
+                periodLength = pl_minutes * 60000UL;
+            }
+        }
+
+        // Fluctuation Deltas for goal sensors
+        if (hockeyConfig["leftDelta"].is<int>()) { // Simplified check
+            senseLeft.setDetection(hockeyConfig["leftDelta"].as<int>()); // Corrected method name
+        }
+        if (hockeyConfig["rightDelta"].is<int>()) { // Simplified check
+            senseRight.setDetection(hockeyConfig["rightDelta"].as<int>()); // Corrected method name
+        }
+        Serial.print(F("Hockey: Settings applied. Current period length (ms): ")); Serial.println(periodLength); // Changed print
+    }
+
+    void populateSettings(JsonObject& hockeyConfig) {
+        if (hockeyConfig.isNull()) {
+            Serial.println(F("Hockey: hockeyConfig is null, cannot populate settings."));
+            return;
+        }
+        hockeyConfig["introDurationMs"] = introDuration_ms_;
+        hockeyConfig["goalCelebrationMs"] = goalCelebration_ms_;
+        hockeyConfig["puckDropMs"] = puckDrop_ms_;
+        hockeyConfig["periodIntermissionMs"] = periodIntermission_ms_;
+
+        // Period Length (stored as minutes in JSON, ms internally)
+        hockeyConfig["periodLengthMinutes"] = periodLength / 60000UL;
+
+        // Fluctuation Deltas
+        hockeyConfig["leftDelta"] = senseLeft.getFluctDetection(); // Removed Hockey:: namespace
+        hockeyConfig["rightDelta"] = senseRight.getFluctDetection(); // Removed Hockey:: namespace
+        Serial.println(F("Hockey: Settings populated into JSON."));
+    }
         
     private:
         int scoreLeft = 0;
@@ -417,5 +473,5 @@ namespace Hockey
 
 //  because of pragma_once, this will only be delared once if include in multiple h files 
 // (should be declare extern to declare in different cpp)
-Hockey::Hockey hockey = Hockey::Hockey();  //  single global instance
+extern Hockey::Hockey hockey;  //  single global instance, now declared extern
 
