@@ -391,7 +391,7 @@ namespace Esp32 {
     }
 
     // I/O Configuration Core Logic Implementations
-    void Esp32::applyIOConfiguration(const String& jsonConfigString) {
+    void applyIOConfiguration(const String& jsonConfigString) {
         Esp32::configured_pins.clear(); // Ensure this is at the very top
 
         JsonDocument parsedDocInApply;
