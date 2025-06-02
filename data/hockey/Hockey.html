@@ -72,37 +72,37 @@
     <!-- Intro Duration -->
     <div class="form-container">
       <h3>Intro Duration</h3>
-      <label for="introDurationTicks">Intro Duration (ticks):</label>
-      <input type="number" id="introDurationTicks" placeholder="Enter ticks value">
+      <label for="introDurationSeconds">Intro Duration (seconds):</label>
+      <input type="number" id="introDurationSeconds" placeholder="Enter seconds">
       <button class="button" onclick="setIntroDurationGui()">Set</button>
-      <p>Current Value: <span id="currentIntroDurationTicks">0</span> ticks</p>
+      <p>Current Value: <span id="currentIntroDurationSeconds">0</span> seconds</p>
     </div>
 
     <!-- Goal Celebration Duration -->
     <div class="form-container">
       <h3>Goal Celebration Duration</h3>
-      <label for="goalCelebrationTicks">Goal Celebration (ticks):</label>
-      <input type="number" id="goalCelebrationTicks" placeholder="Enter ticks value">
+      <label for="goalCelebrationSeconds">Goal Celebration (seconds):</label>
+      <input type="number" id="goalCelebrationSeconds" placeholder="Enter seconds">
       <button class="button" onclick="setGoalCelebrationDurationGui()">Set</button>
-      <p>Current Value: <span id="currentGoalCelebrationTicks">0</span> ticks</p>
+      <p>Current Value: <span id="currentGoalCelebrationSeconds">0</span> seconds</p>
     </div>
 
     <!-- Puck Drop Duration -->
     <div class="form-container">
       <h3>Puck Drop Duration</h3>
-      <label for="puckDropTicks">Puck Drop (ticks):</label>
-      <input type="number" id="puckDropTicks" placeholder="Enter ticks value">
+      <label for="puckDropSeconds">Puck Drop (seconds):</label>
+      <input type="number" id="puckDropSeconds" placeholder="Enter seconds">
       <button class="button" onclick="setPuckDropDurationGui()">Set</button>
-      <p>Current Value: <span id="currentPuckDropTicks">0</span> ticks</p>
+      <p>Current Value: <span id="currentPuckDropSeconds">0</span> seconds</p>
     </div>
 
     <!-- Period Intermission Duration -->
     <div class="form-container">
       <h3>Period Intermission Duration</h3>
-      <label for="periodIntermissionTicks">Period Intermission (ticks):</label>
-      <input type="number" id="periodIntermissionTicks" placeholder="Enter ticks value">
+      <label for="periodIntermissionSeconds">Period Intermission (seconds):</label>
+      <input type="number" id="periodIntermissionSeconds" placeholder="Enter seconds">
       <button class="button" onclick="setPeriodIntermissionDurationGui()">Set</button>
-      <p>Current Value: <span id="currentPeriodIntermissionTicks">0</span> ticks</p>
+      <p>Current Value: <span id="currentPeriodIntermissionSeconds">0</span> seconds</p>
     </div>
 
   <h5>IO Status</h5>
@@ -177,8 +177,8 @@
     }
 
     function setIntroDurationGui() {
-      const ticks = document.getElementById('introDurationTicks').value;
-      fetch(`/hockey/setIntroDuration?ticks=${ticks}`, { method: 'POST' })
+      const seconds = document.getElementById('introDurationSeconds').value;
+      fetch(`/hockey/setIntroDuration?duration_s=${seconds}`, { method: 'POST' })
         .then(response => response.text())
         .then(data => {
           console.log(data);
@@ -188,8 +188,8 @@
     }
 
     function setGoalCelebrationDurationGui() {
-      const ticks = document.getElementById('goalCelebrationTicks').value;
-      fetch(`/hockey/setGoalCelebrationDuration?ticks=${ticks}`, { method: 'POST' })
+      const seconds = document.getElementById('goalCelebrationSeconds').value;
+      fetch(`/hockey/setGoalCelebrationDuration?duration_s=${seconds}`, { method: 'POST' })
         .then(response => response.text())
         .then(data => {
           console.log(data);
@@ -199,8 +199,8 @@
     }
 
     function setPuckDropDurationGui() {
-      const ticks = document.getElementById('puckDropTicks').value;
-      fetch(`/hockey/setPuckDropDuration?ticks=${ticks}`, { method: 'POST' })
+      const seconds = document.getElementById('puckDropSeconds').value;
+      fetch(`/hockey/setPuckDropDuration?duration_s=${seconds}`, { method: 'POST' })
         .then(response => response.text())
         .then(data => {
           console.log(data);
@@ -210,8 +210,8 @@
     }
 
     function setPeriodIntermissionDurationGui() {
-      const ticks = document.getElementById('periodIntermissionTicks').value;
-      fetch(`/hockey/setPeriodIntermissionDuration?ticks=${ticks}`, { method: 'POST' })
+      const seconds = document.getElementById('periodIntermissionSeconds').value;
+      fetch(`/hockey/setPeriodIntermissionDuration?duration_s=${seconds}`, { method: 'POST' })
         .then(response => response.text())
         .then(data => {
           console.log(data);
@@ -290,10 +290,10 @@
                 document.getElementById('rightValue').innerText = data.rightDeltaValue !== undefined ? data.rightDeltaValue : 'N/A';
 
                 // Update "Current Value" spans (always)
-                document.getElementById('currentIntroDurationTicks').innerText = data.introDurationTicks ?? "0";
-                document.getElementById('currentGoalCelebrationTicks').innerText = data.goalCelebrationTicks ?? "0";
-                document.getElementById('currentPuckDropTicks').innerText = data.puckDropTicks ?? "0";
-                document.getElementById('currentPeriodIntermissionTicks').innerText = data.periodIntermissionTicks ?? "0";
+                document.getElementById('currentIntroDurationSeconds').innerText = (data.introDurationSeconds ?? "0") + " seconds";
+                document.getElementById('currentGoalCelebrationSeconds').innerText = (data.goalCelebrationSeconds ?? "0") + " seconds";
+                document.getElementById('currentPuckDropSeconds').innerText = (data.puckDropSeconds ?? "0") + " seconds";
+                document.getElementById('currentPeriodIntermissionSeconds').innerText = (data.periodIntermissionSeconds ?? "0") + " seconds";
 
                 // Update period length display span (always) - This was already present:
                 // document.getElementById('periodLenghtValue').innerText = data.periodLength ?? "0";
@@ -305,10 +305,10 @@
                     document.getElementById('leftDelta').value = data.leftDeltaValue !== undefined ? data.leftDeltaValue : '';
                     document.getElementById('rightDelta').value = data.rightDeltaValue !== undefined ? data.rightDeltaValue : '';
 
-                    document.getElementById('introDurationTicks').value = data.introDurationTicks ?? "";
-                    document.getElementById('goalCelebrationTicks').value = data.goalCelebrationTicks ?? "";
-                    document.getElementById('puckDropTicks').value = data.puckDropTicks ?? "";
-                    document.getElementById('periodIntermissionTicks').value = data.periodIntermissionTicks ?? "";
+                    document.getElementById('introDurationSeconds').value = data.introDurationSeconds ?? "";
+                    document.getElementById('goalCelebrationSeconds').value = data.goalCelebrationSeconds ?? "";
+                    document.getElementById('puckDropSeconds').value = data.puckDropSeconds ?? "";
+                    document.getElementById('periodIntermissionSeconds').value = data.periodIntermissionSeconds ?? "";
 
                     isInitialScoreboardLoad = false; // Set flag to false after first population
                 }

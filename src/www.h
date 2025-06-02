@@ -377,42 +377,46 @@ namespace www
         }); 
 
         server.on("/hockey/setIntroDuration", HTTP_POST, [](AsyncWebServerRequest *request){
-            if (request->hasParam("ticks")) {
-                String ticksStr = request->getParam("ticks")->value();
-                hockey.setIntroDurationTicks(ticksStr.toInt());
-                request->send(200, "text/plain", "Intro duration set to " + ticksStr + " ticks.");
+            if (request->hasParam("duration_s")) {
+                String durationSecondsStr = request->getParam("duration_s")->value();
+                unsigned long durationMs = durationSecondsStr.toInt() * 1000UL;
+                hockey.setIntroDurationMs(durationMs);
+                request->send(200, "text/plain", "Intro duration set to " + durationSecondsStr + " seconds.");
             } else {
-                request->send(400, "text/plain", "Missing 'ticks' parameter.");
+                request->send(400, "text/plain", "Missing 'duration_s' parameter.");
             }
         });
 
         server.on("/hockey/setGoalCelebrationDuration", HTTP_POST, [](AsyncWebServerRequest *request){
-            if (request->hasParam("ticks")) {
-                String ticksStr = request->getParam("ticks")->value();
-                hockey.setGoalCelebrationTicks(ticksStr.toInt());
-                request->send(200, "text/plain", "Goal celebration duration set to " + ticksStr + " ticks.");
+            if (request->hasParam("duration_s")) {
+                String durationSecondsStr = request->getParam("duration_s")->value();
+                unsigned long durationMs = durationSecondsStr.toInt() * 1000UL;
+                hockey.setGoalCelebrationMs(durationMs);
+                request->send(200, "text/plain", "Goal celebration duration set to " + durationSecondsStr + " seconds.");
             } else {
-                request->send(400, "text/plain", "Missing 'ticks' parameter.");
+                request->send(400, "text/plain", "Missing 'duration_s' parameter.");
             }
         });
 
         server.on("/hockey/setPuckDropDuration", HTTP_POST, [](AsyncWebServerRequest *request){
-            if (request->hasParam("ticks")) {
-                String ticksStr = request->getParam("ticks")->value();
-                hockey.setPuckDropTicks(ticksStr.toInt());
-                request->send(200, "text/plain", "Puck drop duration set to " + ticksStr + " ticks.");
+            if (request->hasParam("duration_s")) {
+                String durationSecondsStr = request->getParam("duration_s")->value();
+                unsigned long durationMs = durationSecondsStr.toInt() * 1000UL;
+                hockey.setPuckDropMs(durationMs);
+                request->send(200, "text/plain", "Puck drop duration set to " + durationSecondsStr + " seconds.");
             } else {
-                request->send(400, "text/plain", "Missing 'ticks' parameter.");
+                request->send(400, "text/plain", "Missing 'duration_s' parameter.");
             }
         });
 
         server.on("/hockey/setPeriodIntermissionDuration", HTTP_POST, [](AsyncWebServerRequest *request){
-            if (request->hasParam("ticks")) {
-                String ticksStr = request->getParam("ticks")->value();
-                hockey.setPeriodIntermissionTicks(ticksStr.toInt());
-                request->send(200, "text/plain", "Period intermission duration set to " + ticksStr + " ticks.");
+            if (request->hasParam("duration_s")) {
+                String durationSecondsStr = request->getParam("duration_s")->value();
+                unsigned long durationMs = durationSecondsStr.toInt() * 1000UL;
+                hockey.setPeriodIntermissionMs(durationMs);
+                request->send(200, "text/plain", "Period intermission duration set to " + durationSecondsStr + " seconds.");
             } else {
-                request->send(400, "text/plain", "Missing 'ticks' parameter.");
+                request->send(400, "text/plain", "Missing 'duration_s' parameter.");
             }
         });
 
@@ -436,13 +440,13 @@ namespace www
             json += "\"periodLength\":"  + String(hockey.getPeriodLength()) + ","; // This is in minutes
             json += "\"gameStatus\":"  + String(hockey.getCurrentGameState()) + ",";
             json += "\"leftDeltaValue\":" + String(hockey.getLeftDelta()) + ",";
-            json += "\"rightDeltaValue\":" + String(hockey.getRightDelta()) + ","; // Added comma
+            json += "\"rightDeltaValue\":" + String(hockey.getRightDelta()) + ",";
 
-            // Add new duration fields (as ticks)
-            json += "\"introDurationTicks\":" + String(hockey.getIntroDurationTicks()) + ",";
-            json += "\"goalCelebrationTicks\":" + String(hockey.getGoalCelebrationTicks()) + ",";
-            json += "\"puckDropTicks\":" + String(hockey.getPuckDropTicks()) + ",";
-            json += "\"periodIntermissionTicks\":" + String(hockey.getPeriodIntermissionTicks()); // No comma for the last item
+            // Add new duration fields (as seconds)
+            json += "\"introDurationSeconds\":" + String(hockey.getIntroDurationMs() / 1000) + ",";
+            json += "\"goalCelebrationSeconds\":" + String(hockey.getGoalCelebrationMs() / 1000) + ",";
+            json += "\"puckDropSeconds\":" + String(hockey.getPuckDropMs() / 1000) + ",";
+            json += "\"periodIntermissionSeconds\":" + String(hockey.getPeriodIntermissionMs() / 1000);
 
             json += "}";
 
