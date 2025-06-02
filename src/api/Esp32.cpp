@@ -463,12 +463,16 @@ namespace Esp32 {
             Serial.printf("Esp32: Loading I/O config from %s\n", Esp32::CONFIG_IO_FILENAME.c_str());
             String file_content = Storage::readFile(Esp32::CONFIG_IO_FILENAME);
             if (file_content.length() > 0) {
-                JsonDocument doc; // ArduinoJson V7 uses dynamic allocation by default
+                StaticJsonDocument<2048> doc;
                 DeserializationError error = deserializeJson(doc, file_content);
                 if (!error) {
                     Esp32::applyIOConfiguration(doc);
                 } else {
-                    Serial.printf("Esp32: Failed to parse %s - %s. Applying no I/O config from file.\n", Esp32::CONFIG_IO_FILENAME.c_str(), error.c_str());
+                    Serial.print(F("Esp32: Failed to parse "));
+                    Serial.print(Esp32::CONFIG_IO_FILENAME);
+                    Serial.print(F(" - Error: "));
+                    Serial.println(error.c_str()); // Print the actual error code string
+                    Serial.println(F("Applying no I/O config from file."));
                 }
             } else {
                 Serial.printf("Esp32: Failed to read %s or file is empty. Applying no I/O config from file.\n", Esp32::CONFIG_IO_FILENAME.c_str());
