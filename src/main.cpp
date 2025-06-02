@@ -20,9 +20,28 @@
     #include "Hockey.h"
 #endif
 
+
+#include <TM1637Display.h> // Explicitly include for TM1637Display type
+
+// Define local constants in main.cpp to hold values from Hockey namespace
+const int main_CLK = Hockey::CLK;
+const int main_DIO = Hockey::DIO;
+
+// Definitions for global objects declared extern in Hockey.h
+TM1637Display Hockey::display(main_CLK, main_DIO); // Use local constants for constructor
+
+// Create a local reference to the Hockey::display object
+TM1637Display& local_display_ref = Hockey::display;
+
+SevenSegmentAscii Hockey::asciiDisplay(local_display_ref, 5); // Use the local reference
+Sensor::AnLux Hockey::senseLeft;
+Sensor::AnLux Hockey::senseRight;
+Hockey::Hockey hockey; // Definition for the global Hockey class instance
+
 #ifdef BASIC_MODE
     #include "BasicMode.h"
 #endif
+
 
 const char* ver = "v1:7 ";
 

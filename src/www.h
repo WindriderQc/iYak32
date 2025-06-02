@@ -373,14 +373,52 @@ namespace www
             Serial.println(request->arg("minutes"));
             hockey.setPeriodLength(request->arg("minutes").toInt());
             hockey.reset();
+            Esp32::saveConfig(Esp32::configJson_, false);
             request->send(200, "text/html", "ESP32 Hockey Timer Interface");
         }); 
+
+        server.on("/hockey/setDelta", HTTP_POST, [](AsyncWebServerRequest *request){
+            String side = "";
+            int value = 0;
+            bool success = false;
+
+            if (request->hasParam("side")) { // Check for URL query parameter
+                side = request->getParam("side")->value();
+            } else {
+                request->send(400, "text/plain", "Missing 'side' parameter.");
+                return;
+            }
+
+            if (request->hasParam("value")) { // Check for URL query parameter
+                value = request->getParam("value")->value().toInt();
+            } else {
+                request->send(400, "text/plain", "Missing 'value' parameter.");
+                return;
+            }
+
+            if (side == "left") {
+                Hockey::senseLeft.setDetection(value); // Corrected method name
+                success = true;
+            } else if (side == "right") {
+                Hockey::senseRight.setDetection(value); // Corrected method name
+                success = true;
+            } else {
+                request->send(400, "text/plain", "Invalid 'side' parameter. Must be 'left' or 'right'.");
+                return;
+            }
+
+            if (success) {
+                Esp32::saveConfig(Esp32::configJson_, false); // Persist the change
+                request->send(200, "text/plain", "Delta for " + side + " set to " + String(value) + " and configuration saved.");
+            }
+        });
 
         server.on("/hockey/setIntroDuration", HTTP_POST, [](AsyncWebServerRequest *request){
             if (request->hasParam("duration_s")) {
                 String durationSecondsStr = request->getParam("duration_s")->value();
                 unsigned long durationMs = durationSecondsStr.toInt() * 1000UL;
                 hockey.setIntroDurationMs(durationMs);
+                Esp32::saveConfig(Esp32::configJson_, false);
                 request->send(200, "text/plain", "Intro duration set to " + durationSecondsStr + " seconds.");
             } else {
                 request->send(400, "text/plain", "Missing 'duration_s' parameter.");
@@ -392,6 +430,7 @@ namespace www
                 String durationSecondsStr = request->getParam("duration_s")->value();
                 unsigned long durationMs = durationSecondsStr.toInt() * 1000UL;
                 hockey.setGoalCelebrationMs(durationMs);
+                Esp32::saveConfig(Esp32::configJson_, false);
                 request->send(200, "text/plain", "Goal celebration duration set to " + durationSecondsStr + " seconds.");
             } else {
                 request->send(400, "text/plain", "Missing 'duration_s' parameter.");
@@ -403,6 +442,7 @@ namespace www
                 String durationSecondsStr = request->getParam("duration_s")->value();
                 unsigned long durationMs = durationSecondsStr.toInt() * 1000UL;
                 hockey.setPuckDropMs(durationMs);
+                Esp32::saveConfig(Esp32::configJson_, false);
                 request->send(200, "text/plain", "Puck drop duration set to " + durationSecondsStr + " seconds.");
             } else {
                 request->send(400, "text/plain", "Missing 'duration_s' parameter.");
@@ -414,6 +454,7 @@ namespace www
                 String durationSecondsStr = request->getParam("duration_s")->value();
                 unsigned long durationMs = durationSecondsStr.toInt() * 1000UL;
                 hockey.setPeriodIntermissionMs(durationMs);
+                Esp32::saveConfig(Esp32::configJson_, false);
                 request->send(200, "text/plain", "Period intermission duration set to " + durationSecondsStr + " seconds.");
             } else {
                 request->send(400, "text/plain", "Missing 'duration_s' parameter.");
