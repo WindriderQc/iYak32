@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Mode Control</title>
+    <link rel="stylesheet" href="../colors.css">
+    <link rel="stylesheet" href="../esp32.css">
+    <link rel="stylesheet" href="../utilities.css">
+    <style>
+        .button-placeholder {
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            margin: 10px;
+            display: inline-block;
+            border-radius: 5px;
+        }
+        .led-status {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #000;
+            margin: 10px;
+            display: inline-block;
+            border-radius: 50%; /* Make it circular */
+            background-color: #666; /* Default to OFF color (grey) */
+        }
+        .led-on {
+            background-color: #00ff00; /* Green for ON */
+        }
+        .led-off {
+            background-color: #ff0000; /* Red for OFF - or use grey/default */
+        }
+        .container {
+            padding: 20px;
+        }
+        .control-group {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <!-- Placeholder for topMenu, assuming it's injected by topMenu.js -->
+        <div id="topMenu"></div>
+    </header>
+
+    <div class="container">
+        <h1>Basic Mode Status</h1>
+
+        <div class="control-group">
+            <h2>Button 1 / LED 1 (GPIO 21)</h2>
+            <div class="button-placeholder">Physical Button 1</div>
+            <div class="led-status" id="led1_status"></div>
+        </div>
+
+        <div class="control-group">
+            <h2>Button 2 / LED 2 (GPIO 4)</h2>
+            <div class="button-placeholder">Physical Button 2</div>
+            <div class="led-status" id="led2_status"></div>
+        </div>
+
+        <div class="control-group">
+            <h2>Button 3 / LED 3 (GPIO 15)</h2>
+            <div class="button-placeholder">Physical Button 3</div>
+            <div class="led-status" id="led3_status"></div>
+        </div>
+    </div>
+
+    <script src="../components/topMenu.js"></script>
+    <script src="basic_mode.js"></script>
+</body>
+</html>
