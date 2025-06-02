@@ -370,6 +370,19 @@ namespace Esp32 {
 
     // I/O Configuration Core Logic Implementations
     void applyIOConfiguration(const JsonDocument& doc) {
+    Serial.println(F("Esp32: Entered applyIOConfiguration. Received doc content:"));
+    String receivedDocStr;
+    serializeJsonPretty(doc, receivedDocStr); // Or serializeJson(doc, receivedDocStr);
+    Serial.println(receivedDocStr);
+
+    Serial.print(F("Esp32: applyIOConfiguration - !doc[\"io_pins\"].isNull(): "));
+    Serial.println(!doc["io_pins"].isNull() ? "true" : "false");
+    if(!doc["io_pins"].isNull()){ // Corrected the key string here
+        Serial.print(F("Esp32: applyIOConfiguration - doc[\"io_pins\"].is<JsonArray>(): "));
+        Serial.println(doc["io_pins"].is<JsonArray>() ? "true" : "false");
+    } else {
+        Serial.println(F("Esp32: applyIOConfiguration - doc[\"io_pins\"] is null."));
+    }
         Esp32::configured_pins.clear();
         // JsonArray io_pins_array = doc["io_pins"].as<JsonArray>(); // V6
         JsonVariantConst io_pins_variant = doc["io_pins"]; // V7 style for const JsonDocument&
