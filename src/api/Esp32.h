@@ -61,7 +61,7 @@ namespace Esp32 {
     extern std::vector<IO_Pin_Detail> configured_pins;
 
     // I/O Configuration Core Logic
-    void applyIOConfiguration(const JsonDocument& doc); // Pass JsonDocument by const reference
+    void applyIOConfiguration(const String& jsonConfigString); // Pass JsonDocument by const reference
     bool saveAndApplyIOConfiguration(const JsonDocument& doc); // Pass JsonDocument by const reference
     void loadAndApplyIOConfig();
     String getIOStatusJsonString(); // Added declaration
