@@ -465,6 +465,26 @@ namespace Esp32 {
             if (file_content.length() > 0) {
                 StaticJsonDocument<2048> doc;
                 DeserializationError error = deserializeJson(doc, file_content);
+
+        Serial.print(F("Esp32: deserializeJson error code: "));
+        Serial.println(error.c_str()); // Print the error code regardless
+
+        if (doc.isNull()) {
+            Serial.println(F("Esp32: Parsed JsonDocument is null!"));
+        } else {
+            Serial.println(F("Esp32: Parsed JsonDocument is NOT null."));
+            Serial.print(F("Esp32: doc.containsKey(\"io_pins\"): "));
+            Serial.println(doc.containsKey("io_pins") ? "true" : "false");
+            if (doc.containsKey("io_pins")) {
+                Serial.print(F("Esp32: doc[\"io_pins\"].is<JsonArray>(): "));
+                Serial.println(doc["io_pins"].is<JsonArray>() ? "true" : "false");
+            }
+            String serializedDoc;
+            serializeJsonPretty(doc, serializedDoc); // Using Pretty for readability
+            Serial.println(F("Esp32: Content of parsed 'doc' after deserializeJson:"));
+            Serial.println(serializedDoc);
+        }
+
                 if (!error) {
                     Esp32::applyIOConfiguration(doc);
                 } else {
