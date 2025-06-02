@@ -59,13 +59,13 @@ namespace Hockey
     public:
         Hockey() : previous_state_(HOCKEY_state::eGAMEOVER),
                    current_game_state_(HOCKEY_state::eINTRO),
-                   tictac_(0), // tictac_ is the general purpose tick counter for states
-                   lastLoop(0), // Used for calculating delta in main loop, not directly for these state delays
+                   elapsedTimeInState_ms_(0), // Renamed from tictac_ and initialized
+                   lastLoop(0), // Used for calculating delta in main loop
                    pause_button_last_state_(HIGH),
-                   introDurationTicks_(3000),         // Default: 3000 ticks
-                   goalCelebrationTicks_(1920),       // Default: 1920 ticks (matches old GOAL_DELAY*0.6)
-                   puckDropTicks_(3200),              // Default: 3200 ticks (matches old GOAL_DELAY)
-                   periodIntermissionTicks_(6400)     // Default: 6400 ticks (matches old GOAL_DELAY*2)
+                   introDuration_ms_(3000UL),      // 3 seconds
+                   goalCelebration_ms_(2000UL),    // 2 seconds
+                   puckDrop_ms_(3000UL),           // 3 seconds
+                   periodIntermission_ms_(6000UL)  // 6 seconds
     {
         // Constructor body can be empty if all init is done in initializer list or at declaration
     }
@@ -181,8 +181,8 @@ namespace Hockey
                       
                          
                         updateSevenSegmentDisplay("COOL");
-                        tictac_++; // Use tictac_
-                        if(tictac_ >= introDurationTicks_) { tictac_ = 0;   current_game_state_ = HOCKEY_state::eDROP_PUCK; } // Use tictac_ and current_game_state_
+                        elapsedTimeInState_ms_ += delta;
+                        if(elapsedTimeInState_ms_ >= introDuration_ms_) { elapsedTimeInState_ms_ = 0;   current_game_state_ = HOCKEY_state::eDROP_PUCK; }
                         break;
 
                 case HOCKEY_state::eON:
@@ -220,15 +220,15 @@ namespace Hockey
                 case HOCKEY_state::eGOALRIGHT:              
                         
                         updateSevenSegmentDisplay("GOAL");
-                        tictac_++; // Use tictac_
-                        if(tictac_ >= goalCelebrationTicks_) { tictac_ = 0; current_game_state_ = HOCKEY_state::eDROP_PUCK; } // Use tictac_ and current_game_state_
+                        elapsedTimeInState_ms_ += delta;
+                        if(elapsedTimeInState_ms_ >= goalCelebration_ms_) { elapsedTimeInState_ms_ = 0; current_game_state_ = HOCKEY_state::eDROP_PUCK; }
                         break;
 
                 case HOCKEY_state::eGAMEOVER:
 
-                        tictac_++; // Use tictac_
-                        if(tictac_ >= puckDropTicks_) {
-                            tictac_ = 0;
+                        elapsedTimeInState_ms_ += delta;
+                        if(elapsedTimeInState_ms_ >= puckDrop_ms_) {
+                            elapsedTimeInState_ms_ = 0;
                             bSwitch = !bSwitch;
                         }
                         if(bSwitch)  updateSevenSegmentDisplay("Good");
@@ -238,14 +238,14 @@ namespace Hockey
                 case HOCKEY_state::ePERIOD_BELL:
                      
                         if(period < 4) {   
-                            tictac_++; // Use tictac_
-                            if(tictac_ >= periodIntermissionTicks_) {
-                                tictac_ = 0;
-                                current_game_state_ = HOCKEY_state::eDROP_PUCK; // Use current_game_state_
+                            elapsedTimeInState_ms_ += delta;
+                            if(elapsedTimeInState_ms_ >= periodIntermission_ms_) {
+                                elapsedTimeInState_ms_ = 0;
+                                current_game_state_ = HOCKEY_state::eDROP_PUCK;
                                 time = periodLength;
                                 Serial.println(F("PERIOD FINISH - Next puck drop..."));
                             }
-                            if(tictac_ >= periodIntermissionTicks_ / 2) updateSevenSegmentDisplay(scoreString.c_str());
+                            if(elapsedTimeInState_ms_ >= periodIntermission_ms_ / 2) updateSevenSegmentDisplay(scoreString.c_str());
                             else        updateSevenSegmentDisplay("COOL");
                         } else {
                                 // Game finished, save the score with date/time
@@ -267,27 +267,27 @@ namespace Hockey
                                     Serial.println("Failed to open game_scores.txt for writing");
                                 }
 
-                                current_game_state_ = HOCKEY_state::eGAMEOVER; // Use current_game_state_
+                                current_game_state_ = HOCKEY_state::eGAMEOVER;
                                 period = 3;
-                                tictac_ = 0; // Use tictac_
+                                elapsedTimeInState_ms_ = 0;
                         }
                         break;
 
                 case HOCKEY_state::eDROP_PUCK:
                         updateSevenSegmentDisplay(" GO ");
                         //asciiDisplay.displayString(scoreString.c_str());
-                        tictac_++; // Use tictac_
-                        if(tictac_ >= puckDropTicks_) {
-                            tictac_ = 0;
-                            current_game_state_ = HOCKEY_state::eON; // Use current_game_state_
+                        elapsedTimeInState_ms_ += delta;
+                        if(elapsedTimeInState_ms_ >= puckDrop_ms_) {
+                            elapsedTimeInState_ms_ = 0;
+                            current_game_state_ = HOCKEY_state::eON;
                             Serial.println(F("GO!"));
                             }
                         break;
 
                 case HOCKEY_state::ePAUSE:
-                        tictac_++; // Use tictac_
-                        if(tictac_ >= puckDropTicks_) {
-                            tictac_ = 0;
+                        elapsedTimeInState_ms_ += delta;
+                        if(elapsedTimeInState_ms_ >= puckDrop_ms_) {
+                            elapsedTimeInState_ms_ = 0;
                             bSwitch = !bSwitch;
                         }
                         if(bSwitch)  updateSevenSegmentDisplay(scoreString.c_str());
@@ -312,9 +312,10 @@ namespace Hockey
             scoreLeft = 0;
             scoreRight=0;
             period = 1;
-            tictac_ = 0; // Use tictac_
+            elapsedTimeInState_ms_ = 0;
             time = periodLength;
             Serial.println(F("Game RESET."));
+
             BuzzerModule::setMode(BuzzerModule::eINTRO); // Play intro sound
             current_game_state_ = HOCKEY_state::eINTRO; // Use current_game_state_
         }
@@ -368,16 +369,16 @@ namespace Hockey
         int getRightDelta() const { return senseRight.getFluctDetection(); }
 
     // Setter methods for game event durations
-    void setIntroDurationTicks(unsigned int ticks) { introDurationTicks_ = ticks; }
-    void setGoalCelebrationTicks(unsigned int ticks) { goalCelebrationTicks_ = ticks; }
-    void setPuckDropTicks(unsigned int ticks) { puckDropTicks_ = ticks; }
-    void setPeriodIntermissionTicks(unsigned int ticks) { periodIntermissionTicks_ = ticks; }
+    void setIntroDurationMs(unsigned long ms) { introDuration_ms_ = ms; }
+    void setGoalCelebrationMs(unsigned long ms) { goalCelebration_ms_ = ms; }
+    void setPuckDropMs(unsigned long ms) { puckDrop_ms_ = ms; }
+    void setPeriodIntermissionMs(unsigned long ms) { periodIntermission_ms_ = ms; }
 
     // Getter methods for game event durations
-    unsigned int getIntroDurationTicks() const { return introDurationTicks_; }
-    unsigned int getGoalCelebrationTicks() const { return goalCelebrationTicks_; }
-    unsigned int getPuckDropTicks() const { return puckDropTicks_; }
-    unsigned int getPeriodIntermissionTicks() const { return periodIntermissionTicks_; }
+    unsigned long getIntroDurationMs() const { return introDuration_ms_; }
+    unsigned long getGoalCelebrationMs() const { return goalCelebration_ms_; }
+    unsigned long getPuckDropMs() const { return puckDrop_ms_; }
+    unsigned long getPeriodIntermissionMs() const { return periodIntermission_ms_; }
         
     private:
         int scoreLeft = 0;
@@ -395,14 +396,14 @@ namespace Hockey
         HOCKEY_state previous_state_;
         String last_displayed_string_on_7segment_;
         HOCKEY_state current_game_state_;
-        unsigned int tictac_;
+        unsigned long elapsedTimeInState_ms_; // Renamed from tictac_
         bool pause_button_last_state_; // Added
 
-    // New duration member variables
-    unsigned int introDurationTicks_;
-    unsigned int goalCelebrationTicks_;
-    unsigned int puckDropTicks_;
-    unsigned int periodIntermissionTicks_;
+    // Renamed and updated duration member variables
+    unsigned long introDuration_ms_;
+    unsigned long goalCelebration_ms_;
+    unsigned long puckDrop_ms_;
+    unsigned long periodIntermission_ms_;
 
     void updateSevenSegmentDisplay(const char* str_to_display) {
         if (last_displayed_string_on_7segment_ != str_to_display) {
