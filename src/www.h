@@ -376,6 +376,46 @@ namespace www
             request->send(200, "text/html", "ESP32 Hockey Timer Interface");
         }); 
 
+        server.on("/hockey/setIntroDuration", HTTP_POST, [](AsyncWebServerRequest *request){
+            if (request->hasParam("ticks")) {
+                String ticksStr = request->getParam("ticks")->value();
+                hockey.setIntroDurationTicks(ticksStr.toInt());
+                request->send(200, "text/plain", "Intro duration set to " + ticksStr + " ticks.");
+            } else {
+                request->send(400, "text/plain", "Missing 'ticks' parameter.");
+            }
+        });
+
+        server.on("/hockey/setGoalCelebrationDuration", HTTP_POST, [](AsyncWebServerRequest *request){
+            if (request->hasParam("ticks")) {
+                String ticksStr = request->getParam("ticks")->value();
+                hockey.setGoalCelebrationTicks(ticksStr.toInt());
+                request->send(200, "text/plain", "Goal celebration duration set to " + ticksStr + " ticks.");
+            } else {
+                request->send(400, "text/plain", "Missing 'ticks' parameter.");
+            }
+        });
+
+        server.on("/hockey/setPuckDropDuration", HTTP_POST, [](AsyncWebServerRequest *request){
+            if (request->hasParam("ticks")) {
+                String ticksStr = request->getParam("ticks")->value();
+                hockey.setPuckDropTicks(ticksStr.toInt());
+                request->send(200, "text/plain", "Puck drop duration set to " + ticksStr + " ticks.");
+            } else {
+                request->send(400, "text/plain", "Missing 'ticks' parameter.");
+            }
+        });
+
+        server.on("/hockey/setPeriodIntermissionDuration", HTTP_POST, [](AsyncWebServerRequest *request){
+            if (request->hasParam("ticks")) {
+                String ticksStr = request->getParam("ticks")->value();
+                hockey.setPeriodIntermissionTicks(ticksStr.toInt());
+                request->send(200, "text/plain", "Period intermission duration set to " + ticksStr + " ticks.");
+            } else {
+                request->send(400, "text/plain", "Missing 'ticks' parameter.");
+            }
+        });
+
         server.on("/hockey/scoreboard", HTTP_GET,[](AsyncWebServerRequest *request){
            /* unsigned long elapsed = isPaused ? pausedTime : millis() - startTime;
             unsigned int minutes = (elapsed / 1000) / 60;
@@ -393,10 +433,17 @@ namespace www
             json += "\"scoreRight\":" + String(hockey.getScoreRight()) + ",";
             json += "\"time\":\""      + String(hockey.gettimeString()) + "\",";
             json += "\"period\":"  + String(hockey.getPeriod()) + ",";
-            json += "\"periodLength\":"  + String(hockey.getPeriodLength()) + ",";
-            json += "\"gameStatus\":"  + String(hockey.getCurrentGameState()) + ","; // Add comma
+            json += "\"periodLength\":"  + String(hockey.getPeriodLength()) + ","; // This is in minutes
+            json += "\"gameStatus\":"  + String(hockey.getCurrentGameState()) + ",";
             json += "\"leftDeltaValue\":" + String(hockey.getLeftDelta()) + ",";
-            json += "\"rightDeltaValue\":" + String(hockey.getRightDelta());
+            json += "\"rightDeltaValue\":" + String(hockey.getRightDelta()) + ","; // Added comma
+
+            // Add new duration fields (as ticks)
+            json += "\"introDurationTicks\":" + String(hockey.getIntroDurationTicks()) + ",";
+            json += "\"goalCelebrationTicks\":" + String(hockey.getGoalCelebrationTicks()) + ",";
+            json += "\"puckDropTicks\":" + String(hockey.getPuckDropTicks()) + ",";
+            json += "\"periodIntermissionTicks\":" + String(hockey.getPeriodIntermissionTicks()); // No comma for the last item
+
             json += "}";
 
             request->send(200, "application/json", json);
