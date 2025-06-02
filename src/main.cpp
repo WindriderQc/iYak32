@@ -1,6 +1,7 @@
 #define VERBOSE
-#define HOCKEY
+//#define HOCKEY
 //#define BOAT
+#define BASIC_MODE
 
 #include <Arduino.h>
 #include "SystemState.h" // Added for SYS_state enum
@@ -17,6 +18,10 @@
 
 #ifdef HOCKEY  
     #include "Hockey.h"
+#endif
+
+#ifdef BASIC_MODE
+    #include "BasicMode.h"
 #endif
 
 const char* ver = "v1:7 ";
@@ -198,6 +203,10 @@ void loop()
             hockey.setup();
 #endif
 
+#ifdef BASIC_MODE
+        BasicMode::basicMode.setup();
+#endif
+
             Serial.println("SENSORS & ALARMLib CONFIG done");
             set_current_system_state(SYS_state::HEATUP); // Reverted to original setter
             break;
@@ -236,6 +245,10 @@ void loop()
 #ifdef HOCKEY  
             hockey.loop();
 #endif     
+
+#ifdef BASIC_MODE
+        BasicMode::basicMode.loop();
+#endif
             
 #ifdef BOAT  
             boat.loop();

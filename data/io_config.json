@@ -1,0 +1,52 @@
+{
+  "io_pins": [
+    {
+      "gpio": 12,
+      "label": "Button1",
+      "mode": "INPUT_PULLUP",
+      "type": "DIGITAL",
+      "initial_state": "",
+      "graph": false
+    },
+    {
+      "gpio": 13,
+      "label": "Button2",
+      "mode": "INPUT_PULLUP",
+      "type": "DIGITAL",
+      "initial_state": "",
+      "graph": false
+    },
+    {
+      "gpio": 34,
+      "label": "Button3",
+      "mode": "INPUT_PULLUP",
+      "type": "DIGITAL",
+      "initial_state": "",
+      "graph": false
+    },
+    {
+      "gpio": 21,
+      "label": "Led1",
+      "mode": "OUTPUT",
+      "type": "DIGITAL",
+      "initial_state": "LOW",
+      "graph": false
+    },
+    {
+      "gpio": 4,
+      "label": "Led2",
+      "mode": "OUTPUT",
+      "type": "DIGITAL",
+      "initial_state": "LOW",
+      "graph": false
+    },
+    {
+      "gpio": 15,
+      "label": "Led3",
+      "mode": "OUTPUT",
+      "type": "DIGITAL",
+      "initial_state": "LOW",
+      "graph": false
+    }
+  ]
+}
