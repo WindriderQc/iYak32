@@ -48,9 +48,9 @@ public:
         // We will rely on the message from loop() or ensure getState() reflects a "pressed" state correctly.
         // The `Sensor::Pushbtn::loopImpl` returns a message when `!state_` is true (i.e. when state_ is LOW for INPUT_PULLUP).
 
-        button1_.setup("Button1", Esp32::DEVICE_NAME, BUTTON1_PIN, true, true);
-        button2_.setup("Button2", Esp32::DEVICE_NAME, BUTTON2_PIN, true, true);
-        button3_.setup("Button3", Esp32::DEVICE_NAME, BUTTON3_PIN, true, true);
+        button1_.setup("Button1", Esp32::DEVICE_NAME, BUTTON1_PIN, false);
+        button2_.setup("Button2", Esp32::DEVICE_NAME, BUTTON2_PIN, false);
+        button3_.setup("Button3", Esp32::DEVICE_NAME, BUTTON3_PIN, false);
 
         // Ensure LEDs are off initially. io_config.json should handle initial_state LOW.
         // However, a direct digitalWrite here ensures it if io_config.json was missing or incorrect.
