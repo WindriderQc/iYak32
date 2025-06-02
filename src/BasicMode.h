@@ -106,6 +106,10 @@ public:
         }
     }
 
+    bool getLed1State() const { return led1_state_; }
+    bool getLed2State() const { return led2_state_; }
+    bool getLed3State() const { return led3_state_; }
+
 private:
     Sensor::Pushbtn button1_;
     Sensor::Pushbtn button2_;

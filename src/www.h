@@ -14,6 +14,10 @@ Add to platformio.ini:
 #include "api/JsonTools.h" // Added for JsonTools::getJsonString
 #include "Hockey.h"
 
+#ifdef BASIC_MODE // Assuming BASIC_MODE is defined in main.cpp or a config
+#include "BasicMode.h"
+#endif
+
 
 
 namespace www
@@ -306,6 +310,31 @@ namespace www
             } else {
                 request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Missing 'gpio' parameter.\"}");
             }
+        });
+
+        server.on("/api/basicmode/status", HTTP_GET, [](AsyncWebServerRequest *request){
+            #ifdef BASIC_MODE
+                JsonDocument statusDoc;
+                // Placeholder for actual getter calls - these will be implemented in Step 5
+                // bool led1_st = BasicMode::basicMode.getLed1State();
+                // bool led2_st = BasicMode::basicMode.getLed2State();
+                // bool led3_st = BasicMode::basicMode.getLed3State();
+
+                // For now, using placeholder values until getters are ready
+                // In a real scenario, if BasicMode isn't active, this endpoint might error or return default false.
+                // However, BASIC_MODE ifdef should prevent access if mode isn't compiled.
+                statusDoc["led1"] = BasicMode::basicMode.getLed1State(); // Assumes getter exists
+                statusDoc["led2"] = BasicMode::basicMode.getLed2State(); // Assumes getter exists
+                statusDoc["led3"] = BasicMode::basicMode.getLed3State(); // Assumes getter exists
+
+                String jsonResponse;
+                serializeJson(statusDoc, jsonResponse); // Using serializeJson directly
+                request->send(200, "application/json", jsonResponse);
+            #else
+                // If BASIC_MODE is not defined, this endpoint theoretically shouldn't be hit
+                // if the front-end is also conditional. But as a fallback:
+                request->send(404, "text/plain", "Basic Mode not active");
+            #endif
         });
 
         // General config endpoint (ensure it doesn't conflict if path is similar)
