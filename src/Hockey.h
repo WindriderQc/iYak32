@@ -325,6 +325,7 @@ namespace Hockey
         { 
             scoreLeft++;
             Serial.println(F("Left Goal Scored!"));
+            BuzzerModule::setMode(BuzzerModule::eGOAL);
             current_game_state_ = HOCKEY_state::eGOALLEFT; // Use current_game_state_
         }
 
@@ -332,6 +333,7 @@ namespace Hockey
         { 
             scoreRight++;
             Serial.println(F("Right Goal Scored!"));
+            BuzzerModule::setMode(BuzzerModule::eGOAL);
             current_game_state_ = HOCKEY_state::eGOALRIGHT; // Use current_game_state_
         }
 
