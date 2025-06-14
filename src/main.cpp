@@ -1,10 +1,11 @@
-#define VERBOSE
-//#define HOCKEY
+const char* ver = "v1:8 ";
+
+//#define VERBOSE
+//#define HOCKEY_MODE
 //#define BOAT
 #define BASIC_MODE
 
 #include <Arduino.h>
-#include "SystemState.h" // Added for SYS_state enum
 #include "api/Esp32.h"
 #include "api/Mqtt.h"    // Added for direct Mqtt namespace usage
 #include "api/devices/BMX280.h"  //  TODO : devrait etre encaps dans un device...   device = gestion IO = main config n feature focus
@@ -12,67 +13,47 @@
 
 #include "www.h"
 
+
+//  STATE Machine - System 
+enum class SYS_state {    BOOT,    DEVICES_CONFIG,    HEATUP,    FIRSTLOOP,    LOOP};
+
+SYS_state state = SYS_state::BOOT; 
+
 #ifdef BOAT
     #include "Boat.h"
 #endif
 
-#ifdef HOCKEY  
+#ifdef HOCKEY_MODE  
     #include "Hockey.h"
+
+    // Define local constants in main.cpp to hold values from Hockey namespace
+    const int main_CLK = Hockey::CLK;
+    const int main_DIO = Hockey::DIO;
+
+    #include <TM1637Display.h> // Explicitly include for TM1637Display type
+
+    // Definitions for global objects declared extern in Hockey.h
+    TM1637Display Hockey::display(main_CLK, main_DIO); // Use local constants for constructor
+
+    // Create a local reference to the Hockey::display object
+    TM1637Display& local_display_ref = Hockey::display;
+
+    SevenSegmentAscii Hockey::asciiDisplay(local_display_ref, 5); // Use the local reference
+    Sensor::AnLux Hockey::senseLeft;
+    Sensor::AnLux Hockey::senseRight;
+    Hockey::Hockey hockey; // Definition for the global Hockey class instance
+
 #endif
-
-
-#include <TM1637Display.h> // Explicitly include for TM1637Display type
-
-// Define local constants in main.cpp to hold values from Hockey namespace
-const int main_CLK = Hockey::CLK;
-const int main_DIO = Hockey::DIO;
-
-// Definitions for global objects declared extern in Hockey.h
-TM1637Display Hockey::display(main_CLK, main_DIO); // Use local constants for constructor
-
-// Create a local reference to the Hockey::display object
-TM1637Display& local_display_ref = Hockey::display;
-
-SevenSegmentAscii Hockey::asciiDisplay(local_display_ref, 5); // Use the local reference
-Sensor::AnLux Hockey::senseLeft;
-Sensor::AnLux Hockey::senseRight;
-Hockey::Hockey hockey; // Definition for the global Hockey class instance
 
 #ifdef BASIC_MODE
     #include "BasicMode.h"
 #endif
 
 
-const char* ver = "v1:7 ";
 
+bool isOledConnected = false;
+bool isBMXConnected = false;
 
-
-
-bool oledConnected = false;
-bool bmxConnected = false;
-
-//  STATE Machine - System 
-// enum class SYS_state { // Moved to SystemState.h
-//     BOOT,
-//     DEVICES_CONFIG,
-//     HEATUP,
-//     FIRSTLOOP,
-//     LOOP
-// };
-static SYS_state state = SYS_state::BOOT; // Reverted to original name
-
-// Accessor functions for the static 'state' variable
-SYS_state get_current_system_state() { // Reverted to original name
-    return state;
-}
-
-void set_current_system_state(SYS_state new_state) { // Reverted to original name
-    // Optional: Log state changes centrally
-    // if (state != new_state) {
-    //    Serial.printf("System State: %d -> %d (via setter)\n", static_cast<int>(state), static_cast<int>(new_state));
-    // }
-    state = new_state;
-}
 
 
 void sendHeartbeat() {
@@ -110,7 +91,7 @@ void sendData() {
     payload_doc["wifi_rssi"] = Esp32::wifiManager.getWiFiStrength();
     payload_doc["battery_v"] = Esp32::getBattRemaining(false);
 
-    if (bmxConnected) {
+    if (isBMXConnected) {
         payload_doc["bmx_temp_c"] = BMX280::getTemperature();
         payload_doc["bmx_pressure_hpa"] = BMX280::getPressure();
         payload_doc["bmx_altitude_m"] = BMX280::getAltitude();
@@ -181,9 +162,9 @@ void setup()
 
     if(Esp32::spiffsMounted) www::setup(); //  Start the web server
 
-    oledConnected = Oled::setupOled();    
+    isOledConnected = Oled::setupOled();    
 
-    bmxConnected  = BMX280::init();                       
+    isBMXConnected  = BMX280::init();                       
  
     Serial.println(F("Setup completed. - Launching State Machine...\n"));
 }
@@ -203,7 +184,7 @@ void loop()
             if(Esp32::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());  // Request IO config and profile from server
             
             Serial.println("BOOT done");
-            set_current_system_state(SYS_state::DEVICES_CONFIG); // Reverted to original setter
+            state = SYS_state::DEVICES_CONFIG; 
             break;
 
     case SYS_state::DEVICES_CONFIG:
@@ -218,7 +199,7 @@ void loop()
             boat.setSpeed(1,1,0); 
 #endif
 
-#ifdef HOCKEY  
+#ifdef HOCKEY_MODE  
             hockey.setup();
 #endif
 
@@ -227,7 +208,7 @@ void loop()
 #endif
 
             Serial.println("SENSORS & ALARMLib CONFIG done");
-            set_current_system_state(SYS_state::HEATUP); // Reverted to original setter
+            state = SYS_state::HEATUP; 
             break;
     
     case SYS_state::HEATUP:
@@ -238,7 +219,7 @@ void loop()
                 Serial.print("."); Serial.print(millis()); Serial.print("."); 
             }  
             else {
-                set_current_system_state(SYS_state::FIRSTLOOP); // Reverted to original setter
+                state = SYS_state::FIRSTLOOP; 
                 Serial.println(" On Fire! :)");
                 }
             break;
@@ -247,21 +228,21 @@ void loop()
 
             Serial.println();
             Esp32::getBattRemaining(true);
-            if(bmxConnected) BMX280::actualizeWeather(true);
+            if(isBMXConnected) BMX280::actualizeWeather(true);
 
-#ifdef HOCKEY  
+#ifdef HOCKEY_MODE  
             hockey.warmup();
 #endif            
            
             //Lux::loop(); 
             
             Serial.println("FIRST LOOP done -- Let's roll!\n");
-            set_current_system_state(SYS_state::LOOP); // Reverted to original setter
+            state = SYS_state::LOOP; 
             break;
 
     case SYS_state::LOOP:       
               
-#ifdef HOCKEY  
+#ifdef HOCKEY_MODE  
             hockey.loop();
 #endif     
 
@@ -280,7 +261,7 @@ void loop()
             {
                 startTime1 = millis();  
 
-                if(oledConnected) printOled();   
+                if(isOledConnected) printOled();   
 
                 if(Mqtt::isEnabled) sendHeartbeat();  
             }
@@ -289,7 +270,7 @@ void loop()
             {
                 startTime5 = millis(); 
 
-                if(bmxConnected) BMX280::actualizeWeather();  
+                if(isBMXConnected) BMX280::actualizeWeather();  
 #ifdef BOAT  
                 Boat::boat.pressure = BMX280::getPressure(); // Assuming Boat::boat is the global instance
 #endif                

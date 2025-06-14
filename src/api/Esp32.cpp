@@ -1,7 +1,7 @@
 #include "Esp32.h"
 #include "JsonTools.h" // Added for JsonTools::getJsonString
 #include <ArduinoJson.h>
-#include "Hockey.h" // Include for the global hockey object
+//#include "..\Hockey.h" // Include for the global hockey object
 #include "WifiManager.h" // For WifiManager object
 #include "devices/Buzzer.h" // For Buzzer object
 #include "Hourglass.h"    // For Hourglass object
@@ -20,16 +20,16 @@ namespace Esp32 {
     bool spiffsMounted = false;
     String batteryText = "";
     float vBAT = 0.0f;
-    byte vBATSampleSize = 5; // Definition added
+    byte vBATSampleSize = 5; 
     int battery_monitor_pin_ = 35; // Default from previous setup, will be overridden by JSON config if present
-    Esp32::Pin* ios[HUZZAH32]; // Explicitly namespaced
+    Esp32::Pin* ios[HUZZAH32]; 
     WifiManager wifiManager;
-    // Buzzer buzzer; // Removed, Buzzer is now a module (BuzzerModule)
     Hourglass hourglass;
+
     bool buzzer_enabled_ = false;
     int configured_buzzer_pin_ = -1;
     int mqtt_data_interval_seconds_ = 5;
-    int state_test_variable = 123; // Added for linker diagnostics
+   
     std::vector<IO_Pin_Detail> configured_pins; // Definition for the vector
 
     // Function Definitions
@@ -280,7 +280,7 @@ namespace Esp32 {
             configString_ = JsonTools::getJsonString(configJson_, true); // Update global configString_
 
             // Apply hockey settings if present
-            if (configJson_["hockey_settings"].is<JsonObjectConst>()) { // Simplified check
+         /*   if (configJson_["hockey_settings"].is<JsonObjectConst>()) { // Simplified check
                 JsonVariantConst hockeySettingsVariant = configJson_["hockey_settings"]; // This is fine
                 // if (hockeySettingsVariant.is<JsonObjectConst>()) { // This inner check is now redundant
                 hockey.applySettings(hockeySettingsVariant.as<JsonObjectConst>());
@@ -290,7 +290,7 @@ namespace Esp32 {
                 // }
             } else {
                 Serial.println(F("Esp32::loadConfig: No 'hockey_settings' or it's not an object. Hockey instance will use its defaults."));
-            }
+            }*/
 
             if(doExecuteConfig) executeJsonConfig();
             return true;
@@ -306,14 +306,14 @@ namespace Esp32 {
         Serial.println(Esp32::CONFIG_FILENAME);
 
         // Ensure hockey_settings object exists and populate it
-        JsonObject hockeySettingsJson;
+       /* JsonObject hockeySettingsJson;
         if (config["hockey_settings"].is<JsonObject>()) { // Simplified check
             hockeySettingsJson = config["hockey_settings"].as<JsonObject>();
         } else {
             hockeySettingsJson = config["hockey_settings"].to<JsonObject>(); // Fixed deprecated createNestedObject
         }
         hockey.populateSettings(hockeySettingsJson);
-        Serial.println(F("Esp32::saveConfig: Populated hockey_settings into the config document."));
+        Serial.println(F("Esp32::saveConfig: Populated hockey_settings into the config document."));*/
 
         configJson_ = config; // Update global
         configString_ = JsonTools::getJsonString(configJson_, true);

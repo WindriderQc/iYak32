@@ -37,7 +37,8 @@ namespace Sensor
                 attachInterrupt(digitalPinToInterrupt(pin), action.callback_, action.mode_);
                 //currentInstance = this; // Set the current instance to this
                 Serial.print(F("Attaching interrupt to pin: "));
-                Serial.println(pin);
+                Serial.print(pin);
+                Serial.print(F("Action mode: "));
                 Serial.println(action.mode_);
             }
            

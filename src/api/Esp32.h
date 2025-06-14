@@ -2,7 +2,7 @@
 
 #include <Arduino.h> // For String, byte, etc.
 #include <ArduinoJson.h> // For JsonDocument (declaration needed for extern)
-#include "SystemState.h"  // Added for SYS_state enum visibility
+//#include "SystemState.h"  // Added for SYS_state enum visibility
 #include <vector>       // For std::vector
 
 // Full header includes for classes used in Esp32 namespace extern declarations

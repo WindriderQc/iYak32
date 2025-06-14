@@ -12,10 +12,14 @@ Add to platformio.ini:
 #include "api/Mqtt.h"    // Added for Mqtt namespace usage
 #include "api/Esp32.h"
 #include "api/JsonTools.h" // Added for JsonTools::getJsonString
-#include "Hockey.h"
+
+
+#ifdef HOCKEY_MODE // Assuming HOCKEY_MODE is defined in main.cpp or a config
+    #include "Hockey.h"
+#endif
 
 #ifdef BASIC_MODE // Assuming BASIC_MODE is defined in main.cpp or a config
-#include "BasicMode.h"
+    #include "BasicMode.h"
 #endif
 
 
@@ -131,8 +135,7 @@ namespace www
         return String();
     }
 
-
-    // hockey board
+#ifdef HOCKEY_MODE 
     unsigned long startTime;
     unsigned long pausedTime = 0;
     bool isPaused = true;
@@ -154,7 +157,7 @@ namespace www
         isPaused = true;
         hockey.reset();
       }
-
+#endif
 
 
     
@@ -218,6 +221,9 @@ namespace www
             digitalWrite(BUILTIN_LED, LOW);
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
+
+
+
         server.on("/speedUp", HTTP_GET, [](AsyncWebServerRequest *request){
             digitalWrite(BUILTIN_LED, LOW);
             request->send(SPIFFS, "/index.html", String(),false, processor);
@@ -366,11 +372,7 @@ namespace www
         
         
 
-
-        //
-        /* hockey */
-        //
-      
+#ifdef HOCKEY_MODE       
         // Respond to /sensors route
         server.on("/hockey/sensors", HTTP_GET, [](AsyncWebServerRequest *request){
             int val34 = analogRead(34);
@@ -390,7 +392,14 @@ namespace www
             request->send(200, "text/html", "ESP32 Hockey Timer Interface");
         });
         server.on("/hockey/pause", HTTP_POST, [](AsyncWebServerRequest *request){
-            handlePause();
+                if (!isPaused) {
+                    pausedTime = millis() - startTime;
+                    isPaused = true;
+                } else {
+                    startTime = millis() - pausedTime;
+                    isPaused = false;
+                }
+                hockey.pause();
             request->send(200, "text/plain", "paused");
         });
         server.on("/hockey/reset", HTTP_POST,[](AsyncWebServerRequest *request){
@@ -524,6 +533,8 @@ namespace www
 
 
         }); 
+#endif
+
 
         //server.serveStatic("/esp32.css", SPIFFS, "/esp32.css").setCacheControl("no-cache");
 

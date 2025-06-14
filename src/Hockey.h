@@ -3,10 +3,11 @@
 #include <Arduino.h>
 #include <vector>
 #include <SPIFFS.h> // Added for SPIFFS access
+#include "api/Esp32.h" // For Esp32 namespace and constants
 #include "api/devices/Buzzer.h" // For BuzzerModule (even if not used yet, good for future)
 
 #include "api/devices/SevenSegmentAscii.h"
-#include "api/devices/sensors/ISensor.h"
+//#include "api/devices/sensors/ISensor.h"
 #include "api/devices/sensors/Pushbtn.h"
 #include "api/devices/sensors/AnLux.h"
 #include <ArduinoJson.h> // Added for JsonObject
@@ -43,9 +44,6 @@ namespace Hockey
         ePAUSE
     };
     
-    // HOCKEY_state state = HOCKEY_state::eINTRO; // Moved to class member
-    // unsigned int tictac = 0;                   // Moved to class member
-
 
     // Sensors and Static ISR function for the interrupts
 
