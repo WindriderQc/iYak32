@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <vector>
 #include <ESP32_Servo.h> 
+#include "api/Esp32.h" 
 
 
 namespace Boat  

@@ -229,10 +229,7 @@ void loop()
             Serial.println();
             Esp32::getBattRemaining(true);
             if(isBMXConnected) BMX280::actualizeWeather(true);
-
-#ifdef HOCKEY_MODE  
-            hockey.warmup();
-#endif            
+         
            
             //Lux::loop(); 
             

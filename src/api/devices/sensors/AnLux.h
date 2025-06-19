@@ -63,11 +63,6 @@ namespace Sensor {
 
         int getFluctDetection() const { return fluctDetection; }
 
-        void warmup()      {
-             int value = analogRead(pin_id());
-             lastValue = value;
-             last_goal_report_time_ = 0; // Initialize cooldown timer during warmup/reset
-        }
 
     private:      
         volatile int lastValue;

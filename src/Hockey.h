@@ -2,15 +2,14 @@
 
 #include <Arduino.h>
 #include <vector>
-#include <SPIFFS.h> // Added for SPIFFS access
-#include "api/Esp32.h" // For Esp32 namespace and constants
-#include "api/devices/Buzzer.h" // For BuzzerModule (even if not used yet, good for future)
+#include <SPIFFS.h> 
+#include "api/Esp32.h" 
+#include "api/devices/Buzzer.h" 
 
 #include "api/devices/SevenSegmentAscii.h"
-//#include "api/devices/sensors/ISensor.h"
 #include "api/devices/sensors/Pushbtn.h"
 #include "api/devices/sensors/AnLux.h"
-#include <ArduinoJson.h> // Added for JsonObject
+#include <ArduinoJson.h> // Added for JsonObject    //  TODO should we simply add JsonTOols.h instead?
 
 // TODO  tictac methode vrmt pas bonne...   asciiDisplay.displayString("xxx");   fait vrmt étiré une loop...   ptete pas bon pour les watchdog timer :S
 namespace Hockey  
@@ -45,8 +44,7 @@ namespace Hockey
     };
     
 
-    // Sensors and Static ISR function for the interrupts
-
+ 
     extern Sensor::AnLux senseLeft;
     extern Sensor::AnLux senseRight;
 
@@ -58,16 +56,14 @@ namespace Hockey
     public:
         Hockey() : previous_state_(HOCKEY_state::eGAMEOVER),
                    current_game_state_(HOCKEY_state::eINTRO),
-                   elapsedTimeInState_ms_(0), // Renamed from tictac_ and initialized
+                   elapsedTimeInState_ms_(0), 
                    lastLoop(0), // Used for calculating delta in main loop
                    pause_button_last_state_(HIGH),
                    introDuration_ms_(3000UL),      // 3 seconds
                    goalCelebration_ms_(2000UL),    // 2 seconds
                    puckDrop_ms_(3000UL),           // 3 seconds
                    periodIntermission_ms_(6000UL)  // 6 seconds
-    {
-        // Constructor body can be empty if all init is done in initializer list or at declaration
-    }
+        { }
 
         ~Hockey() {}
 
@@ -88,12 +84,6 @@ namespace Hockey
 
             senseRight.setup("senseRight", Esp32::DEVICE_NAME, RIGHTGOAL, true ); 
 
-        }
-
-        void warmup()
-        {
-            senseLeft.warmup();
-            senseRight.warmup();
         }
 
 

@@ -81,36 +81,36 @@ public:
 
         if (!btn1_msg.isEmpty()) {
             Serial.println("BasicMode: Button 1 event detected by BasicModeImpl");
-            BuzzerModule::beep(SOUND1_FREQ, SOUND1_DUR);
+            if(isSoundActive) BuzzerModule::beep(SOUND1_FREQ, SOUND1_DUR);
             led1_state_ = !led1_state_;
             digitalWrite(LED1_PIN, led1_state_ ? HIGH : LOW);
             Serial.printf("BasicMode: LED 1 is now %s\n", led1_state_ ? "ON" : "OFF");
             if (!led1_state_) {
-                BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
+                if(isSoundActive) BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
                 Serial.println("BasicMode: LED 1 shutdown sound played.");
             }
         }
 
         if (!btn2_msg.isEmpty()) {
             Serial.println("BasicMode: Button 2 event detected by BasicModeImpl");
-            BuzzerModule::beep(SOUND2_FREQ, SOUND2_DUR);
+            if(isSoundActive) BuzzerModule::beep(SOUND2_FREQ, SOUND2_DUR);
             led2_state_ = !led2_state_;
             digitalWrite(LED2_PIN, led2_state_ ? HIGH : LOW);
             Serial.printf("BasicMode: LED 2 is now %s\n", led2_state_ ? "ON" : "OFF");
             if (!led2_state_) {
-                BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
+                if(isSoundActive)   BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
                 Serial.println("BasicMode: LED 2 shutdown sound played.");
             }
         }
 
         if (!btn3_msg.isEmpty()) {
             Serial.println("BasicMode: Button 3 event detected by BasicModeImpl");
-            BuzzerModule::beep(SOUND3_FREQ, SOUND3_DUR);
+            if(isSoundActive) BuzzerModule::beep(SOUND3_FREQ, SOUND3_DUR);
             led3_state_ = !led3_state_;
             digitalWrite(LED3_PIN, led3_state_ ? HIGH : LOW);
             Serial.printf("BasicMode: LED 3 is now %s\n", led3_state_ ? "ON" : "OFF");
             if (!led3_state_) {
-                BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
+                if(isSoundActive) BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
                 Serial.println("BasicMode: LED 3 shutdown sound played.");
             }
         }
@@ -121,10 +121,42 @@ public:
     bool getLed2State() const { return led2_state_; }
     bool getLed3State() const { return led3_state_; }
 
+    bool isSoundEnabled() const {
+        return isSoundActive;
+    }
+
+    void setSoundEnabled(bool enabled) {
+        isSoundActive = enabled;
+        Serial.printf("BasicMode: Sound is now %s.\n", isSoundActive ? "enabled" : "disabled");
+    }
+
 private:
     bool led1_state_;
     bool led2_state_;
     bool led3_state_;
+
+    bool isSoundActive = 0;
+
+ 
+    // Play sound with frequency and duration
+    void playSound(unsigned int frequency, unsigned int duration) {
+        if (isSoundEnabled()) {
+            BuzzerModule::beep(frequency, duration);
+        } else {
+            Serial.println("BasicMode: Sound is disabled.");
+        }
+    }
+    void toggleLed(int ledPin, bool& ledState) {
+        ledState = !ledState;
+        digitalWrite(ledPin, ledState ? HIGH : LOW);
+        Serial.printf("BasicMode: LED on pin %d is now %s\n", ledPin, ledState ? "ON" : "OFF");
+    }
+    void shutdownLed(int ledPin, bool& ledState) {
+        ledState = false;
+        digitalWrite(ledPin, LOW);
+        Serial.printf("BasicMode: LED on pin %d shutdown sound played and turned OFF.\n", ledPin);
+        playSound(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
+    }
 };
 
 // Global instance DEFINITION
