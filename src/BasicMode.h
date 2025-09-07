@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include "api/devices/Buzzer.h"
 #include "api/devices/sensors/Pushbtn.h"
+#include "api/devices/sensors/AnalogButton.h"
 #include "api/Esp32.h"
 
 namespace BasicMode {
@@ -10,7 +11,9 @@ namespace BasicMode {
 // Pin and Sound Constant definitions
 const int BUTTON1_PIN = 12;
 const int BUTTON2_PIN = 13;
-const int BUTTON3_PIN = 34;
+const int BUTTON3_PIN = 27;
+const int ANALOG_BUTTON1_PIN = 34;
+const int ANALOG_BUTTON2_PIN = 39;
 const int LED1_PIN = 21;
 const int LED2_PIN = 4; // Corrected pin
 const int LED3_PIN = 15;
@@ -36,6 +39,8 @@ public:
     Sensor::Pushbtn button1_; // Public for access from ISRs via basicMode global instance
     Sensor::Pushbtn button2_;
     Sensor::Pushbtn button3_;
+    Sensor::AnalogButton analogButton1_;
+    Sensor::AnalogButton analogButton2_;
 
     BasicModeImpl() : led1_state_(false), led2_state_(false), led3_state_(false) {
         // Constructor
@@ -56,6 +61,12 @@ public:
         button3_.action.callback_ = &isr_button3;
         button3_.action.mode_ = FALLING;
         button3_.setup("Button3", Esp32::DEVICE_NAME, BUTTON3_PIN, false);
+
+        // Analog Button 1 Setup
+        analogButton1_.setup("AnalogButton1", Esp32::DEVICE_NAME, ANALOG_BUTTON1_PIN, false);
+
+        // Analog Button 2 Setup
+        analogButton2_.setup("AnalogButton2", Esp32::DEVICE_NAME, ANALOG_BUTTON2_PIN, false);
 
         digitalWrite(LED1_PIN, LOW);
         digitalWrite(LED2_PIN, LOW);
@@ -78,6 +89,17 @@ public:
 
         String btn3_msg = button3_.loop();
         // Serial.print("btn3_msg: '"); Serial.print(btn3_msg); Serial.println("'");
+
+        String analog_btn1_msg = analogButton1_.loop();
+        String analog_btn2_msg = analogButton2_.loop();
+
+        if (!analog_btn1_msg.isEmpty()) {
+            Serial.println("BasicMode: Analog Button 1 event detected");
+        }
+
+        if (!analog_btn2_msg.isEmpty()) {
+            Serial.println("BasicMode: Analog Button 2 event detected");
+        }
 
         if (!btn1_msg.isEmpty()) {
             Serial.println("BasicMode: Button 1 event detected by BasicModeImpl");
