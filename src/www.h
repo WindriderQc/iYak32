@@ -318,6 +318,22 @@ namespace www
             }
         });
 
+        server.on("/api/basicmode/analogstatus", HTTP_GET, [](AsyncWebServerRequest *request){
+            #ifdef BASIC_MODE
+                JsonDocument statusDoc;
+                statusDoc["analog1_value"] = BasicMode::basicMode.getAnalogValue1();
+                statusDoc["analog1_threshold"] = BasicMode::basicMode.getAnalogThreshold1();
+                statusDoc["analog2_value"] = BasicMode::basicMode.getAnalogValue2();
+                statusDoc["analog2_threshold"] = BasicMode::basicMode.getAnalogThreshold2();
+
+                String jsonResponse;
+                serializeJson(statusDoc, jsonResponse);
+                request->send(200, "application/json", jsonResponse);
+            #else
+                request->send(404, "text/plain", "Basic Mode not active");
+            #endif
+        });
+
         server.on("/api/basicmode/status", HTTP_GET, [](AsyncWebServerRequest *request){
             #ifdef BASIC_MODE
                 JsonDocument statusDoc;

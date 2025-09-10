@@ -5,6 +5,7 @@
 #include "api/devices/sensors/Pushbtn.h"
 #include "api/devices/sensors/AnalogButton.h"
 #include "api/Esp32.h"
+#include <ArduinoJson.h>
 
 namespace BasicMode {
 
@@ -94,11 +95,17 @@ public:
         String analog_btn2_msg = analogButton2_.loop();
 
         if (!analog_btn1_msg.isEmpty()) {
-            Serial.println("BasicMode: Analog Button 1 event detected");
+            JsonDocument doc;
+            deserializeJson(doc, analog_btn1_msg);
+            int value = doc["value"];
+            Serial.printf("BasicMode: %s event detected. Value: %d, Threshold: %d\n", doc["name"].as<const char*>(), value, analogButton1_.getThreshold());
         }
 
         if (!analog_btn2_msg.isEmpty()) {
-            Serial.println("BasicMode: Analog Button 2 event detected");
+            JsonDocument doc;
+            deserializeJson(doc, analog_btn2_msg);
+            int value = doc["value"];
+            Serial.printf("BasicMode: %s event detected. Value: %d, Threshold: %d\n", doc["name"].as<const char*>(), value, analogButton2_.getThreshold());
         }
 
         if (!btn1_msg.isEmpty()) {
@@ -142,6 +149,10 @@ public:
     bool getLed1State() const { return led1_state_; }
     bool getLed2State() const { return led2_state_; }
     bool getLed3State() const { return led3_state_; }
+    int getAnalogValue1() const { return analogButton1_.getValue(); }
+    int getAnalogThreshold1() const { return analogButton1_.getThreshold(); }
+    int getAnalogValue2() const { return analogButton2_.getValue(); }
+    int getAnalogThreshold2() const { return analogButton2_.getThreshold(); }
 
     bool isSoundEnabled() const {
         return isSoundActive;
