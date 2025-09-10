@@ -32,6 +32,10 @@ namespace Sensor {
             return threshold_;
         }
 
+        int getValue() const {
+            return lastValue_;
+        }
+
     private:
         int threshold_;
         int lastValue_;
