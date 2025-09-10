@@ -7,7 +7,9 @@ namespace Sensor {
     class AnalogButton : public Sensor::ISensor
     {
     public:
-        AnalogButton(int threshold = 2000) : threshold_(threshold), lastValue_(0) {}
+        enum EdgeMode { ANALOG_RISING, ANALOG_FALLING, ANALOG_CHANGE };
+
+        AnalogButton(int threshold = 2000, EdgeMode mode = ANALOG_RISING) : threshold_(threshold), mode_(mode), lastValue_(0) {}
 
         ~AnalogButton() {}
 
@@ -15,11 +17,43 @@ namespace Sensor {
         {
             String msg = "";
             int value = analogRead(pin_id());
+            bool rising_edge = value > threshold_ && lastValue_ <= threshold_;
+            bool falling_edge = value < threshold_ && lastValue_ >= threshold_;
 
-            // Trigger only when the value crosses the threshold
-            if (value > threshold_ && lastValue_ <= threshold_) {
-                msg = message(value);
+            bool triggered = false;
+            String edge_type = "";
+
+            switch (mode_) {
+                case ANALOG_RISING:
+                    if (rising_edge) {
+                        triggered = true;
+                    }
+                    break;
+                case ANALOG_FALLING:
+                    if (falling_edge) {
+                        triggered = true;
+                    }
+                    break;
+                case ANALOG_CHANGE:
+                    if (rising_edge) {
+                        triggered = true;
+                        edge_type = "rising";
+                    } else if (falling_edge) {
+                        triggered = true;
+                        edge_type = "falling";
+                    }
+                    break;
             }
+
+            if (triggered) {
+                if (mode_ == ANALOG_CHANGE) {
+                    // Manually construct the JSON to avoid nesting and add edge_type
+                    msg = "{\"device\":\"" + device_ + "\", \"io\":\"" + String(pin_) + "\", \"name\":\"" + name_ + "\", \"value\": \"" + String(value) + "\", \"edge\": \"" + edge_type + "\"}";
+                } else {
+                    msg = message(value);
+                }
+            }
+
             lastValue_ = value;
             return msg;
         }
@@ -36,8 +70,17 @@ namespace Sensor {
             return lastValue_;
         }
 
+        void setMode(EdgeMode mode) {
+            mode_ = mode;
+        }
+
+        EdgeMode getMode() const {
+            return mode_;
+        }
+
     private:
         int threshold_;
+        EdgeMode mode_;
         int lastValue_;
     };
 }
