@@ -2,10 +2,12 @@
 
 #include <Arduino.h>
 #include "api/devices/Buzzer.h"
-#include "api/devices/sensors/Pushbtn.h"
 #include "api/devices/sensors/AnalogButton.h"
 #include "api/Esp32.h"
 #include <ArduinoJson.h>
+#include <AceButton.h>
+
+using namespace ace_button;
 
 namespace BasicMode {
 
@@ -30,38 +32,32 @@ const unsigned int SHUTDOWN_SOUND_DUR = 100;
 class BasicModeImpl; // Forward declaration
 extern BasicModeImpl basicMode; // Extern declaration for global instance
 
-// ISR Wrapper Function PROTOTYPES
-void IRAM_ATTR isr_button1();
-void IRAM_ATTR isr_button2();
-void IRAM_ATTR isr_button3();
+void handleEvent(AceButton* button, uint8_t eventType, uint8_t buttonState);
 
 class BasicModeImpl {
 public:
-    Sensor::Pushbtn button1_; // Public for access from ISRs via basicMode global instance
-    Sensor::Pushbtn button2_;
-    Sensor::Pushbtn button3_;
+    AceButton button1_;
+    AceButton button2_;
+    AceButton button3_;
     Sensor::AnalogButton analogButton1_;
     Sensor::AnalogButton analogButton2_;
 
-    BasicModeImpl() : led1_state_(false), led2_state_(false), led3_state_(false) {
+    BasicModeImpl() :
+        button1_(BUTTON1_PIN),
+        button2_(BUTTON2_PIN),
+        button3_(BUTTON3_PIN),
+        led1_state_(false), led2_state_(false), led3_state_(false) {
         // Constructor
     }
 
     void setup() {
-        // Button 1 Setup
-        button1_.action.callback_ = &isr_button1;
-        button1_.action.mode_ = FALLING;
-        button1_.setup("Button1", Esp32::DEVICE_NAME, BUTTON1_PIN, false);
+        pinMode(BUTTON1_PIN, INPUT_PULLUP);
+        pinMode(BUTTON2_PIN, INPUT_PULLUP);
+        pinMode(BUTTON3_PIN, INPUT_PULLUP);
 
-        // Button 2 Setup
-        button2_.action.callback_ = &isr_button2;
-        button2_.action.mode_ = FALLING;
-        button2_.setup("Button2", Esp32::DEVICE_NAME, BUTTON2_PIN, false);
-
-        // Button 3 Setup
-        button3_.action.callback_ = &isr_button3;
-        button3_.action.mode_ = FALLING;
-        button3_.setup("Button3", Esp32::DEVICE_NAME, BUTTON3_PIN, false);
+        ButtonConfig* buttonConfig = ButtonConfig::getSystemButtonConfig();
+        buttonConfig->setEventHandler(handleEvent);
+        buttonConfig->setFeature(ButtonConfig::kFeatureClick);
 
         // Analog Button 1 Setup
         analogButton1_.setup("AnalogButton1", Esp32::DEVICE_NAME, ANALOG_BUTTON1_PIN, false);
@@ -76,20 +72,13 @@ public:
         led2_state_ = false;
         led3_state_ = false;
 
-        Serial.println("BasicMode: Setup complete with interrupt configuration.");
+        Serial.println("BasicMode: Setup complete with AceButton.");
     }
 
     void loop() {
-        // Serial.println("BasicModeImpl::loop() executing");
-
-        String btn1_msg = button1_.loop();
-        // Serial.print("btn1_msg: '"); Serial.print(btn1_msg); Serial.println("'");
-
-        String btn2_msg = button2_.loop();
-        // Serial.print("btn2_msg: '"); Serial.print(btn2_msg); Serial.println("'");
-
-        String btn3_msg = button3_.loop();
-        // Serial.print("btn3_msg: '"); Serial.print(btn3_msg); Serial.println("'");
+        button1_.check();
+        button2_.check();
+        button3_.check();
 
         String analog_btn1_msg = analogButton1_.loop();
         String analog_btn2_msg = analogButton2_.loop();
@@ -106,42 +95,6 @@ public:
             deserializeJson(doc, analog_btn2_msg);
             int value = doc["value"];
             Serial.printf("BasicMode: %s event detected. Value: %d, Threshold: %d\n", doc["name"].as<const char*>(), value, analogButton2_.getThreshold());
-        }
-
-        if (!btn1_msg.isEmpty()) {
-            Serial.println("BasicMode: Button 1 event detected by BasicModeImpl");
-            if(isSoundActive) BuzzerModule::beep(SOUND1_FREQ, SOUND1_DUR);
-            led1_state_ = !led1_state_;
-            digitalWrite(LED1_PIN, led1_state_ ? HIGH : LOW);
-            Serial.printf("BasicMode: LED 1 is now %s\n", led1_state_ ? "ON" : "OFF");
-            if (!led1_state_) {
-                if(isSoundActive) BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
-                Serial.println("BasicMode: LED 1 shutdown sound played.");
-            }
-        }
-
-        if (!btn2_msg.isEmpty()) {
-            Serial.println("BasicMode: Button 2 event detected by BasicModeImpl");
-            if(isSoundActive) BuzzerModule::beep(SOUND2_FREQ, SOUND2_DUR);
-            led2_state_ = !led2_state_;
-            digitalWrite(LED2_PIN, led2_state_ ? HIGH : LOW);
-            Serial.printf("BasicMode: LED 2 is now %s\n", led2_state_ ? "ON" : "OFF");
-            if (!led2_state_) {
-                if(isSoundActive)   BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
-                Serial.println("BasicMode: LED 2 shutdown sound played.");
-            }
-        }
-
-        if (!btn3_msg.isEmpty()) {
-            Serial.println("BasicMode: Button 3 event detected by BasicModeImpl");
-            if(isSoundActive) BuzzerModule::beep(SOUND3_FREQ, SOUND3_DUR);
-            led3_state_ = !led3_state_;
-            digitalWrite(LED3_PIN, led3_state_ ? HIGH : LOW);
-            Serial.printf("BasicMode: LED 3 is now %s\n", led3_state_ ? "ON" : "OFF");
-            if (!led3_state_) {
-                if(isSoundActive) BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
-                Serial.println("BasicMode: LED 3 shutdown sound played.");
-            }
         }
     }
 
@@ -161,6 +114,43 @@ public:
     void setSoundEnabled(bool enabled) {
         isSoundActive = enabled;
         Serial.printf("BasicMode: Sound is now %s.\n", isSoundActive ? "enabled" : "disabled");
+    }
+
+    void handleButtonEvent(AceButton* button, uint8_t eventType) {
+        int pin = button->getPin();
+        if (eventType == AceButton::kEventClicked) {
+            if (pin == BUTTON1_PIN) {
+                Serial.println("BasicMode: Button 1 event detected by BasicModeImpl");
+                if(isSoundActive) BuzzerModule::beep(SOUND1_FREQ, SOUND1_DUR);
+                led1_state_ = !led1_state_;
+                digitalWrite(LED1_PIN, led1_state_ ? HIGH : LOW);
+                Serial.printf("BasicMode: LED 1 is now %s\n", led1_state_ ? "ON" : "OFF");
+                if (!led1_state_) {
+                    if(isSoundActive) BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
+                    Serial.println("BasicMode: LED 1 shutdown sound played.");
+                }
+            } else if (pin == BUTTON2_PIN) {
+                Serial.println("BasicMode: Button 2 event detected by BasicModeImpl");
+                if(isSoundActive) BuzzerModule::beep(SOUND2_FREQ, SOUND2_DUR);
+                led2_state_ = !led2_state_;
+                digitalWrite(LED2_PIN, led2_state_ ? HIGH : LOW);
+                Serial.printf("BasicMode: LED 2 is now %s\n", led2_state_ ? "ON" : "OFF");
+                if (!led2_state_) {
+                    if(isSoundActive)   BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
+                    Serial.println("BasicMode: LED 2 shutdown sound played.");
+                }
+            } else if (pin == BUTTON3_PIN) {
+                Serial.println("BasicMode: Button 3 event detected by BasicModeImpl");
+                if(isSoundActive) BuzzerModule::beep(SOUND3_FREQ, SOUND3_DUR);
+                led3_state_ = !led3_state_;
+                digitalWrite(LED3_PIN, led3_state_ ? HIGH : LOW);
+                Serial.printf("BasicMode: LED 3 is now %s\n", led3_state_ ? "ON" : "OFF");
+                if (!led3_state_) {
+                    if(isSoundActive) BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
+                    Serial.println("BasicMode: LED 3 shutdown sound played.");
+                }
+            }
+        }
     }
 
 private:
@@ -195,17 +185,8 @@ private:
 // Global instance DEFINITION
 BasicModeImpl basicMode;
 
-// ISR Wrapper Function DEFINITIONS
-void IRAM_ATTR isr_button1() {
-    basicMode.button1_.handleInterrupt();
-}
-
-void IRAM_ATTR isr_button2() {
-    basicMode.button2_.handleInterrupt();
-}
-
-void IRAM_ATTR isr_button3() {
-    basicMode.button3_.handleInterrupt();
+void handleEvent(AceButton* button, uint8_t eventType, uint8_t buttonState) {
+    basicMode.handleButtonEvent(button, eventType);
 }
 
 } // namespace BasicMode
