@@ -16,17 +16,14 @@ namespace Sensor {
         {
             String msg = "";
  
-            int value = analogRead(pin_id());
-//Serial.println(value);
+            int value = analogRead(pin_id());//Serial.println(value);
            
-            if(value >= lastValue + fluctDetection) {    //   High = darker
-                //msg = message("Increasing: " + String(value));   
+            if(value >= lastValue + fluctDetection) {    //   High = darker  
                 Serial.println("Decreasing: " + String(value)) ; 
                 puckDropped = true;
                 lastValue = value;         
             }
             else if(value <= lastValue - fluctDetection) {
-               // msg = message("Decreasing: " + String(value));  
                 Serial.println("Increasing: " + String(value)) ;  
                 puckDetect = true;
                 lastValue = value;
@@ -52,8 +49,6 @@ namespace Sensor {
                 puckDetect = false;
             }
 
-
-            //msg = String(value);
             return msg;
         }      
 

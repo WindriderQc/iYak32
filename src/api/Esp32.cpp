@@ -335,7 +335,9 @@ namespace Esp32 {
 
         const int EEPROM_SIZE_FOR_APP = 64;
         EEPROM.begin(EEPROM_SIZE_FOR_APP);
-        Serial.println(F("EEPROM Initialized with size for app."));
+        Serial.printf("EEPROM Initialized with size for app: %d bytes\n", EEPROM_SIZE_FOR_APP);
+
+
 
         // Esp32::battery_monitor_pin_ = 35; // Already initialized at definition
 
