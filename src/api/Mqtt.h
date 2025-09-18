@@ -52,8 +52,7 @@ namespace Mqtt
     // Function Declarations
     MqttMsg sliceMqttMsg(char* topic, byte* message, unsigned int length);
     void subscription(String deviceName); // Corrected spelling
-    bool getCredentials(bool isSpiffsMounted);
-    bool setup(String deviceName, String mqttIP, bool isSpiffsMounted, int server_port_param = 1883);
+    bool setup(String deviceName, bool isSpiffsMounted);
     void loop();
     void sendJson(std::vector<String> names, std::vector<String> values, String topic, bool print2console = false); // Old function
 

@@ -3,6 +3,7 @@
 
 #include <ArduinoOTA.h> 
 #include <SPIFFS.h>
+#include <ArduinoJson.h>
 
 //  A data/config.txt file can be created, holding lines of ssid:password to preset a list of prefered network.
 //  Apps will try to connect on user set network first, and then switch to prefered network list if previously unsuccessful
@@ -156,10 +157,6 @@ bool WifiManager::tryConnectToUserNetwork(String ssid, String password)
     return false;
 }
 
-
-
-// Deprecated - Not used in the current implementation    tryConnectToUserNetwork is used instead
-
 bool WifiManager::tryConnectToPreferredNetworks() 
 {
     if (!Esp32::spiffsMounted) {
@@ -167,54 +164,48 @@ bool WifiManager::tryConnectToPreferredNetworks()
         return false;
     }
 
-    File configFile = SPIFFS.open("/config.txt", "r"); // Open the config file for reading   //  TODO : mettre en array dans esp32config.json
-
-    if (!configFile) {    Serial.println("Failed to open config file");    return false;  }
-
-    Serial.println("SPIFFS mounted and config.txt found for SSID and credentials. Reading all entries.");
-
-    preferredSsids_.clear();
-    preferredPasswords_.clear();
-
-    while (configFile.available()) {
-        String line = configFile.readStringUntil('\n');
-        line.trim();
-        int separatorIndex = line.indexOf(':');
-
-        if (separatorIndex != -1) {
-            preferredSsids_.push_back(line.substring(0, separatorIndex));
-            preferredPasswords_.push_back(line.substring(separatorIndex + 1));
-        }
+    File configFile = SPIFFS.open("/esp32config.json", "r");
+    if (!configFile) {
+        Serial.println("Failed to open esp32config.json");
+        return false;
     }
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, configFile);
     configFile.close();
 
-    for (size_t i = 0; i < preferredSsids_.size(); i++) { // Iterate using vector's size
-            const char* ssid = preferredSsids_[i].c_str();
-            const char* password = preferredPasswords_[i].c_str();
+    if (error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.c_str());
+        return false;
+    }
 
-            Serial.print("Attempting to connect to Preferred network: ");
-            Serial.println(ssid);
+    const char* ssid = doc["wifi_ssid"];
+    const char* password = doc["wifi_password"];
 
-            WiFi.begin(ssid, password);
+    if (ssid && password) {
+        Serial.print("Attempting to connect to Preferred network from esp32config.json: ");
+        Serial.println(ssid);
 
-            int timeout = 15; // Wait for connection for 15 seconds
-            while (WiFi.status() != WL_CONNECTED && timeout > 0) {
+        WiFi.begin(ssid, password);
+
+        int timeout = 15; // Wait for connection for 15 seconds
+        while (WiFi.status() != WL_CONNECTED && timeout > 0) {
             delay(1000);
             timeout--;
-            }
+        }
 
-            if (WiFi.status() == WL_CONNECTED) {
-                isWifiConnected_ = true;
-                ssid_ = (char*)ssid;
-                ipAddress_ = WiFi.localIP();
+        if (WiFi.status() == WL_CONNECTED) {
+            isWifiConnected_ = true;
+            ssid_ = ssid;
+            ipAddress_ = WiFi.localIP();
 
-                Serial.print("Connected to ");  Serial.println(ssid);
-                Serial.print("IP address: ");   Serial.println(ipAddress_);
-                //String ipMask = WiFi.subnetMask().toString();
-                    
-            
-                return true;
-            }
+            Serial.print("Connected to ");  Serial.println(ssid);
+            Serial.print("IP address: ");   Serial.println(ipAddress_);
+            return true;
+        }
+    } else {
+        Serial.println("Could not find wifi_ssid or wifi_password in esp32config.json");
     }
 
     Serial.println("Failed to connect to any preferred network");

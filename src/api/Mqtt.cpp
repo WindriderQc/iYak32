@@ -3,8 +3,9 @@
 #include <Arduino.h> // For Serial, String, random, delay, etc.
 #include <WiFi.h>      // For WiFiClient
 #include <PubSubClient.h> // For PubSubClient
-#include <ArduinoJson.h>  // For JsonDocument if used in method bodies (sendJson)
-#include <SPIFFS.h>     // For File, SPIFFS (used in getCredentials)
+#include <ArduinoJson.h>  // For JsonDocument
+#include <SPIFFS.h>     // For File, SPIFFS
+
 // Esp32.h might be needed if Esp32::spiffsMounted was used directly, but it's now passed as a parameter.
 
 // Define Namespace Variables
@@ -73,43 +74,42 @@ namespace Mqtt {
         mqttClient.subscribe(String("esp32/" + deviceName + "/#").c_str());
     }
 
-    bool getCredentials(bool isSpiffsMounted) {
+    bool setup(String deviceName, bool isSpiffsMounted) {
         if (!isSpiffsMounted) {
-            Serial.println(F("Mqtt Error: SPIFFS not mounted. Cannot load MQTT credentials from mqtt.txt."));
+            Serial.println(F("Mqtt Error: SPIFFS not mounted. Cannot load MQTT configuration."));
             return false;
         }
-        File configFile = SPIFFS.open("/mqtt.txt", "r");
-        if (!configFile) {
-            Serial.println("Failed to open mqtt file");
-            return false;
-        }
-        Serial.println("mqtt.txt found for user:password");
-        if(configFile.available()) {
-            String line = configFile.readStringUntil('\n');
-            line.trim();
-            int separatorIndex = line.indexOf(':');
-            if (separatorIndex != -1) {
-                mqttUser = line.substring(0, separatorIndex);
-                mqttPass = line.substring(separatorIndex + 1);
-            }
-            configFile.close(); // Close file
-            return true;
-        }
-        configFile.close(); // Close file
-        return false;
-    }
 
-    bool setup( String deviceName, String mqttIP, bool isSpiffsMounted, int server_port_param) {
-        serverIp = mqttIP;
-        port = server_port_param;
+        File configFile = SPIFFS.open("/esp32config.json", "r");
+        if (!configFile) {
+            Serial.println("Failed to open esp32config.json for MQTT");
+            return false;
+        }
+
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, configFile);
+        configFile.close();
+
+        if (error) {
+            Serial.print(F("deserializeJson() failed for MQTT config: "));
+            Serial.println(error.c_str());
+            return false;
+        }
+
+        serverIp = doc["mqtt_server"].as<String>();
+        port = doc["mqtt_port"].as<int>();
+        mqttUser = doc["mqtt_user"].as<String>();
+        mqttPass = doc["mqtt_pass"].as<String>();
+
+        if (serverIp.isEmpty()) {
+            Serial.println("MQTT server IP is not configured in esp32config.json");
+            return false;
+        }
+
         Serial.print(F("MQTT server IP address retrieved: "));  Serial.println(serverIp);
 
         mqttClient.disconnect();
-        // IPAddress default_ip(0, 0, 0, 0); // Not used
-        if(serverIp == "")  mqttClient.setServer("specialblend.ca", port);
-        else                 mqttClient.setServer(serverIp.c_str(), port);
-
-        getCredentials(isSpiffsMounted) ? Serial.println("MQTT Credentials retreived") : Serial.println("ERROR - could not retreive MQTT credentials in mqtt.txt");
+        mqttClient.setServer(serverIp.c_str(), port);
 
         int i = 0;
         while (!mqttClient.connected()) {
@@ -118,7 +118,7 @@ namespace Mqtt {
             if (mqttClient.connect(clientId.c_str(), mqttUser.c_str(), mqttPass.c_str())) {
                 Serial.println(F("connected"));
                 mqttClient.publish("esp32", String("hello from Esp32 " + deviceName).c_str() );
-                subscription(deviceName); // Corrected spelling
+                subscription(deviceName);
             } else {
                 Serial.print(F("connection failed, rc=")); Serial.print(mqttClient.state());  Serial.println(F(" try again in 5 seconds"));
                 delay(5000);
@@ -218,7 +218,7 @@ namespace Mqtt {
                 Serial.println(json_buffer);
             }
         } else {
-            Mqtt::mqttClient.publish(topic.c_str(), json_buffer, n);
+            Mqtt::mqttClient.publish(topic.c_from_json_stringc_str(), json_buffer, n);
             if (printToConsole) {
                 Serial.print(F("Mqtt: Sent Standard JSON (")); Serial.print(n); Serial.print(F(" bytes) on topic '"));
                 Serial.print(topic); Serial.print(F("': ")); Serial.println(json_buffer);
