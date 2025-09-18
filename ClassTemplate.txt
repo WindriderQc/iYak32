@@ -54,3 +54,41 @@ namespace WebServer
     
 
 }
+
+
+
+
+
+
+// Singleton
+
+#pragma once
+
+#include <EEPROM.h>
+#include "SPIFFS.h"
+
+class StorageManager {
+public:
+    static StorageManager& instance() {
+        static StorageManager _instance;
+        return _instance;
+    }
+
+    void setStartingAddress(int addr) { startingAddress = addr; }
+    int getStartingAddress() const { return startingAddress; }
+
+    void saveIP(IPAddress ip);
+    IPAddress loadIP();
+
+private:
+    int startingAddress = 0;
+
+    StorageManager() = default;
+    StorageManager(const StorageManager&) = delete;
+    void operator=(const StorageManager&) = delete;
+};
+
+
+// usage:
+StorageManager::instance().setStartingAddress(10);
+StorageManager::instance().saveIP(WiFi.localIP());

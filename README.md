@@ -164,3 +164,29 @@ Upcoming intentions:
 - Add directions and speed control from webInterface
 - Autolock button on webInterface to Use cellphone GPS via the Javascript within the webServer to send auto command to motor to stay in position 
 - Add SEALEVELPRESSURE_HPA variable on webInterface to allow for proper altitude detection.  Possibly get it from meteorological API if internet access is available otherwise fall back on manual entry
+
+
+
+
+data/esp32config.json
+{
+  "profileName": "default_ESP32",
+  
+  "wifi_ssid": "SSID",
+  "wifi_password": "Password",
+  
+  "isMqtt": true,
+  "mqtt_server": "mqtt.yourserver.com",
+  "mqtt_port": 1883,
+  "mqtt_user": "user",
+  "mqtt_pass": "pass",
+  "mqttDataIntervalSec": 5,
+  
+  "gmtOffset_sec": -18000,
+  "daylightOffset_sec": 3600,
+  
+  "isConfigFromServer": true,
+  
+  "buzzer_enabled": true,
+  "buzzer_pin": 14
+}

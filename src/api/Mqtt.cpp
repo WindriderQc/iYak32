@@ -218,7 +218,7 @@ namespace Mqtt {
                 Serial.println(json_buffer);
             }
         } else {
-            Mqtt::mqttClient.publish(topic.c_from_json_stringc_str(), json_buffer, n);
+            Mqtt::mqttClient.publish(topic.c_str(), json_buffer, n);
             if (printToConsole) {
                 Serial.print(F("Mqtt: Sent Standard JSON (")); Serial.print(n); Serial.print(F(" bytes) on topic '"));
                 Serial.print(topic); Serial.print(F("': ")); Serial.println(json_buffer);

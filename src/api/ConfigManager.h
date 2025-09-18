@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ArduinoJson.h>
-#include <String.h>
+
 
 class ConfigManager {
 public:

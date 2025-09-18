@@ -241,7 +241,7 @@ namespace Esp32 {
 
         if(Mqtt::isEnabled) {
             Mqtt::mqttClient.setCallback(mqttIncoming);
-            if (!Mqtt::setup(DEVICE_NAME, mqtturl, Esp32::spiffsMounted, Mqtt::port)) Serial.print("Mqtt setup fail\n\n");
+            if (!Mqtt::setup(DEVICE_NAME, Esp32::spiffsMounted))Serial.print("Mqtt setup fail\n\n");
             else Serial.print("Mqtt setup completed\n\n");
         }
     }
@@ -256,7 +256,7 @@ namespace Esp32 {
             Serial.print("esp32Config file "); Serial.print(name); Serial.println(" not found; using system defaults.");
             return false;
         } else {
-            Serial.print("Loading preferences from file ");
+            Serial.print(F("\n\nLoading preferences from file "));
             Serial.println(Esp32::CONFIG_FILENAME);
             String file_content = Storage::readFile(Esp32::CONFIG_FILENAME);
             // int config_file_size = file_content.length(); // Already available in Storage::readFile if needed

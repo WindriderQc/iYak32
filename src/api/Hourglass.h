@@ -93,7 +93,7 @@
                 Serial.print(h); printDigits(m); printDigits(s); Serial.print(" "); 
                 Serial.print(yy); Serial.print("-"); Serial.print(mm); Serial.print("-"); Serial.print(dd); Serial.println();
             }
-            /*void digitalClockDisplay()  //  displaying time sync'ed in timelib
+            /*void digitalClockDisplay()  //  displaying time sync'ed in timelib     TODO :  not used..   parce que le hou() minute() second() ne marche pas?
             {
                 Serial.print(hour()); printDigits(minute()); printDigits(second()); Serial.print(" ");
                 Serial.print(year()); Serial.print("-"); Serial.print(month()); Serial.print("-"); Serial.print(day()); Serial.println();
