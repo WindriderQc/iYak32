@@ -1,0 +1,216 @@
+Processing esp32dev (platform: espressif32; board: featheresp32; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/featheresp32.html
+PLATFORM: Espressif 32 (6.12.0) > Adafruit ESP32 Feather
+HARDWARE: ESP32 240MHz, 320KB RAM, 4MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-xtensa-esp32 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 46 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- ESP32_Servo @ 1.0.0+sha.a337bc6
+|-- PubSubClient @ 2.8.0+sha.2d228f2
+|-- ArduinoJson @ 7.4.2+sha.539b66f
+|-- ESPAsyncWebServer @ 3.6.0+sha.ad3741d
+|-- TM1637 @ 0.0.0-alpha+sha.9486982048
+|-- Adafruit GFX Library @ 1.12.1
+|-- Adafruit SSD1306 @ 2.5.15
+|-- Adafruit BME280 Library @ 2.3.0
+|-- Adafruit BMP280 Library @ 2.6.8
+|-- AceButton @ 1.10.1
+|-- Adafruit Unified Sensor @ 1.1.15
+|-- Adafruit BusIO @ 1.17.2
+|-- SPIFFS @ 2.0.0
+|-- Wire @ 2.0.0
+|-- WiFi @ 2.0.0
+|-- ArduinoOTA @ 2.0.0
+|-- EEPROM @ 2.0.0
+|-- ESPmDNS @ 2.0.0
+|-- HTTPClient @ 2.0.0
+Building in release mode
+Compiling .pio/build/esp32dev/src/api/ConfigManager.cpp.o
+Compiling .pio/build/esp32dev/src/api/Esp32.cpp.o
+Compiling .pio/build/esp32dev/src/api/Mqtt.cpp.o
+Compiling .pio/build/esp32dev/src/api/WifiManager.cpp.o
+In file included from src/api/ConfigManager.cpp:1:
+src/api/ConfigManager.h:4:10: fatal error: String.h: No such file or directory
+
+****************************************************************
+* Looking for String.h dependency? Check our library registry!
+*
+* CLI  > platformio lib search "header:String.h"
+* Web  > https://registry.platformio.org/search?q=header:String.h
+*
+****************************************************************
+
+ #include <String.h>
+          ^~~~~~~~~~
+compilation terminated.
+*** [.pio/build/esp32dev/src/api/ConfigManager.cpp.o] Error 1
+In file included from src/api/Esp32.h:7,
+                 from src/api/Esp32.cpp:1:
+src/api/ConfigManager.h:4:10: fatal error: String.h: No such file or directory
+
+****************************************************************
+* Looking for String.h dependency? Check our library registry!
+*
+* CLI  > platformio lib search "header:String.h"
+* Web  > https://registry.platformio.org/search?q=header:String.h
+*
+****************************************************************
+
+ #include <String.h>
+          ^~~~~~~~~~
+compilation terminated.
+*** [.pio/build/esp32dev/src/api/Esp32.cpp.o] Error 1
+In file included from src/api/Esp32.h:7,
+                 from src/api/Mqtt.cpp:2:
+src/api/ConfigManager.h:4:10: fatal error: String.h: No such file or directory
+
+****************************************************************
+* Looking for String.h dependency? Check our library registry!
+*
+* CLI  > platformio lib search "header:String.h"
+* Web  > https://registry.platformio.org/search?q=header:String.h
+*
+****************************************************************
+
+ #include <String.h>
+          ^~~~~~~~~~
+compilation terminated.
+*** [.pio/build/esp32dev/src/api/Mqtt.cpp.o] Error 1
+In file included from src/api/Esp32.h:7,
+                 from src/api/WifiManager.cpp:2:
+src/api/ConfigManager.h:4:10: fatal error: String.h: No such file or directory
+
+****************************************************************
+* Looking for String.h dependency? Check our library registry!
+*
+* CLI  > platformio lib search "header:String.h"
+* Web  > https://registry.platformio.org/search?q=header:String.h
+*
+****************************************************************
+
+ #include <String.h>
+          ^~~~~~~~~~
+compilation terminated.
+*** [.pio/build/esp32dev/src/api/WifiManager.cpp.o] Error 1
+========================== [FAILED] Took 4.51 seconds ==========================
+
+Processing OTA (platform: espressif32; board: featheresp32; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/featheresp32.html
+PLATFORM: Espressif 32 (6.12.0) > Adafruit ESP32 Feather
+HARDWARE: ESP32 240MHz, 320KB RAM, 4MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - tool-openocd-esp32 @ 2.1100.20220706 (11.0)
+ - toolchain-xtensa-esp32 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 46 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- ESP32_Servo @ 1.0.0+sha.a337bc6
+|-- PubSubClient @ 2.8.0+sha.2d228f2
+|-- ArduinoJson @ 7.4.2+sha.539b66f
+|-- ESPAsyncWebServer @ 3.6.0+sha.ad3741d
+|-- TM1637 @ 0.0.0-alpha+sha.9486982048
+|-- Adafruit GFX Library @ 1.12.1
+|-- Adafruit SSD1306 @ 2.5.15
+|-- Adafruit BME280 Library @ 2.3.0
+|-- Adafruit BMP280 Library @ 2.6.8
+|-- AceButton @ 1.10.1
+|-- Adafruit Unified Sensor @ 1.1.15
+|-- Adafruit BusIO @ 1.17.2
+|-- SPIFFS @ 2.0.0
+|-- Wire @ 2.0.0
+|-- WiFi @ 2.0.0
+|-- ArduinoOTA @ 2.0.0
+|-- EEPROM @ 2.0.0
+|-- ESPmDNS @ 2.0.0
+|-- HTTPClient @ 2.0.0
+Building in release mode
+Compiling .pio/build/OTA/src/api/ConfigManager.cpp.o
+Compiling .pio/build/OTA/src/api/Esp32.cpp.o
+Compiling .pio/build/OTA/src/api/Mqtt.cpp.o
+Compiling .pio/build/OTA/src/api/WifiManager.cpp.o
+In file included from src/api/ConfigManager.cpp:1:
+src/api/ConfigManager.h:4:10: fatal error: String.h: No such file or directory
+
+****************************************************************
+* Looking for String.h dependency? Check our library registry!
+*
+* CLI  > platformio lib search "header:String.h"
+* Web  > https://registry.platformio.org/search?q=header:String.h
+*
+****************************************************************
+
+ #include <String.h>
+          ^~~~~~~~~~
+compilation terminated.
+*** [.pio/build/OTA/src/api/ConfigManager.cpp.o] Error 1
+In file included from src/api/Esp32.h:7,
+                 from src/api/Esp32.cpp:1:
+src/api/ConfigManager.h:4:10: fatal error: String.h: No such file or directory
+
+****************************************************************
+* Looking for String.h dependency? Check our library registry!
+*
+* CLI  > platformio lib search "header:String.h"
+* Web  > https://registry.platformio.org/search?q=header:String.h
+*
+****************************************************************
+
+ #include <String.h>
+          ^~~~~~~~~~
+compilation terminated.
+*** [.pio/build/OTA/src/api/Esp32.cpp.o] Error 1
+In file included from src/api/Esp32.h:7,
+                 from src/api/Mqtt.cpp:2:
+src/api/ConfigManager.h:4:10: fatal error: String.h: No such file or directory
+
+****************************************************************
+* Looking for String.h dependency? Check our library registry!
+*
+* CLI  > platformio lib search "header:String.h"
+* Web  > https://registry.platformio.org/search?q=header:String.h
+*
+****************************************************************
+
+ #include <String.h>
+          ^~~~~~~~~~
+compilation terminated.
+*** [.pio/build/OTA/src/api/Mqtt.cpp.o] Error 1
+In file included from src/api/Esp32.h:7,
+                 from src/api/WifiManager.cpp:2:
+src/api/ConfigManager.h:4:10: fatal error: String.h: No such file or directory
+
+****************************************************************
+* Looking for String.h dependency? Check our library registry!
+*
+* CLI  > platformio lib search "header:String.h"
+* Web  > https://registry.platformio.org/search?q=header:String.h
+*
+****************************************************************
+
+ #include <String.h>
+          ^~~~~~~~~~
+compilation terminated.
+*** [.pio/build/OTA/src/api/WifiManager.cpp.o] Error 1
+========================== [FAILED] Took 3.56 seconds ==========================
+
+Environment    Status    Duration
+-------------  --------  ------------
+esp32dev       FAILED    00:00:04.513
+OTA            FAILED    00:00:03.557
+==================== 2 failed, 0 succeeded in 00:00:08.070 ====================
