@@ -1,0 +1,19 @@
+{
+  "isMqtt": true,
+  "isConfigFromServer": false,
+  "ssid": "YOUR_WIFI_SSID",
+  "pass": "YOUR_WIFI_PASSWORD",
+  "ap_password": "",
+  "mqtturl": "mqtt.example.com",
+  "mqttport": 1883,
+  "mqttuser": "",
+  "mqttpass": "",
+  "mqttDataIntervalSec": 5,
+  "gmtOffset_sec": -18000,
+  "daylightOffset_sec": 3600,
+  "buzzer_enabled": false,
+  "buzzer_pin": -1,
+  "battery_divider_ratio": 2.0,
+  "battery_calibration_factor": 1.0,
+  "tides_api_key": ""
+}

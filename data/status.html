@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Status</title>
+    <link rel="stylesheet" type="text/css" href="esp32.css">
+    <script src="components/topMenu.js" type="text/javascript" defer></script>
+    <script src="components/footer.js" type="text/javascript" defer></script>
+</head>
+<body>
+    <header-component></header-component>
+
+    <h1>System Status</h1>
+
+    <div class="status-grid">
+        <div class="status-card">
+            <div class="card-label">CPU Temperature</div>
+            <div class="card-value" id="cpuTemp">--</div>
+            <div class="card-unit">&deg;C</div>
+        </div>
+        <div class="status-card">
+            <div class="card-label">Free RAM</div>
+            <div class="card-value" id="freeHeap">--</div>
+            <div class="card-unit">KB</div>
+        </div>
+        <div class="status-card">
+            <div class="card-label">WiFi Signal</div>
+            <div class="card-value" id="wifiRssi">--</div>
+            <div class="card-unit">dBm</div>
+        </div>
+        <div class="status-card">
+            <div class="card-label">MQTT</div>
+            <div class="card-value" id="mqttState">--</div>
+            <div class="card-unit" id="mqttDetail">&nbsp;</div>
+        </div>
+        <div class="status-card">
+            <div class="card-label">Battery</div>
+            <div class="card-value" id="battery">--</div>
+            <div class="card-unit">V</div>
+        </div>
+        <div class="status-card">
+            <div class="card-label">Uptime</div>
+            <div class="card-value" id="uptime">--</div>
+            <div class="card-unit" id="uptimeUnit">&nbsp;</div>
+        </div>
+        <div class="status-card">
+            <div class="card-label">CPU Frequency</div>
+            <div class="card-value" id="cpuFreq">--</div>
+            <div class="card-unit">MHz</div>
+        </div>
+        <div class="status-card">
+            <div class="card-label">Device Time</div>
+            <div class="card-value" id="devTime" style="font-size:1.1rem">--</div>
+            <div class="card-unit" id="devName">&nbsp;</div>
+        </div>
+    </div>
+
+    <script>
+    function formatUptime(sec) {
+        if (sec < 60) return { val: sec, unit: 'sec' };
+        if (sec < 3600) return { val: Math.floor(sec/60), unit: 'min' };
+        const h = Math.floor(sec/3600);
+        const m = Math.floor((sec%%3600)/60);
+        return { val: h + 'h ' + m + 'm', unit: '' };
+    }
+
+    const mqttColors = { connected:'var(--accent-success)', connecting:'var(--accent-warning)', backoff:'var(--accent-warning)', disconnected:'var(--accent-danger)', disabled:'var(--text-secondary)' };
+
+    async function fetchStatus() {
+        try {
+            const r = await fetch('/api/status');
+            const d = await r.json();
+            document.getElementById('cpuTemp').textContent = d.cpu_temp?.toFixed(1) ?? '--';
+            document.getElementById('freeHeap').textContent = d.free_heap ? Math.round(d.free_heap/1024) : '--';
+            document.getElementById('wifiRssi').textContent = d.wifi_rssi ?? '--';
+            document.getElementById('mqttState').textContent = d.mqtt_state ?? '--';
+            document.getElementById('mqttState').style.color = mqttColors[d.mqtt_state] || '';
+            document.getElementById('mqttDetail').textContent = d.mqtt_enabled ? '' : 'disabled';
+            document.getElementById('battery').textContent = d.battery?.toFixed(2) ?? '--';
+            const up = formatUptime(d.uptime || 0);
+            document.getElementById('uptime').textContent = up.val;
+            document.getElementById('uptimeUnit').textContent = up.unit;
+            document.getElementById('cpuFreq').textContent = d.cpu_freq ?? '--';
+            document.getElementById('devTime').textContent = d.time || '--';
+            document.getElementById('devName').textContent = d.device_name || '';
+        } catch(e) { console.error('Status fetch error:', e); }
+    }
+
+    fetchStatus();
+    setInterval(fetchStatus, 2000);
+    </script>
+
+    <footer-component></footer-component>
+</body>
+</html>

@@ -1,72 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ESP32 Boat Server</title>
-  <link rel="icon" type="image/png" href="../favicon.ico">
-  <!-- Include p5.js library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
-  
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" type="text/css" href="../colors.css">
-  <link rel="stylesheet" type="text/css" href="../esp32.css">
-  <link rel="stylesheet" type="text/css" href="../utilities.css">
-  
-  <script src="../components/topMenu.js" type="text/javascript" defer></script>
-  <script src="../components/footer.js" type="text/javascript" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iYak32 Boat</title>
+    <link rel="stylesheet" type="text/css" href="../colors.css">
+    <link rel="stylesheet" type="text/css" href="../esp32.css">
+    <link rel="stylesheet" type="text/css" href="../utilities.css">
+    <script src="../components/topMenu.js" type="text/javascript" defer></script>
+    <script src="../components/footer.js" type="text/javascript" defer></script>
 </head>
-<body class='bg-transparent sticky-footer' id='page-top'>  
-    
-    <header-component>Header</header-component>
+<body>
+    <header-component></header-component>
 
-  <!-- The display frame div -->
-  <div id="canvasBack"></div> 
-    <div class='content-wrapper bg-transparent'>
+    <div class="content-center" style="max-width:600px;">
 
+    <h1>Boat Dashboard</h1>
 
-    <div class='container-fluid text-center '>  
+    <p>Current Time: %TIME%</p>
 
+    <div class="info-form">
+        <div class="info-row">
+            <label class="info-label">Latitude:</label>
+            <span class="info-data">%LAT%&deg;</span>
+        </div>
+        <div class="info-row">
+            <label class="info-label">Longitude:</label>
+            <span class="info-data">%LON%&deg;</span>
+        </div>
+    </div>
 
+    <div class="card" style="margin:20px 0; text-align:left; padding:20px;">
+        <h3>Weather</h3>
+        <p>Temperature: <strong style="color:var(--text-accent)">%TEMP%</strong></p>
+        <p>Pressure: <strong style="color:var(--text-accent)">%PRESSION% hPa</strong></p>
 
-  <h1>ESP32 Boat Server</h1>
-</br>
- <p>Current Time   --   %TIME% </p>
- 
-  <p>
-    latitude: <span id="latitude"> %LON% </span>&deg;<br />
-    longitude: <span id="longitude"> %LAT% </span>&deg;
-  </p>
- </br>
+        <h3>Boat Stats</h3>
+        <p>Speed: <strong style="color:var(--text-accent)">%SPEED%</strong></p>
+        <p>Direction: <strong style="color:var(--text-accent)">%DIR%&deg;</strong></p>
 
+        <div style="text-align:center; margin-top:16px;">
+            <a href="/speedUp"><button type="button" class="btn bigButton">Speed Up</button></a>
+            <a href="/slowDown"><button type="button" class="btn bigButton red">Slow Down</button></a>
+        </div>
+    </div>
 
+    <p>GPIO state: <strong>%STATE%</strong></p>
+    <p>
+        <a href="/on"><button type="button" class="btn bigButton">ON</button></a>
+        <a href="/off"><button type="button" class="btn bigButton red">OFF</button></a>
+    </p>
 
-  <form class = 'card px-3'>
-    <h3>Weather</h3>
-    <p>Temperature: <strong> %TEMP%</strong></p>
-    <p>Pression: <strong> %PRESSION%</strong></p>
-    <h3>Boat Stats</h3>
-    <p>Speed: <strong> %SPEED%</strong></p>
-    <p>Direction: <strong> %DIR%</strong></p>
-    <p><a href="/speedUp"><button class="button button2">Speed Up</button></a></p>
-    <p><a href="/slowDown"><button class="button ">Slow Down</button></a></p>
- </form>
+    </div>
 
-  <p>GPIO state: <strong> %STATE%</strong></p>
-  <p>
-    <a href="/on"><button class="button">ON</button></a>
-    <a href="/off"><button class="button button2">OFF</button></a>
-  </p>
-  </br></br><p></p></br>
-
- 
-
-
-  </div>
-  </div>
-
-
-<footer-component></footer-component>
-
+    <footer-component></footer-component>
 </body>
 </html>

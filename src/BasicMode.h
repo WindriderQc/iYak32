@@ -116,6 +116,15 @@ public:
         Serial.printf("BasicMode: Sound is now %s.\n", isSoundActive ? "enabled" : "disabled");
     }
 
+    void setAnalogThreshold1(int t) {
+        analogButton1_.setThreshold(t);
+        Serial.printf("BasicMode: Analog threshold 1 set to %d\n", t);
+    }
+    void setAnalogThreshold2(int t) {
+        analogButton2_.setThreshold(t);
+        Serial.printf("BasicMode: Analog threshold 2 set to %d\n", t);
+    }
+
     void handleButtonEvent(AceButton* button, uint8_t eventType) {
         int pin = button->getPin();
         if (eventType == AceButton::kEventClicked) {

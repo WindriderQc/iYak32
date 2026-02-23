@@ -3,76 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 Web Server</title>
-    <link rel="icon" type="image/png" href="favicon.ico">
-    
-    
+    <title>iYak32 Dashboard</title>
     <link rel="stylesheet" type="text/css" href="esp32.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="colors.css">
-    
-    <link rel="stylesheet" type="text/css" href="utilities.css">
-    
     <script src="components/topMenu.js" type="text/javascript" defer></script>
     <script src="components/footer.js" type="text/javascript" defer></script>
 </head>
-<body>  
+<body>
     <header-component></header-component>
 
-   
+    <h1>iYak32 Dashboard</h1>
 
-  <h1>ESP32 Web Server</h1>
+    <p>GPIO state: <strong id="gpioState">%STATE%</strong></p>
+    <p>
+        <a href="/on"><button class="btn bigButton" type="button">ON</button></a>
+        <a href="/off"><button class="btn bigButton red" type="button">OFF</button></a>
+    </p>
 
-
-  <p>GPIO state: <strong> %STATE%</strong></p>
-  <p>
-    <a href="/on"><button class="btn bigButton ">ON</button></a>
-    <a href="/off"><button class="btn bigButton red">OFF</button></a>
-  </p>
-  </br></br>
-
-
-<div class="gridContainer">
-    <div ></div>
-    <div >
- 
-
-        <form class="info-form card-4 ">
+    <div class="content-center">
+        <form class="info-form card-4">
             <div class="info-row">
-                <label class="info-label">Current Time:</label><span class="info-data">%TIME%</span>
+                <label class="info-label">Current Time:</label>
+                <span class="info-data" id="dTime">%TIME%</span>
             </div>
             <div class="info-row">
-                <label class="info-label">CPU Temp:</label> <span class="info-data">%TEMP%</span>
-            </div>
-            <br>
-            <div class="info-row">
-                <label class="info-label">Longitude:</label> <span class="info-data">%LON% &deg;</span>
+                <label class="info-label">CPU Temp:</label>
+                <span class="info-data" id="dCpuTemp">%TEMP%</span>
             </div>
             <div class="info-row">
-                <label class="info-label">Latitude:</label><span class="info-data">%LAT% &deg;</span>
+                <label class="info-label">WiFi:</label>
+                <span class="info-data" id="dWifi">--</span>
+            </div>
+            <div class="info-row">
+                <label class="info-label">MQTT:</label>
+                <span class="info-data" id="dMqtt">--</span>
             </div>
         </form>
 
-
-    </div>
-</div>
-
-
-  <div class="gridContainer">
-    <div ></div>
-    <div >
-        <form class = 'info-form card-4 text-indigo '>
+        <form class="info-form card-4">
             <h3>Weather</h3>
-           
             <div class="info-row">
-                <label class="info-label">Pression:</label> <span class="info-data">%PRESSION%</span>
+                <label class="info-label">Pressure:</label>
+                <span class="info-data" id="dPressure">%PRESSION% hPa</span>
             </div>
-
-           
+            <div class="info-row">
+                <label class="info-label">Temperature:</label>
+                <span class="info-data" id="dBmxTemp">--</span>
+            </div>
         </form>
     </div>
-</div>
 
-  <footer-component></footer-component>
+    <script>
+    async function refreshDashboard() {
+        try {
+            const r = await fetch('/api/status');
+            const d = await r.json();
+            document.getElementById('dTime').textContent = d.time || '--';
+            document.getElementById('dCpuTemp').textContent = (d.cpu_temp?.toFixed(1) || '--') + ' C';
+            document.getElementById('dWifi').textContent = (d.wifi_ssid || 'N/A') + ' (' + (d.wifi_rssi || '--') + ' dBm)';
+            document.getElementById('dMqtt').textContent = d.mqtt_state || '--';
+            if (d.bmx_pressure) document.getElementById('dPressure').textContent = d.bmx_pressure.toFixed(1) + ' hPa';
+            if (d.bmx_temp) document.getElementById('dBmxTemp').textContent = d.bmx_temp.toFixed(1) + ' C';
+        } catch(e) { /* keep server-rendered values on error */ }
+    }
+    refreshDashboard();
+    setInterval(refreshDashboard, 5000);
+    </script>
+
+    <footer-component></footer-component>
 </body>
 </html>

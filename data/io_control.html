@@ -3,66 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 I/O Control</title>
-    <link rel="icon" type="image/png" href="favicon.ico">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <title>iYak32 I/O Control</title>
     <link rel="stylesheet" type="text/css" href="colors.css">
     <link rel="stylesheet" type="text/css" href="esp32.css">
     <link rel="stylesheet" type="text/css" href="utilities.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="components/topMenu.js" type="text/javascript" defer></script>
     <script src="components/footer.js" type="text/javascript" defer></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
-        .container { padding: 20px; max-width: 1000px; margin: auto; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1, h2 { color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
-        th { background-color: #f0f0f0; }
-        select, input[type="text"], button { padding: 8px; margin-right: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        button { background-color: #007bff; color: white; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        .status-banner { padding: 10px; margin-bottom: 20px; border-radius: 4px; }
-        .status-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .status-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
-        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19); border-radius: 5px; }
-        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
-        .close-button:hover, .close-button:focus { color: black; text-decoration: none; cursor: pointer; }
-        #ioPinChart { max-width: 100%; margin-top: 20px; }
-        .action-buttons button { margin: 5px; }
-    </style>
 </head>
 <body>
     <header-component></header-component>
 
-    <div class="container">
-        <h1>ESP32 I/O Control</h1>
-        <div id="statusMessageBanner" class="status-banner" style="display:none;"></div>
+    <div class="io-container">
+        <h1>I/O Control</h1>
+        <div id="statusMessageBanner" class="status-banner"></div>
 
         <div class="action-buttons">
-            <button id="refreshStatusBtn"><i class="fas fa-sync-alt"></i> Refresh Status</button>
-            <button id="saveConfigBtn"><i class="fas fa-save"></i> Save Configuration</button>
-            <button id="viewExportJsonBtn"><i class="fas fa-code"></i> View/Export JSON</button>
-            <!-- <button id="loadConfigBtn"><i class="fas fa-upload"></i> Load Config from ESP</button> -->
+            <button id="refreshStatusBtn">&#x21BB; Refresh Status</button>
+            <button id="saveConfigBtn">&#x1F4BE; Save Configuration</button>
+            <button id="viewExportJsonBtn">&#x2699; View/Export JSON</button>
         </div>
 
-        <table id="io-table">
-            <thead>
-                <tr>
-                    <th>GPIO</th>
-                    <th>Label</th>
-                    <th>Mode</th>
-                    <th>Analog</th>
-                    <th>State</th>
-                    <th>Value</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="ioPinTableBody">
-                <!-- Rows will be inserted by JavaScript -->
-            </tbody>
-        </table>
+        <div id="ioQuickStats" class="io-quick-stats"></div>
+
+        <div class="io-toolbar">
+            <input id="pinSearchInput" type="text" placeholder="Search GPIO or label">
+            <select id="modeFilterSelect">
+                <option value="ALL">All Modes</option>
+                <option value="OUTPUT">Output</option>
+                <option value="INPUTS">Input Family</option>
+                <option value="ANALOG">Analog Only</option>
+            </select>
+            <select id="sortRowsSelect">
+                <option value="GPIO_ASC">Sort: GPIO ↑</option>
+                <option value="GPIO_DESC">Sort: GPIO ↓</option>
+                <option value="LABEL_ASC">Sort: Label A→Z</option>
+                <option value="DIRTY_FIRST">Sort: Dirty first</option>
+            </select>
+            <label class="inline io-toolbar-check">
+                <input id="configuredOnlyCheckbox" type="checkbox">
+                Configured only
+            </label>
+            <label class="inline io-toolbar-check">
+                <input id="dirtyOnlyCheckbox" type="checkbox">
+                Unsaved only
+            </label>
+            <label class="inline io-toolbar-check">
+                <input id="compactViewCheckbox" type="checkbox">
+                Compact view
+            </label>
+            <button id="resetFiltersBtn" type="button">Reset Filters</button>
+        </div>
+
+        <div id="ioInsightsPanel" class="io-insights"></div>
+
+        <div id="ioTableWrapper" class="io-table-wrapper">
+            <table id="io-table">
+                <thead>
+                    <tr>
+                        <th>GPIO</th>
+                        <th>Label</th>
+                        <th>Mode</th>
+                        <th>Analog</th>
+                        <th>State</th>
+                        <th>Value</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ioPinTableBody">
+                </tbody>
+            </table>
+        </div>
 
         <h2>Pin Value Chart</h2>
         <canvas id="ioPinChart"></canvas>
@@ -73,6 +84,7 @@
                 <span class="close-button" onclick="document.getElementById('jsonConfigModal').style.display='none'">&times;</span>
                 <h2>Current I/O Configuration (JSON)</h2>
                 <textarea id="jsonConfigTextarea" style="width: 98%; height: 200px;" readonly></textarea>
+                <br><br>
                 <button onclick="navigator.clipboard.writeText(document.getElementById('jsonConfigTextarea').value)">Copy to Clipboard</button>
             </div>
         </div>
@@ -83,36 +95,279 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const AVAILABLE_GPIOS = [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33, 34, 35, 36, 39];
-            const INPUT_ONLY_GPIOS = [34, 35, 36, 39]; // ESP32 specific input-only pins
+            const INPUT_ONLY_GPIOS = [34, 35, 36, 39];
+            const ADC_CAPABLE_PINS = [0, 2, 4, 12, 13, 14, 15, 25, 26, 27, 32, 33, 34, 35, 36, 39];
             const tableBody = document.getElementById('ioPinTableBody');
             const statusBanner = document.getElementById('statusMessageBanner');
             const refreshStatusBtn = document.getElementById('refreshStatusBtn');
             const saveConfigBtn = document.getElementById('saveConfigBtn');
             const viewExportJsonBtn = document.getElementById('viewExportJsonBtn');
+            const ioQuickStats = document.getElementById('ioQuickStats');
+            const pinSearchInput = document.getElementById('pinSearchInput');
+            const modeFilterSelect = document.getElementById('modeFilterSelect');
+            const sortRowsSelect = document.getElementById('sortRowsSelect');
+            const configuredOnlyCheckbox = document.getElementById('configuredOnlyCheckbox');
+            const dirtyOnlyCheckbox = document.getElementById('dirtyOnlyCheckbox');
+            const compactViewCheckbox = document.getElementById('compactViewCheckbox');
+            const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+            const ioTableWrapper = document.getElementById('ioTableWrapper');
+            const ioInsightsPanel = document.getElementById('ioInsightsPanel');
             const jsonConfigModal = document.getElementById('jsonConfigModal');
             const jsonConfigTextarea = document.getElementById('jsonConfigTextarea');
             const chartCanvas = document.getElementById('ioPinChart');
+            const IO_TOOLBAR_STATE_KEY = 'iyak32_io_toolbar_state_v1';
             let ioPinChart = null;
-            let currentPinConfig = []; // To store the pin configuration {gpio, mode, label, isAnalog, state, value}
+            let currentPinConfig = [];
+            let statusBannerTimeout = null;
+            let isBusy = false;
+            let searchDebounceTimer = null;
+            let lastStatusRefresh = null;
 
-            function displayStatusMessage(message, isSuccess) {
+            function displayStatusMessage(message, type = 'success') {
+                if (statusBannerTimeout) {
+                    clearTimeout(statusBannerTimeout);
+                    statusBannerTimeout = null;
+                }
                 statusBanner.textContent = message;
-                statusBanner.className = 'status-banner ' + (isSuccess ? 'status-success' : 'status-error');
+                statusBanner.className = `status-banner status-${type}`;
                 statusBanner.style.display = 'block';
-                setTimeout(() => { statusBanner.style.display = 'none'; }, 5000);
+                statusBannerTimeout = setTimeout(() => { statusBanner.style.display = 'none'; }, 4500);
+            }
+
+            function setControlsBusy(nextBusy) {
+                isBusy = nextBusy;
+                refreshStatusBtn.disabled = nextBusy;
+                saveConfigBtn.disabled = nextBusy;
+                viewExportJsonBtn.disabled = nextBusy;
+                pinSearchInput.disabled = nextBusy;
+                modeFilterSelect.disabled = nextBusy;
+                sortRowsSelect.disabled = nextBusy;
+                configuredOnlyCheckbox.disabled = nextBusy;
+                dirtyOnlyCheckbox.disabled = nextBusy;
+                compactViewCheckbox.disabled = nextBusy;
+                resetFiltersBtn.disabled = nextBusy;
+                tableBody.querySelectorAll('button.pin-action-toggle').forEach(button => {
+                    button.disabled = nextBusy;
+                });
+            }
+
+            function saveToolbarState() {
+                const state = {
+                    search: pinSearchInput.value,
+                    mode: modeFilterSelect.value,
+                    sort: sortRowsSelect.value,
+                    configuredOnly: configuredOnlyCheckbox.checked,
+                    dirtyOnly: dirtyOnlyCheckbox.checked,
+                    compact: compactViewCheckbox.checked
+                };
+                localStorage.setItem(IO_TOOLBAR_STATE_KEY, JSON.stringify(state));
+            }
+
+            function loadToolbarState() {
+                const rawState = localStorage.getItem(IO_TOOLBAR_STATE_KEY);
+                if (!rawState) return;
+                try {
+                    const state = JSON.parse(rawState);
+                    pinSearchInput.value = state.search || '';
+                    modeFilterSelect.value = state.mode || 'ALL';
+                    sortRowsSelect.value = state.sort || 'GPIO_ASC';
+                    configuredOnlyCheckbox.checked = Boolean(state.configuredOnly);
+                    dirtyOnlyCheckbox.checked = Boolean(state.dirtyOnly);
+                    compactViewCheckbox.checked = Boolean(state.compact);
+                } catch (error) {
+                    localStorage.removeItem(IO_TOOLBAR_STATE_KEY);
+                }
+            }
+
+            function resetFilters() {
+                pinSearchInput.value = '';
+                modeFilterSelect.value = 'ALL';
+                sortRowsSelect.value = 'GPIO_ASC';
+                configuredOnlyCheckbox.checked = false;
+                dirtyOnlyCheckbox.checked = false;
+                compactViewCheckbox.checked = false;
+                applyCompactView();
+                applyRowFilters();
+                saveToolbarState();
+            }
+
+            async function parseJsonResponse(response) {
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    const rawText = await response.text();
+                    return { status: 'error', message: rawText || `HTTP ${response.status}` };
+                }
+                return response.json();
+            }
+
+            function updateQuickStats() {
+                const rows = Array.from(tableBody.querySelectorAll('tr'));
+                const configuredCount = rows.filter(row => row.dataset.configured === '1').length;
+                const outputCount = rows.filter(row => row.querySelector('.pin-mode-select')?.value === 'OUTPUT').length;
+                const analogCount = rows.filter(row => row.querySelector('.pin-analog-checkbox')?.checked).length;
+                const dirtyCount = rows.filter(row => row.dataset.dirty === '1').length;
+                const visibleCount = rows.filter(row => row.style.display !== 'none').length;
+
+                ioQuickStats.innerHTML = `
+                    <span class="stat-chip">Configured: <strong>${configuredCount}</strong></span>
+                    <span class="stat-chip">Visible: <strong>${visibleCount}</strong></span>
+                    <span class="stat-chip">Output mode: <strong>${outputCount}</strong></span>
+                    <span class="stat-chip">Analog: <strong>${analogCount}</strong></span>
+                    <span class="stat-chip ${dirtyCount > 0 ? 'stat-chip-warning' : ''}">Unsaved: <strong>${dirtyCount}</strong></span>
+                `;
+            }
+
+            function updateInsightsPanel() {
+                const visibleRows = Array.from(tableBody.querySelectorAll('tr')).filter(row => row.style.display !== 'none');
+                let digitalHigh = 0;
+                let digitalLow = 0;
+                const analogValues = [];
+
+                visibleRows.forEach(row => {
+                    const stateText = (row.querySelector('.pin-state')?.textContent || '').trim();
+                    const valueText = (row.querySelector('.pin-value')?.textContent || '').trim();
+                    const isAnalog = row.querySelector('.pin-analog-checkbox')?.checked;
+
+                    if (stateText === 'HIGH') digitalHigh += 1;
+                    if (stateText === 'LOW') digitalLow += 1;
+                    if (isAnalog && valueText !== 'N/A' && !Number.isNaN(Number(valueText))) {
+                        analogValues.push(Number(valueText));
+                    }
+                });
+
+                const analogMin = analogValues.length ? Math.min(...analogValues) : '—';
+                const analogMax = analogValues.length ? Math.max(...analogValues) : '—';
+                const analogAvg = analogValues.length ? Math.round(analogValues.reduce((sum, value) => sum + value, 0) / analogValues.length) : '—';
+                const refreshText = lastStatusRefresh ? `${lastStatusRefresh.toLocaleTimeString()}` : 'Not refreshed yet';
+
+                ioInsightsPanel.innerHTML = `
+                    <div class="io-insight-card"><span>Digital HIGH</span><strong>${digitalHigh}</strong></div>
+                    <div class="io-insight-card"><span>Digital LOW</span><strong>${digitalLow}</strong></div>
+                    <div class="io-insight-card"><span>Analog Min / Max</span><strong>${analogMin} / ${analogMax}</strong></div>
+                    <div class="io-insight-card"><span>Analog Average</span><strong>${analogAvg}</strong></div>
+                    <div class="io-insight-card io-insight-wide"><span>Last refresh</span><strong>${refreshText}</strong></div>
+                `;
+            }
+
+            function sortRows() {
+                const sortMode = sortRowsSelect.value || 'GPIO_ASC';
+                const rows = Array.from(tableBody.querySelectorAll('tr'));
+                const sortedRows = rows.sort((rowA, rowB) => {
+                    const gpioA = Number(rowA.dataset.gpio || 0);
+                    const gpioB = Number(rowB.dataset.gpio || 0);
+                    const labelA = (rowA.querySelector('.pin-label-input')?.value || '').toLowerCase();
+                    const labelB = (rowB.querySelector('.pin-label-input')?.value || '').toLowerCase();
+                    const dirtyA = rowA.dataset.dirty === '1' ? 1 : 0;
+                    const dirtyB = rowB.dataset.dirty === '1' ? 1 : 0;
+
+                    if (sortMode === 'GPIO_DESC') return gpioB - gpioA;
+                    if (sortMode === 'LABEL_ASC') return labelA.localeCompare(labelB) || gpioA - gpioB;
+                    if (sortMode === 'DIRTY_FIRST') return dirtyB - dirtyA || gpioA - gpioB;
+                    return gpioA - gpioB;
+                });
+                sortedRows.forEach(row => tableBody.appendChild(row));
+            }
+
+            function rowMatchesModeFilter(row, modeFilter) {
+                if (modeFilter === 'ALL') return true;
+                const mode = row.querySelector('.pin-mode-select')?.value || '';
+                const isAnalog = row.querySelector('.pin-analog-checkbox')?.checked;
+                if (modeFilter === 'OUTPUT') return mode === 'OUTPUT';
+                if (modeFilter === 'INPUTS') return mode.startsWith('INPUT');
+                if (modeFilter === 'ANALOG') return isAnalog === true;
+                return true;
+            }
+
+            function applyRowFilters() {
+                const searchTerm = (pinSearchInput.value || '').trim().toLowerCase();
+                const modeFilter = modeFilterSelect.value || 'ALL';
+                const configuredOnly = configuredOnlyCheckbox.checked;
+                const dirtyOnly = dirtyOnlyCheckbox.checked;
+
+                sortRows();
+
+                tableBody.querySelectorAll('tr').forEach(row => {
+                    const gpio = row.dataset.gpio || '';
+                    const label = (row.querySelector('.pin-label-input')?.value || '').toLowerCase();
+                    const matchesSearch = searchTerm === '' || gpio.includes(searchTerm) || label.includes(searchTerm);
+                    const matchesConfigured = !configuredOnly || row.dataset.configured === '1';
+                    const matchesDirty = !dirtyOnly || row.dataset.dirty === '1';
+                    const matchesMode = rowMatchesModeFilter(row, modeFilter);
+                    row.style.display = (matchesSearch && matchesConfigured && matchesMode && matchesDirty) ? '' : 'none';
+                });
+
+                updateQuickStats();
+                updateInsightsPanel();
+                saveToolbarState();
+            }
+
+            function applyCompactView() {
+                ioTableWrapper.classList.toggle('compact-view', compactViewCheckbox.checked);
+                saveToolbarState();
+            }
+
+            function bindLabelDirtyHandlers() {
+                tableBody.querySelectorAll('.pin-label-input').forEach(input => {
+                    input.addEventListener('input', () => markRowDirty(input.closest('tr')));
+                });
+            }
+
+            function markRowDirty(row) {
+                row.dataset.dirty = '1';
+                row.classList.add('row-dirty');
+                applyRowFilters();
+            }
+
+            function updateRowActionCell(row) {
+                const actionCell = row.querySelector('.pin-actions');
+                if (!actionCell) return;
+
+                const gpio = parseInt(row.dataset.gpio, 10);
+                const isConfigured = row.dataset.configured === '1';
+                const mode = row.querySelector('.pin-mode-select')?.value;
+                const isAnalog = row.querySelector('.pin-analog-checkbox')?.checked;
+                const isInputOnly = INPUT_ONLY_GPIOS.includes(gpio);
+                const canToggle = isConfigured && mode === 'OUTPUT' && !isAnalog && !isInputOnly;
+
+                actionCell.innerHTML = '';
+                if (canToggle) {
+                    const toggleButton = document.createElement('button');
+                    toggleButton.textContent = 'Toggle';
+                    toggleButton.classList.add('pin-action-toggle');
+                    toggleButton.dataset.gpio = String(gpio);
+                    toggleButton.disabled = isBusy;
+                    actionCell.appendChild(toggleButton);
+                    return;
+                }
+
+                const note = document.createElement('span');
+                note.className = 'action-note';
+                if (!isConfigured) {
+                    note.textContent = 'Save to enable';
+                } else if (isInputOnly) {
+                    note.textContent = 'Input-only pin';
+                } else if (isAnalog) {
+                    note.textContent = 'Analog mode';
+                } else {
+                    note.textContent = 'Set OUTPUT';
+                }
+                actionCell.appendChild(note);
             }
 
             function createPinRow(pinData) {
                 const row = document.createElement('tr');
                 row.setAttribute('data-gpio', pinData.gpio);
+                row.dataset.configured = pinData.isConfigured ? '1' : '0';
+                row.dataset.dirty = '0';
+                if (!pinData.isConfigured) row.classList.add('row-unconfigured');
 
-                // GPIO
                 const cellGpio = document.createElement('td');
+                cellGpio.setAttribute('data-label', 'GPIO');
                 cellGpio.textContent = pinData.gpio;
                 row.appendChild(cellGpio);
 
-                // Label
                 const cellLabel = document.createElement('td');
+                cellLabel.setAttribute('data-label', 'Label');
                 const labelInput = document.createElement('input');
                 labelInput.type = 'text';
                 labelInput.value = pinData.label || `GPIO ${pinData.gpio}`;
@@ -121,222 +376,171 @@
                 cellLabel.appendChild(labelInput);
                 row.appendChild(cellLabel);
 
-                // Mode
                 const cellMode = document.createElement('td');
+                cellMode.setAttribute('data-label', 'Mode');
                 const modeSelect = document.createElement('select');
                 modeSelect.className = 'pin-mode-select';
                 modeSelect.setAttribute('data-gpio', pinData.gpio);
                 const modes = INPUT_ONLY_GPIOS.includes(pinData.gpio) ? ["INPUT", "INPUT_PULLUP", "INPUT_PULLDOWN"] : ["OUTPUT", "INPUT", "INPUT_PULLUP", "INPUT_PULLDOWN"];
                 modes.forEach(mode => {
                     const option = document.createElement('option');
-                    option.value = mode; // JSON uses "OUTPUT", "INPUT" etc.
+                    option.value = mode;
                     option.text = mode;
-                    if (pinData.mode_str === mode) option.selected = true; // Expect mode_str
+                    if (pinData.mode_str === mode) option.selected = true;
                     modeSelect.appendChild(option);
                 });
                 cellMode.appendChild(modeSelect);
                 row.appendChild(cellMode);
 
-                // Analog
                 const cellAnalog = document.createElement('td');
+                cellAnalog.setAttribute('data-label', 'Analog');
                 const analogCheckbox = document.createElement('input');
                 analogCheckbox.type = 'checkbox';
-                // Derive 'checked' state from type_str
                 analogCheckbox.checked = (pinData.type_str === "ANALOG_INPUT");
                 analogCheckbox.className = 'pin-analog-checkbox';
                 analogCheckbox.setAttribute('data-gpio', pinData.gpio);
-
-                // Determine if pin is ADC capable (example list, refine with actual ESP32 ADC pins)
-                const ADC_CAPABLE_PINS = [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33, 34, 35, 36, 39]; // Approximation
                 const isAdcPin = ADC_CAPABLE_PINS.includes(pinData.gpio);
-
-                // Disable if not an ADC pin or if mode is OUTPUT
-                if (modeSelect.value === "OUTPUT" || !isAdcPin) {
-                     analogCheckbox.disabled = true;
-                }
-
+                if (modeSelect.value === "OUTPUT" || !isAdcPin) analogCheckbox.disabled = true;
                 modeSelect.addEventListener('change', (event) => {
                     if (event.target.value === "OUTPUT") {
                         analogCheckbox.checked = false;
                         analogCheckbox.disabled = true;
                     } else {
-                        if (isAdcPin) { // Only enable if it's an ADC pin
-                            analogCheckbox.disabled = false;
-                        } else {
-                            analogCheckbox.checked = false;
-                            analogCheckbox.disabled = true;
-                        }
+                        analogCheckbox.disabled = !isAdcPin;
+                        if (!isAdcPin) analogCheckbox.checked = false;
                     }
+                    markRowDirty(row);
+                    updateRowActionCell(row);
+                });
+                analogCheckbox.addEventListener('change', () => {
+                    markRowDirty(row);
+                    updateRowActionCell(row);
                 });
                 cellAnalog.appendChild(analogCheckbox);
                 row.appendChild(cellAnalog);
 
-
-                // State (Text)
                 const cellState = document.createElement('td');
-                // pinData.state might not be available from config, will be filled by status update
+                cellState.setAttribute('data-label', 'State');
                 cellState.textContent = 'N/A';
                 cellState.className = 'pin-state';
                 row.appendChild(cellState);
 
-                // Value (Text)
                 const cellValue = document.createElement('td');
-                 // pinData.value might not be available from config, will be filled by status update
+                cellValue.setAttribute('data-label', 'Value');
                 cellValue.textContent = 'N/A';
                 cellValue.className = 'pin-value';
                 row.appendChild(cellValue);
 
-                // Actions
                 const cellActions = document.createElement('td');
-                // Show toggle button only for DIGITAL OUTPUT pins that are not input-only
-                if (pinData.type_str === "DIGITAL" && pinData.mode_str === "OUTPUT" && !INPUT_ONLY_GPIOS.includes(pinData.gpio)) {
-                    const toggleButton = document.createElement('button');
-                    toggleButton.textContent = 'Toggle';
-                    toggleButton.classList.add('pin-action-toggle', 'btn', 'btn-small');
-                    toggleButton.dataset.gpio = pinData.gpio; // Use pinData.gpio
-                    cellActions.appendChild(toggleButton);
-                }
+                cellActions.setAttribute('data-label', 'Actions');
+                cellActions.className = 'pin-actions';
                 row.appendChild(cellActions);
-
+                updateRowActionCell(row);
                 return row;
             }
 
-            function buildChartDatasets(graphedPinsData) { // Parameter is already filtered for graph:true
-                console.log('Rebuilding chart datasets. Graphed pins data (label & GPIO):', graphedPinsData.map(p => ({label: p.label, gpio: p.gpio})));
-                return graphedPinsData.map(pin => {
-                    const color = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`;
-                    return {
-                        label: pin.label || `GPIO ${pin.gpio}`,
-                        data: [], // Start with empty data
-                        borderColor: color,
-                        backgroundColor: color,
-                        fill: false,
-                        tension: 0.1,
-                        hidden: true, // Initially hide datasets, user can enable them
-                        _gpio: pin.gpio // Store GPIO for reliable mapping
-                    };
-                });
+            function buildChartDatasets(graphedPinsData) {
+                const colors = ['#e94560', '#64ffda', '#2196f3', '#ff9800', '#4caf50', '#9c27b0', '#ffeb3b', '#00bcd4'];
+                return graphedPinsData.map((pin, i) => ({
+                    label: pin.label || `GPIO ${pin.gpio}`,
+                    data: [],
+                    borderColor: colors[i - Math.floor(i / colors.length) * colors.length],
+                    backgroundColor: colors[i - Math.floor(i / colors.length) * colors.length],
+                    fill: false,
+                    tension: 0.1,
+                    hidden: false,
+                    _gpio: pin.gpio
+                }));
             }
 
-            function initializeChart(pin_config_array) { // Expects the array of pin details
-                if (ioPinChart) {
-                    ioPinChart.destroy();
-                }
-                // Filter for chartable pins based on the 'graph' property from config
-                const chartablePins = pin_config_array.filter(pin => pin.graph === true); // Include all types if graph is true
+            function initializeChart(pin_config_array) {
+                if (ioPinChart) ioPinChart.destroy();
+                const chartablePins = pin_config_array.filter(pin => pin.graph === true);
                 const datasets = buildChartDatasets(chartablePins);
-                const data = {
-                    labels: [], // Time labels
-                    datasets: datasets
-                };
-                const chartConfig = {
+                ioPinChart = new Chart(chartCanvas.getContext('2d'), {
                     type: 'line',
-                    data: data,
+                    data: { labels: [], datasets: datasets },
                     options: {
                         responsive: true,
                         scales: {
                             x: { title: { display: true, text: 'Time' } },
                             y: { title: { display: true, text: 'Value' } }
                         },
-                        animation: { duration: 0 } // Disable animation for real-time data
+                        animation: { duration: 0 }
                     }
-                };
-                ioPinChart = new Chart(chartCanvas.getContext('2d'), chartConfig);
+                });
             }
 
-            function updateChart(pinValues) { // pinValues is an object {gpio: value, gpio2: value2 ...}
-                console.log('Attempting to update chart with pinValues:', pinValues);
+            function updateChart(pinValues) {
                 if (!ioPinChart) return;
-
                 const now = new Date();
-                const timeLabel = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
-
+                const timeLabel = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
                 ioPinChart.data.labels.push(timeLabel);
-                if (ioPinChart.data.labels.length > 30) { // Keep only last 30 data points
-                    ioPinChart.data.labels.shift();
-                }
-
+                if (ioPinChart.data.labels.length > 30) ioPinChart.data.labels.shift();
                 ioPinChart.data.datasets.forEach(dataset => {
-                    const gpioToFind = dataset._gpio; // Use stored GPIO
-                    let value = NaN;
-                    if (pinValues.hasOwnProperty(gpioToFind)) {
-                         value = pinValues[gpioToFind];
-                    }
-                    console.log('Chart: Processing dataset for label:', dataset.label, ', internal GPIO:', gpioToFind, ', found value:', value);
+                    const value = pinValues.hasOwnProperty(dataset._gpio) ? pinValues[dataset._gpio] : NaN;
                     dataset.data.push(value);
-                    if (dataset.data.length > 30) {
-                        dataset.data.shift();
-                    }
+                    if (dataset.data.length > 30) dataset.data.shift();
                 });
                 ioPinChart.update();
             }
 
-
             async function fetchPinConfigAndPopulateTable() {
                 try {
-                    const response = await fetch('/api/io/config'); // Corrected URL
+                    setControlsBusy(true);
+                    const response = await fetch('/api/io/config');
                     if (!response.ok) throw new Error(`Failed to fetch pin configuration (${response.status})`);
                     const configFromServer = await response.json();
-                    // Backend sends {"io_pins": [...]} or {"io_pins":[]}
                     currentPinConfig = configFromServer.io_pins || [];
-
-                    tableBody.innerHTML = ''; // Clear existing rows
+                    tableBody.innerHTML = '';
                     AVAILABLE_GPIOS.forEach(gpio => {
                         let pinData = currentPinConfig.find(p => p.gpio === gpio);
                         if (!pinData) {
-                            // Pin not in server config, create a default representation for UI
                             pinData = {
                                 gpio: gpio,
-                                mode_str: INPUT_ONLY_GPIOS.includes(gpio) ? "INPUT" : "OUTPUT", // Sensible default
+                                mode_str: "INPUT",
                                 label: `GPIO ${gpio}`,
                                 type_str: "DIGITAL",
                                 initial_state_str: "",
-                                graph: false
+                                graph: false,
+                                isConfigured: false
                             };
                         } else {
-                            // Ensure all expected fields for createPinRow are present, even if from server
-                            pinData.mode_str = pinData.mode_str || (INPUT_ONLY_GPIOS.includes(gpio) ? "INPUT" : "OUTPUT");
-                            pinData.type_str = pinData.type_str || "DIGITAL";
-                            pinData.initial_state_str = pinData.initial_state_str || "";
+                            pinData.mode_str = pinData.mode_str || pinData.mode || (INPUT_ONLY_GPIOS.includes(gpio) ? "INPUT" : "OUTPUT");
+                            pinData.type_str = pinData.type_str || pinData.type || "DIGITAL";
+                            pinData.initial_state_str = pinData.initial_state_str || pinData.initial_state || "";
                             pinData.graph = pinData.graph || false;
+                            pinData.isConfigured = true;
                         }
-                        const row = createPinRow(pinData);
-                        tableBody.appendChild(row);
+                        tableBody.appendChild(createPinRow(pinData));
                     });
+                    bindLabelDirtyHandlers();
                     initializeChart(currentPinConfig);
-                    fetchAllPinStatuses();
-                    displayStatusMessage('Pin configuration loaded.', true);
+                    await fetchAllPinStatuses();
+                    applyRowFilters();
+                    displayStatusMessage('Pin configuration loaded.', 'success');
                 } catch (error) {
-                    displayStatusMessage(`Error loading pin configuration: ${error.message}`, false);
-                    // Populate with default if fetch fails
+                    displayStatusMessage(`Error loading pin configuration: ${error.message}`, 'error');
                     tableBody.innerHTML = '';
                     AVAILABLE_GPIOS.forEach(gpio => {
-                        const pinData = { gpio: gpio, mode: "IN", label: `GPIO ${gpio}`, isAnalog: false, state: undefined, value: undefined };
-                        const row = createPinRow(pinData);
-                        tableBody.appendChild(row);
+                        const pinData = { gpio, mode_str: "INPUT", label: `GPIO ${gpio}`, type_str: "DIGITAL", graph: false, isConfigured: false };
+                        tableBody.appendChild(createPinRow(pinData));
                     });
-                    initializeChart([]); // Initialize empty chart
+                    bindLabelDirtyHandlers();
+                    initializeChart([]);
+                    applyRowFilters();
+                } finally {
+                    setControlsBusy(false);
                 }
             }
 
-            async function fetchPinStatus(gpio) {
+            async function fetchAllPinStatuses(force = false) {
+                if (isBusy && !force) return;
                 try {
-                    // This function will now be called by fetchAllPinStatuses with data
-                    // No direct fetch here anymore.
-                } catch (error) {
-                    console.error(`Error updating UI for GPIO ${gpio}: ${error.message}`);
-                }
-            }
-
-            async function fetchAllPinStatuses() {
-                try {
-                    const response = await fetch('/api/io/status'); // Corrected URL
+                    const response = await fetch('/api/io/status');
                     if (!response.ok) throw new Error(`Failed to fetch statuses (${response.status})`);
-                    const statusData = await response.json(); // Expects {"statuses": [{"gpio": XX, "value": YY}, ...]}
-                    console.log('Fetched statuses for graph/table:', statusData); // Added console log
-
+                    const statusData = await response.json();
                     const pinValuesForChart = {};
-
                     if (statusData.statuses && Array.isArray(statusData.statuses)) {
                         statusData.statuses.forEach(status => {
                             const row = tableBody.querySelector(`tr[data-gpio="${status.gpio}"]`);
@@ -344,27 +548,22 @@
                                 const stateCell = row.querySelector('.pin-state');
                                 const valueCell = row.querySelector('.pin-value');
                                 if (valueCell) valueCell.textContent = status.value;
-
                                 const pinCfg = currentPinConfig.find(p => p.gpio === status.gpio);
                                 if (pinCfg) {
-                                     pinCfg.value = status.value; // Update currentPinConfig with fresh value
+                                    pinCfg.value = status.value;
                                     if (pinCfg.type_str === "DIGITAL") {
                                         if (stateCell) stateCell.textContent = status.value ? 'HIGH' : 'LOW';
                                     } else if (pinCfg.type_str === "ANALOG_INPUT") {
                                         if (stateCell) stateCell.textContent = 'N/A';
                                     }
-                                     // Populate pinValuesForChart for *any* pin marked for graphing
-                                     if (pinCfg.graph === true){
-                                        pinValuesForChart[status.gpio] = status.value;
-                                     }
+                                    if (pinCfg.graph === true) pinValuesForChart[status.gpio] = status.value;
                                 }
                             }
                         });
                     }
                     updateChart(pinValuesForChart);
                 } catch (error) {
-                    displayStatusMessage(`Error fetching all pin statuses: ${error.message}`, false);
-                    console.error(`Error fetching all pin statuses: ${error.message}`);
+                    displayStatusMessage(`Error fetching pin statuses: ${error.message}`, 'error');
                 }
             }
 
@@ -373,103 +572,109 @@
                 tableBody.querySelectorAll('tr').forEach(row => {
                     const gpio = parseInt(row.dataset.gpio);
                     const label = row.querySelector('.pin-label-input').value;
-                    const mode_str = row.querySelector('.pin-mode-select').value; // mode_str from select
+                    const mode_str = row.querySelector('.pin-mode-select').value;
                     const isAnalogChecked = row.querySelector('.pin-analog-checkbox').checked;
                     const type_str = isAnalogChecked ? "ANALOG_INPUT" : "DIGITAL";
-
-                    // initial_state_str and graph are not in the UI for saving yet. Send defaults.
                     payload.io_pins.push({
-                        gpio: gpio,
-                        label: label,
-                        mode: mode_str, // Send mode as "mode" to match C++ JsobObject key
-                        type: type_str,  // Send type as "type"
-                        initial_state: "", // Default
-                        graph: row.querySelector('.pin-analog-checkbox').checked && isAnalogChecked // Only graph if analog checkbox is checked
-                               // This assumes graph is only for analog. If digital can be graphed, UI needs a graph checkbox.
-                               // For now, let's only enable graph for analog pins if their checkbox is checked.
-                               // A more robust way would be a dedicated "graph this pin" checkbox.
-                               // For simplicity, let's assume `graph` is true if it's an analog input and checkbox is checked.
-                               // This part of save logic for 'graph' might need refinement based on UI.
-                               // The C++ side expects 'graph' field.
+                        gpio, label,
+                        mode: mode_str,
+                        type: type_str,
+                        initial_state: "",
+                        graph: isAnalogChecked
                     });
                 });
-
                 try {
-                    const response = await fetch('/api/io/config', { // Corrected URL
+                    setControlsBusy(true);
+                    displayStatusMessage('Saving configuration...', 'info');
+                    const response = await fetch('/api/io/config', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload) // Send the correct structure
+                        body: JSON.stringify(payload)
                     });
+                    const result = await parseJsonResponse(response);
                     if (!response.ok) {
-                         const errorData = await response.json(); // Try to parse error response as JSON
-                         throw new Error(errorData.message || `Failed to save configuration (${response.status})`);
+                        throw new Error(result.message || `Failed to save (${response.status})`);
                     }
-                    const result = await response.json();
-                    displayStatusMessage(result.message || 'Configuration saved successfully. Refreshing.', true);
-                    // currentPinConfig = payload.io_pins; // Update local config with what was sent
-                    // It's better to re-fetch the canonical config from server after save
+                    displayStatusMessage(result.message || 'Configuration saved. Refreshing.', 'success');
                     await fetchPinConfigAndPopulateTable();
                 } catch (error) {
-                    displayStatusMessage(`Error saving configuration: ${error.message}`, false);
+                    displayStatusMessage(`Error saving: ${error.message}`, 'error');
+                } finally {
+                    setControlsBusy(false);
                 }
             }
 
             refreshStatusBtn.addEventListener('click', fetchAllPinStatuses);
             saveConfigBtn.addEventListener('click', saveConfiguration);
+            pinSearchInput.addEventListener('input', () => {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(applyRowFilters, 140);
+            });
+            modeFilterSelect.addEventListener('change', applyRowFilters);
+            sortRowsSelect.addEventListener('change', applyRowFilters);
+            configuredOnlyCheckbox.addEventListener('change', applyRowFilters);
+            dirtyOnlyCheckbox.addEventListener('change', applyRowFilters);
+            compactViewCheckbox.addEventListener('change', applyCompactView);
+            resetFiltersBtn.addEventListener('click', resetFilters);
 
-            ioPinTableBody.addEventListener('click', function(event) {
-                if (event.target.classList.contains('pin-action-toggle')) {
-                    const gpio = event.target.dataset.gpio;
-                    if (gpio) {
-                        handleTogglePin(parseInt(gpio));
-                    }
+            document.addEventListener('keydown', (event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+                    event.preventDefault();
+                    saveConfiguration();
                 }
             });
 
+            tableBody.addEventListener('click', function(event) {
+                if (event.target.classList.contains('pin-action-toggle')) {
+                    const gpio = event.target.dataset.gpio;
+                    if (gpio) handleTogglePin(parseInt(gpio));
+                }
+            });
+
+                    lastStatusRefresh = new Date();
+                    updateInsightsPanel();
             async function handleTogglePin(gpio) {
                 try {
+                    setControlsBusy(true);
                     const response = await fetch(`/api/io/toggle?gpio=${gpio}`, { method: 'POST' });
-                    const result = await response.json();
-
+                    const result = await parseJsonResponse(response);
+                    console.log('Toggle response:', response.status, JSON.stringify(result));
                     if (response.ok && result.status === 'success') {
-                        displayStatusMessage(result.message || `GPIO ${gpio} toggled successfully.`, true);
-                        fetchAllPinStatuses(); // Refresh all statuses
+                        displayStatusMessage(result.message || `GPIO ${gpio} toggled.`, 'success');
+                        await fetchAllPinStatuses();
                     } else {
                         throw new Error(result.message || `Failed to toggle GPIO ${gpio}.`);
                     }
                 } catch (error) {
-                    console.error('Error toggling pin:', error);
-                    // Display error message, ensuring 'isSuccess' is false for error styling
-                    displayStatusMessage(`Error: ${error.message}`, false);
+                    displayStatusMessage(`Error: ${error.message}`, 'error');
+                } finally {
+                    setControlsBusy(false);
                 }
             }
 
             viewExportJsonBtn.addEventListener('click', () => {
                 const currentFullConfig = [];
-                 tableBody.querySelectorAll('tr').forEach(row => {
+                tableBody.querySelectorAll('tr').forEach(row => {
                     const gpio = parseInt(row.dataset.gpio);
                     const label = row.querySelector('.pin-label-input').value;
                     const mode = row.querySelector('.pin-mode-select').value;
                     const isAnalog = row.querySelector('.pin-analog-checkbox').checked;
                     const stateText = row.querySelector('.pin-state').textContent;
                     const valueText = row.querySelector('.pin-value').textContent;
-
                     currentFullConfig.push({
-                        gpio,
-                        label,
-                        mode,
-                        isAnalog,
-                        state: stateText === 'HIGH' ? 1 : (stateText === 'LOW' ? 0 : undefined), // or keep as text
-                        value: valueText !== 'N/A' ? parseInt(valueText) : undefined // or keep as text
+                        gpio, label, mode, isAnalog,
+                        state: stateText === 'HIGH' ? 1 : (stateText === 'LOW' ? 0 : undefined),
+                        value: valueText !== 'N/A' ? parseInt(valueText) : undefined
                     });
                 });
                 jsonConfigTextarea.value = JSON.stringify({ pins: currentFullConfig }, null, 2);
                 jsonConfigModal.style.display = 'block';
             });
 
-            // Initial load
+            loadToolbarState();
+            applyCompactView();
             fetchPinConfigAndPopulateTable();
-            setInterval(fetchAllPinStatuses, 5000); // Refresh statuses every 5 seconds
+            setInterval(fetchAllPinStatuses, 5000);
         });
     </script>
 </body>

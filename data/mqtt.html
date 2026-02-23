@@ -3,109 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MQTT WebSocket Test</title>
-    <link rel="icon" type="image/png" href="favicon.ico">
+    <title>MQTT Viewer</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="colors.css">
     <link rel="stylesheet" type="text/css" href="esp32.css">
     <link rel="stylesheet" type="text/css" href="utilities.css">
-    
     <script src="components/topMenu.js" type="text/javascript" defer></script>
     <script src="components/footer.js" type="text/javascript" defer></script>
 </head>
 <body>
     <header-component></header-component>
-    
-<h1>MQTT WebSocket Test</h1>
-<form id="mqttForm">
-    <label for="connectString">Connect String:</label>
-    <input type="text" id="connectString" name="connectString" value="wss://mqtt.specialblend.ca"><br><br>
-    <label for="useDefault">Use default test server "ws://test.mosquitto.org:8080/mqtt":</label>
-    <input type="checkbox" id="useDefault" name="useDefault" onclick="toggleDefaultServer()"><br><br>
-    <button type="button" onclick="resetConnection()">Connect</button><br><br>
-    <label for="topic">Topic:</label>
-    <input type="text" id="topic" name="topic" value="test/topic"><br><br>
-    <label for="message">Message:</label>
-    <input type="text" id="message" name="message" value="Hello MQTT"><br><br>
-    <button type="button" onclick="mqttPost()">Publish</button><br><br>
-    <label for="newTopic">New Topic:</label>
-    <input type="text" id="newTopic" name="newTopic"><br><br>
-    <button type="button" onclick="subscribeTopic()">Subscribe</button><br><br>
-    <h2>Subscribed Topics</h2>
-    <ul id="subscribedTopicsList"></ul>
-</form>
 
-<script>
+    <div class="content-center" style="max-width:700px;">
+
+    <h1>MQTT WebSocket Client</h1>
+
+    <p>Status: <span id="mqttStatus" style="color:var(--accent-danger); font-weight:600;">Disconnected</span></p>
+
+    <form class="card" style="text-align:left; padding:20px;">
+        <label for="connectString">Connect String:</label>
+        <input type="text" id="connectString" name="connectString" value="wss://mqtt.specialblend.ca" style="width:100%;"><br><br>
+
+        <input class="check" type="checkbox" id="useDefault" name="useDefault" onclick="toggleDefaultServer()">
+        <label class="inline" for="useDefault">Use test server (ws://test.mosquitto.org:8080/mqtt)</label><br><br>
+
+        <button type="button" class="btn" onclick="resetConnection()">Connect</button>
+        <br><br>
+
+        <label for="topic">Topic:</label>
+        <input type="text" id="topic" name="topic" value="test/topic" style="width:100%;"><br><br>
+        <label for="message">Message:</label>
+        <input type="text" id="message" name="message" value="Hello MQTT" style="width:100%;"><br><br>
+        <button type="button" class="btn" onclick="mqttPost()">Publish</button>
+        <br><br>
+
+        <label for="newTopic">Subscribe to Topic:</label>
+        <input type="text" id="newTopic" name="newTopic" style="width:100%;"><br><br>
+        <button type="button" class="btn" onclick="subscribeTopic()">Subscribe</button>
+    </form>
+
+    <br>
+    <h2>Subscribed Topics</h2>
+    <ul id="subscribedTopicsList" style="text-align:left; list-style:none; padding:0;"></ul>
+
+    <h2>Messages</h2>
+    <div id="messageLog" style="text-align:left; max-height:300px; overflow-y:auto; background:var(--bg-secondary); padding:16px; border-radius:var(--border-radius); border:1px solid var(--border-color); font-family:monospace; font-size:0.9rem;">
+        <em style="color:var(--text-secondary)">No messages yet...</em>
+    </div>
+
+    </div>
+
+    <script>
     let client;
     const defaultServer = 'ws://test.mosquitto.org:8080/mqtt';
     const subscribedTopics = new Set();
+    const statusEl = document.getElementById('mqttStatus');
+    const messageLog = document.getElementById('messageLog');
+    let firstMessage = true;
+
+    function logMessage(text, color) {
+        if (firstMessage) { messageLog.innerHTML = ''; firstMessage = false; }
+        const div = document.createElement('div');
+        div.style.marginBottom = '4px';
+        div.style.color = color || 'var(--text-primary)';
+        div.textContent = new Date().toLocaleTimeString() + ' - ' + text;
+        messageLog.prepend(div);
+        if (messageLog.children.length > 100) messageLog.removeChild(messageLog.lastChild);
+    }
 
     function toggleDefaultServer() {
         const useDefault = document.getElementById('useDefault').checked;
-        const connectStringInput = document.getElementById('connectString');
-        const connectButton = document.querySelector('button[onclick="resetConnection()"]');
-        
-        if (useDefault) {
-            connectStringInput.disabled = true;
-            connectButton.disabled = true;
-        } else {
-            connectStringInput.disabled = false;
-            connectButton.disabled = false;
-        }
+        document.getElementById('connectString').disabled = useDefault;
     }
 
     function resetConnection() {
         const connectString = document.getElementById('useDefault').checked ? defaultServer : document.getElementById('connectString').value;
-        
-        if (client) {
-            client.end();
-        }
+        if (client) client.end();
+
+        statusEl.textContent = 'Connecting...';
+        statusEl.style.color = 'var(--accent-warning)';
 
         client = mqtt.connect(connectString);
 
         client.on('connect', () => {
-            console.log('Connected to MQTT broker');
+            statusEl.textContent = 'Connected';
+            statusEl.style.color = 'var(--accent-success)';
+            logMessage('Connected to ' + connectString, 'var(--accent-success)');
             subscribeToInitialTopics();
         });
 
+        client.on('error', (err) => {
+            statusEl.textContent = 'Error';
+            statusEl.style.color = 'var(--accent-danger)';
+            logMessage('Error: ' + err.message, 'var(--accent-danger)');
+        });
+
+        client.on('close', () => {
+            statusEl.textContent = 'Disconnected';
+            statusEl.style.color = 'var(--accent-danger)';
+        });
+
         client.on('message', (topic, message) => {
-            // message is Buffer
-            console.log(`Received message on topic ${topic}: ${message.toString()}`);
+            logMessage(`[${topic}] ${message.toString()}`);
         });
     }
 
     function mqttPost() {
+        if (!client || !client.connected) { logMessage('Not connected!', 'var(--accent-danger)'); return; }
         const topic = document.getElementById('topic').value;
         const message = document.getElementById('message').value;
         client.publish(topic, message, (err) => {
-            if (err) {
-                console.error('Failed to publish message:', err);
-            } else {
-                console.log('Message published successfully');
-            }
+            if (err) logMessage('Publish failed: ' + err, 'var(--accent-danger)');
+            else logMessage('Published to ' + topic, 'var(--accent-info)');
         });
     }
 
     function subscribeTopic() {
+        if (!client || !client.connected) { logMessage('Not connected!', 'var(--accent-danger)'); return; }
         const newTopic = document.getElementById('newTopic').value;
         if (newTopic && !subscribedTopics.has(newTopic)) {
             client.subscribe(newTopic, (err) => {
                 if (!err) {
                     subscribedTopics.add(newTopic);
                     updateSubscribedTopicsList();
-                    console.log(`Subscribed to topic ${newTopic}`);
+                    logMessage('Subscribed to ' + newTopic, 'var(--accent-success)');
                 } else {
-                    console.error(`Failed to subscribe to topic ${newTopic}:`, err);
+                    logMessage('Subscribe failed: ' + err, 'var(--accent-danger)');
                 }
             });
         }
     }
 
     function subscribeToInitialTopics() {
-        const initialTopics = ['presence'];
-        initialTopics.forEach(topic => {
+        ['presence'].forEach(topic => {
             client.subscribe(topic, (err) => {
                 if (!err) {
                     subscribedTopics.add(topic);
@@ -119,17 +149,18 @@
         const list = document.getElementById('subscribedTopicsList');
         list.innerHTML = '';
         subscribedTopics.forEach(topic => {
-            const listItem = document.createElement('li');
-            listItem.textContent = topic;
-            list.appendChild(listItem);
+            const li = document.createElement('li');
+            li.style.padding = '4px 0';
+            li.style.borderBottom = '1px solid var(--border-color)';
+            li.style.color = 'var(--text-accent)';
+            li.textContent = topic;
+            list.appendChild(li);
         });
     }
 
-    // Initialize connection on page load
     resetConnection();
-</script>
+    </script>
 
-
-<footer-component></footer-component>
+    <footer-component></footer-component>
 </body>
 </html>

@@ -1,23 +1,53 @@
 #include "Mqtt.h"
 #include "api/Esp32.h"    // For Esp32::hourglass and Esp32::DEVICE_NAME
-#include <Arduino.h> // For Serial, String, random, delay, etc.
-#include <WiFi.h>      // For WiFiClient
-#include <PubSubClient.h> // For PubSubClient
-#include <ArduinoJson.h>  // For JsonDocument
-#include <SPIFFS.h>     // For File, SPIFFS
+#include "api/SystemLog.h" // For error logging
+#include <Arduino.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
 
-// Esp32.h might be needed if Esp32::spiffsMounted was used directly, but it's now passed as a parameter.
-
-// Define Namespace Variables
 namespace Mqtt {
     bool isEnabled = false;
     String serverIp = "";
     int port = 1883;
     String mqttUser = "";
     String mqttPass = "";
-    WiFiClient client; // Definition
-    PubSubClient mqttClient(client); // Definition and initialization with Mqtt::client
-    MqttQueue mqttQueue; // Definition
+    WiFiClient client;
+    PubSubClient mqttClient(client);
+    MqttQueue mqttQueue;
+
+    // Connection state
+    MqttState currentState_ = MqttState::OFF;
+    unsigned long lastConnectAttempt_ = 0;
+    int connectAttemptCount_ = 0;
+    int backoffMultiplier_ = 0;
+    unsigned long backoffDuration_ = BACKOFF_BASE_MS;
+    String pendingDeviceName_ = "";
+
+    // State machine API
+    MqttState getState() { return currentState_; }
+
+    const char* getStateString() {
+        switch (currentState_) {
+            case MqttState::OFF:      return "disabled";
+            case MqttState::DISCONNECTED: return "disconnected";
+            case MqttState::CONNECTING:   return "connecting";
+            case MqttState::CONNECTED:    return "connected";
+            case MqttState::BACKOFF:      return "backoff";
+            default:                      return "unknown";
+        }
+    }
+
+    void forceReconnect() {
+        if (!isEnabled) return;
+        Serial.println(F("MQTT: Force reconnect requested."));
+        SystemLog::logError("MQTT: Force reconnect requested", 0);
+        connectAttemptCount_ = 0;
+        backoffMultiplier_ = 0;
+        backoffDuration_ = BACKOFF_BASE_MS;
+        lastConnectAttempt_ = 0;
+        currentState_ = MqttState::CONNECTING;
+    }
 
     // Function Definitions
     MqttMsg sliceMqttMsg(char* topic, byte* message, unsigned int length) {
@@ -29,6 +59,7 @@ namespace Mqtt {
         if (input_topic_len >= sizeof(mqttMsg.topicChar)) {
             Serial.println(F("ERROR: MQTT topic too long, truncating."));
             chars_to_copy_topic = max_topic_buf_len;
+            mqttMsg.topicTruncated = true;
         }
         strncpy(mqttMsg.topicChar, topic, chars_to_copy_topic);
         mqttMsg.topicChar[chars_to_copy_topic] = '\0';
@@ -44,6 +75,7 @@ namespace Mqtt {
         if (length >= sizeof(mqttMsg.msgArray)) {
             Serial.println(F("ERROR: MQTT message payload too long, truncating."));
             chars_to_copy_msg = max_msg_buf_len;
+            mqttMsg.msgTruncated = true;
         }
 
         mqttMsg.msgStr = "";
@@ -53,110 +85,202 @@ namespace Mqtt {
         }
         mqttMsg.msgArray[chars_to_copy_msg] = '\0';
 
+        memset(mqttMsg.topicTokens, 0, sizeof(mqttMsg.topicTokens));
+        memset(mqttMsg.msgTokens, 0, sizeof(mqttMsg.msgTokens));
+
         char *ptr = NULL;
         byte index = 0;
         ptr = strtok(mqttMsg.topicChar, "/");
-        while(ptr != NULL) {
+        while(ptr != NULL && index < MAX_TOKEN) {
             mqttMsg.topicTokens[index] = ptr;  index++;  ptr = strtok(NULL, "/");
         }
 
         index = 0;
-        ptr = NULL;
         ptr = strtok(mqttMsg.msgArray, ":");
-        while(ptr != NULL) {
+        while(ptr != NULL && index < MAX_TOKEN) {
             mqttMsg.msgTokens[index] = ptr;  index++;  ptr = strtok(NULL, ":");
         }
         return mqttMsg;
     }
 
-    void subscription(String deviceName) { // Corrected spelling
+    void subscription(String deviceName) {
         mqttClient.subscribe("esp32");
         mqttClient.subscribe(String("esp32/" + deviceName + "/#").c_str());
     }
 
-    bool setup(String deviceName, bool isSpiffsMounted) {
-        if (!isSpiffsMounted) {
-            Serial.println(F("Mqtt Error: SPIFFS not mounted. Cannot load MQTT configuration."));
-            return false;
+    bool setup(String deviceName, const JsonDocument& config) {
+        auto sanitize = [](String value) -> String {
+            value.trim();
+            if (value.equalsIgnoreCase("null") || value.equalsIgnoreCase("undefined")) {
+                return "";
+            }
+            return value;
+        };
+
+        // Canonical keys first, deprecated fallbacks second
+        serverIp = sanitize(config["mqtturl"].as<String>());
+        if (serverIp.isEmpty()) {
+            serverIp = sanitize(config["mqtt_server"].as<String>());
+            if (!serverIp.isEmpty()) Serial.println(F("MQTT WARN: Using deprecated 'mqtt_server' key. Migrate to 'mqtturl'."));
+        }
+        if (serverIp.isEmpty()) {
+            String ip0 = sanitize(config["ip0"].as<String>());
+            String ip1 = sanitize(config["ip1"].as<String>());
+            String ip2 = sanitize(config["ip2"].as<String>());
+            String ip3 = sanitize(config["ip3"].as<String>());
+            if (!ip0.isEmpty() && !ip1.isEmpty() && !ip2.isEmpty() && !ip3.isEmpty()) {
+                serverIp = ip0 + "." + ip1 + "." + ip2 + "." + ip3;
+                Serial.println(F("MQTT WARN: Using deprecated ip0-ip3 keys. Migrate to 'mqtturl'."));
+            }
         }
 
-        File configFile = SPIFFS.open("/esp32config.json", "r");
-        if (!configFile) {
-            Serial.println("Failed to open esp32config.json for MQTT");
-            return false;
+        int configuredPort = config["mqttport"] | 0;
+        if (configuredPort <= 0) {
+            configuredPort = config["mqtt_port"] | 0;
+            if (configuredPort > 0) Serial.println(F("MQTT WARN: Using deprecated 'mqtt_port' key. Migrate to 'mqttport'."));
+        }
+        port = configuredPort > 0 ? configuredPort : 1883;
+
+        mqttUser = sanitize(config["mqttuser"].as<String>());
+        if (mqttUser.isEmpty()) {
+            mqttUser = sanitize(config["mqtt_user"].as<String>());
+            if (!mqttUser.isEmpty()) Serial.println(F("MQTT WARN: Using deprecated 'mqtt_user' key. Migrate to 'mqttuser'."));
         }
 
-        JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, configFile);
-        configFile.close();
-
-        if (error) {
-            Serial.print(F("deserializeJson() failed for MQTT config: "));
-            Serial.println(error.c_str());
-            return false;
+        mqttPass = sanitize(config["mqttpass"].as<String>());
+        if (mqttPass.isEmpty()) {
+            mqttPass = sanitize(config["mqtt_pass"].as<String>());
+            if (!mqttPass.isEmpty()) Serial.println(F("MQTT WARN: Using deprecated 'mqtt_pass' key. Migrate to 'mqttpass'."));
         }
-
-        serverIp = doc["mqtt_server"].as<String>();
-        port = doc["mqtt_port"].as<int>();
-        mqttUser = doc["mqtt_user"].as<String>();
-        mqttPass = doc["mqtt_pass"].as<String>();
 
         if (serverIp.isEmpty()) {
-            Serial.println("MQTT server IP is not configured in esp32config.json");
+            Serial.println(F("MQTT server not configured (expected 'mqtturl' in esp32config.json)"));
+            currentState_ = MqttState::OFF;
             return false;
         }
 
-        Serial.print(F("MQTT server IP address retrieved: "));  Serial.println(serverIp);
+        Serial.print(F("MQTT configured: ")); Serial.print(serverIp);
+        Serial.print(F(":")); Serial.println(port);
 
         mqttClient.disconnect();
         mqttClient.setServer(serverIp.c_str(), port);
 
-        int i = 0;
-        while (!mqttClient.connected()) {
-            String clientId = "ESP32Client-" + String(random(0xffff), HEX);
-            Serial.print(F("MQTT server..."));
-            if (mqttClient.connect(clientId.c_str(), mqttUser.c_str(), mqttPass.c_str())) {
-                Serial.println(F("connected"));
-                mqttClient.publish("esp32", String("hello from Esp32 " + deviceName).c_str() );
-                subscription(deviceName);
-            } else {
-                Serial.print(F("connection failed, rc=")); Serial.print(mqttClient.state());  Serial.println(F(" try again in 5 seconds"));
-                delay(5000);
-                i++;
-                if(i > RECONNECT_TIMEOUT)  return false;
-            }
-        }
+        // Start non-blocking connection attempts
+        pendingDeviceName_ = deviceName;
+        connectAttemptCount_ = 0;
+        backoffMultiplier_ = 0;
+        backoffDuration_ = BACKOFF_BASE_MS;
+        lastConnectAttempt_ = 0;
+        currentState_ = MqttState::CONNECTING;
+
+        SystemLog::logError("MQTT: Setup initiated", 0);
         return true;
     }
 
+    static bool tryConnect() {
+        if (mqttClient.connected()) {
+            if (currentState_ != MqttState::CONNECTED) {
+                currentState_ = MqttState::CONNECTED;
+                Serial.println(F("MQTT: State -> CONNECTED"));
+                SystemLog::logError("MQTT: Connected to broker", 0);
+            }
+            return true;
+        }
+
+        if (connectAttemptCount_ >= MAX_ATTEMPTS_PER_BURST) {
+            // Transition to backoff with exponential duration
+            backoffMultiplier_++;
+            backoffDuration_ = BACKOFF_BASE_MS * (1UL << min(backoffMultiplier_ - 1, 4));
+            if (backoffDuration_ > BACKOFF_MAX_MS) backoffDuration_ = BACKOFF_MAX_MS;
+
+            Serial.printf("MQTT: Max burst attempts reached. Backing off for %lu ms.\n", backoffDuration_);
+            char logMsg[64];
+            snprintf(logMsg, sizeof(logMsg), "MQTT: Backoff %lums (burst #%d)", backoffDuration_, backoffMultiplier_);
+            SystemLog::logError(logMsg, 1);
+
+            lastConnectAttempt_ = millis();
+            connectAttemptCount_ = 0;
+            currentState_ = MqttState::BACKOFF;
+            return false;
+        }
+
+        if (lastConnectAttempt_ != 0 && (millis() - lastConnectAttempt_) < BACKOFF_BASE_MS) {
+            return false; // Not time yet between attempts within a burst
+        }
+
+        lastConnectAttempt_ = millis();
+        connectAttemptCount_++;
+
+        String clientId = "ESP32Client-" + String(random(0xffff), HEX);
+        Serial.printf("MQTT: Attempt %d/%d... ", connectAttemptCount_, MAX_ATTEMPTS_PER_BURST);
+
+        if (mqttClient.connect(clientId.c_str(), mqttUser.c_str(), mqttPass.c_str())) {
+            Serial.println(F("connected"));
+            mqttClient.publish("esp32", String("hello from " + pendingDeviceName_).c_str());
+            subscription(pendingDeviceName_);
+            currentState_ = MqttState::CONNECTED;
+            connectAttemptCount_ = 0;
+            backoffMultiplier_ = 0;
+            backoffDuration_ = BACKOFF_BASE_MS;
+            SystemLog::logError("MQTT: Connected to broker", 0);
+            return true;
+        } else {
+            Serial.printf("failed, rc=%d\n", mqttClient.state());
+            return false;
+        }
+    }
+
     void loop() {
-        mqttClient.loop();
-        mqttQueue.publish();
+        switch (currentState_) {
+            case MqttState::OFF:
+                break;
+
+            case MqttState::CONNECTING:
+                tryConnect();
+                break;
+
+            case MqttState::CONNECTED:
+                if (mqttClient.connected()) {
+                    mqttClient.loop();
+                    mqttQueue.publish();
+                } else {
+                    Serial.println(F("MQTT: Connection lost!"));
+                    SystemLog::logError("MQTT: Connection lost", 2);
+                    connectAttemptCount_ = 0;
+                    lastConnectAttempt_ = 0;
+                    currentState_ = MqttState::CONNECTING;
+                }
+                break;
+
+            case MqttState::BACKOFF:
+                if (millis() - lastConnectAttempt_ >= backoffDuration_) {
+                    Serial.println(F("MQTT: Backoff complete, retrying..."));
+                    connectAttemptCount_ = 0;
+                    lastConnectAttempt_ = 0;
+                    currentState_ = MqttState::CONNECTING;
+                }
+                break;
+
+            case MqttState::DISCONNECTED:
+                // Waiting for external trigger (forceReconnect)
+                break;
+        }
     }
 
     void sendJson(std::vector<String> names, std::vector<String> values, String topic, bool print2console) {
-        const int docSize = MQTT_MAX_PACKET_SIZE; // This constant is fine here as it's local to function
+        const int docSize = MQTT_MAX_PACKET_SIZE;
         JsonDocument doc;
-        for (size_t i = 0; i < names.size(); i++) { // Use size_t for vector iteration
+        for (size_t i = 0; i < names.size(); i++) {
             doc[names[i]] = values[i];
         }
         char json[docSize];
         size_t n = serializeJson(doc, json, docSize);
         if (n == 0) {
             Serial.println(F("Mqtt Error: JSON serialization failed (returned 0). Message not sent."));
-            if (print2console) {
-                Serial.println(F("Mqtt: (No message sent due to serialization error)"));
-            }
         } else if (n >= docSize -1 ) {
-            Serial.print(F("Mqtt Error: JSON message likely too large for buffer or truncated (written bytes n="));
-            Serial.print(n);
-            Serial.print(F(", buffer size docSize="));
-            Serial.print(docSize);
+            Serial.print(F("Mqtt Error: JSON message likely too large or truncated (n="));
+            Serial.print(n); Serial.print(F(", docSize=")); Serial.print(docSize);
             Serial.println(F("). Message not sent."));
-            if (print2console) {
-                Serial.print(F("Mqtt: Truncated/Problematic JSON (not sent): "));
-                Serial.println(json);
-            }
         } else {
             mqttClient.publish(topic.c_str(), json, n);
             if (print2console) {
@@ -185,18 +309,12 @@ namespace Mqtt {
         JsonDocument doc;
 
         doc["timestamp"] = Esp32::hourglass.getDateTimeString(false, true);
-        doc["sender"] = Esp32::DEVICE_NAME; // Changed key from sender_id to sender
+        doc["sender"] = Esp32::DEVICE_NAME;
         doc["message_type"] = message_type;
 
-        if (!status.isEmpty()) {
-            doc["status"] = status;
-        }
-        if (!command_id.isEmpty()) {
-            doc["command_id"] = command_id;
-        }
-        if (!payload_type.isEmpty()) {
-            doc["payload_type"] = payload_type;
-        }
+        if (!status.isEmpty()) doc["status"] = status;
+        if (!command_id.isEmpty()) doc["command_id"] = command_id;
+        if (!payload_type.isEmpty()) doc["payload_type"] = payload_type;
 
         doc["payload"] = payload;
 
@@ -205,22 +323,15 @@ namespace Mqtt {
         size_t n = serializeJson(doc, json_buffer, buffer_size);
 
         if (n == 0) {
-            Serial.println(F("Mqtt Error: JSON serialization failed for standard message (returned 0). Message not sent."));
-            if (printToConsole) {
-                Serial.println(F("Mqtt: (No message sent due to serialization error)"));
-            }
+            Serial.println(F("Mqtt Error: JSON serialization failed for standard message."));
         } else if (n >= buffer_size - 1) {
-            Serial.print(F("Mqtt Error: Standard JSON message likely too large or truncated (n="));
-            Serial.print(n); Serial.print(F(", buffer_size=")); Serial.print(buffer_size);
-            Serial.println(F("). Message not sent."));
-            if (printToConsole) {
-                Serial.print(F("Mqtt: Truncated/Problematic JSON (not sent): "));
-                Serial.println(json_buffer);
-            }
+            Serial.print(F("Mqtt Error: Standard JSON too large (n="));
+            Serial.print(n); Serial.print(F(", buf=")); Serial.print(buffer_size);
+            Serial.println(F(")."));
         } else {
             Mqtt::mqttClient.publish(topic.c_str(), json_buffer, n);
             if (printToConsole) {
-                Serial.print(F("Mqtt: Sent Standard JSON (")); Serial.print(n); Serial.print(F(" bytes) on topic '"));
+                Serial.print(F("Mqtt: Sent (")); Serial.print(n); Serial.print(F("b) on '"));
                 Serial.print(topic); Serial.print(F("': ")); Serial.println(json_buffer);
             }
         }
@@ -241,7 +352,6 @@ namespace Mqtt {
 
     void MqttQueue::publish() {
         while(topics.size() > 0) {
-            // Use Mqtt::mqttClient directly as these methods are part of Mqtt namespace
             Mqtt::mqttClient.publish(topics.front().c_str(), messages.front().c_str() );
             Serial.print(topics.front().c_str()); Serial.print(", "); Serial.println(messages.front().c_str() );
             topics.pop_front();

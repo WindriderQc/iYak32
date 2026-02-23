@@ -10,6 +10,7 @@
 // #include "devices/Buzzer.h" // Removed, Esp32.cpp will include it directly
 #include "Hourglass.h"      // Provides definition for Hourglass
 #include "IPin.h"           // Provides definition for Pin (which is in IPin.h)
+#include "ConfigManager.h"  // For centralized config load/save
 // Note: Storage.h and Mqtt.h might also be needed if Esp32.h itself declares/uses them directly,
 // but the immediate issue is for the types of the extern objects.
 // Esp32.cpp includes them for its own implementation needs.
@@ -39,10 +40,14 @@ namespace Esp32 {
     extern WifiManager wifiManager;
     // extern Buzzer buzzer; // Removed, buzzer is now a module (BuzzerModule)
     extern Hourglass hourglass;
+    extern ConfigManager configManager;
     extern bool buzzer_enabled_;
     extern int configured_buzzer_pin_;
     extern int mqtt_data_interval_seconds_;
-    extern int state_test_variable; // Added for linker diagnostics
+
+    // Tides configuration
+    extern float tides_lat_;
+    extern float tides_lon_;
 
     // Generic I/O Configuration
     struct IO_Pin_Detail {
@@ -82,7 +87,6 @@ namespace Esp32 {
     float getBatteryVoltage();
     float getBattRemaining(bool print = false);
     // String getJsonString(JsonDocument& doc, bool isPretty = false); // Moved to JsonTools.h
-    void mqttIncoming(char* topic, byte* message, unsigned int length);
     void executeJsonConfig();
     bool loadConfig(bool doExecuteConfig = false, JsonDocument* returnDoc = nullptr); // returnDoc for optional copy
     bool saveConfig(JsonDocument& config, bool do_reboot = false); // Pass JsonDocument by reference

@@ -1,4 +1,4 @@
-const char* ver = "v1:8 ";
+const char* ver = "v1:9 ";
 
 //#define VERBOSE
 //#define HOCKEY_MODE
@@ -8,8 +8,12 @@ const char* ver = "v1:8 ";
 #include <Arduino.h>
 #include "api/Esp32.h"
 #include "api/Mqtt.h"    // Added for direct Mqtt namespace usage
+#include "api/SystemLog.h" // For sensor history & error logging
 #include "api/devices/BMX280.h"  //  TODO : devrait etre encaps dans un device...   device = gestion IO = main config n feature focus
 #include "api/devices/Oled.h"
+
+// Definition of the global OLED display instance (declared extern in Oled.h)
+Adafruit_SSD1306 Oled::oled(OLED_WIDTH, OLED_HEIGHT, &Wire, -1, 800000U);
 
 #include "www.h"
 
@@ -21,6 +25,7 @@ SYS_state state = SYS_state::BOOT;
 
 #ifdef BOAT
     #include "Boat.h"
+    Boat::Boat boat;  // Definition of the global Boat instance
 #endif
 
 #ifdef HOCKEY_MODE  
@@ -166,6 +171,7 @@ void setup()
 
     isBMXConnected  = BMX280::init();                       
  
+    SystemLog::logError("System boot complete", 0);
     Serial.println(F("Setup completed. - Launching State Machine...\n"));
 }
 
@@ -267,14 +273,22 @@ void loop()
             {
                 startTime5 = millis(); 
 
-                if(isBMXConnected) BMX280::actualizeWeather();  
-#ifdef BOAT  
-                Boat::boat.pressure = BMX280::getPressure(); // Assuming Boat::boat is the global instance
-#endif                
-                
-                //Lux::loop(); 
-                
-               if(Mqtt::isEnabled) sendData();     //   TODO :   set les frequence d'envoi via la page web et config.
+                if(isBMXConnected) BMX280::actualizeWeather();
+#ifdef BOAT
+                Boat::boat.pressure = BMX280::getPressure();
+#endif
+
+                // Log sensor data to circular buffer for /api/logs/sensors
+                SystemLog::logSensor(
+                    isBMXConnected ? BMX280::getTemperature() : 0.0f,
+                    isBMXConnected ? BMX280::getPressure() : 0.0f,
+                    isBMXConnected ? BMX280::getHumidity() : 0.0f,
+                    Esp32::getBattRemaining(false),
+                    Esp32::getRemainingHeap(),
+                    Esp32::wifiManager.getWiFiStrength()
+                );
+
+               if(Mqtt::isEnabled) sendData();
             }
             break;  
 

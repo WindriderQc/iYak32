@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Log</title>
+    <link rel="stylesheet" type="text/css" href="esp32.css">
+    <script src="components/topMenu.js" type="text/javascript" defer></script>
+    <script src="components/footer.js" type="text/javascript" defer></script>
+</head>
+<body>
+    <header-component></header-component>
+
+    <h1>Error Log</h1>
+
+    <div style="text-align:center; margin:16px;">
+        <button class="btn" onclick="clearErrors()" style="background:var(--accent-danger);color:#fff;">Clear All</button>
+        <span id="errorCount" style="margin-left:12px; color:var(--text-secondary);"></span>
+    </div>
+
+    <div style="overflow-x:auto; padding:0 16px;">
+        <table class="error-table">
+            <thead>
+                <tr><th>Time</th><th>Severity</th><th>Message</th></tr>
+            </thead>
+            <tbody id="errorBody">
+                <tr><td colspan="3" style="text-align:center; color:var(--text-secondary);">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+    const sevMap = { 0: { label:'INFO', cls:'badge-info' }, 1: { label:'WARN', cls:'badge-warn' }, 2: { label:'ERROR', cls:'badge-error' } };
+
+    function esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function msToTime(ms) {
+        const s = Math.floor(ms/1000);
+        const h = Math.floor(s/3600);
+        const m = Math.floor((s%%3600)/60);
+        const sec = s%%60;
+        return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+    }
+
+    async function fetchErrors() {
+        try {
+            const r = await fetch('/api/logs/errors');
+            const data = await r.json();
+            const body = document.getElementById('errorBody');
+            document.getElementById('errorCount').textContent = data.length + ' entries';
+
+            if (data.length === 0) {
+                body.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-secondary);">No errors logged</td></tr>';
+                return;
+            }
+
+            // Reverse to show newest first
+            const rows = data.reverse().map(e => {
+                const sev = sevMap[e.sev] || sevMap[2];
+                return `<tr>
+                    <td style="white-space:nowrap">${msToTime(e.t)}</td>
+                    <td><span class="badge ${sev.cls}">${sev.label}</span></td>
+                    <td>${esc(e.msg)}</td>
+                </tr>`;
+            }).join('');
+            body.innerHTML = rows;
+        } catch(e) {
+            document.getElementById('errorBody').innerHTML = '<tr><td colspan="3" style="color:var(--accent-danger);">Failed to load errors</td></tr>';
+        }
+    }
+
+    async function clearErrors() {
+        await fetch('/api/logs/errors/clear', { method: 'POST' });
+        fetchErrors();
+    }
+
+    fetchErrors();
+    setInterval(fetchErrors, 5000);
+    </script>
+
+    <footer-component></footer-component>
+</body>
+</html>

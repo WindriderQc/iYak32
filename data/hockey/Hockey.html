@@ -4,26 +4,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Hockey Configuration</title>
+  <link rel="stylesheet" type="text/css" href="/esp32.css">
   <link rel="stylesheet" type="text/css" href="style.css">
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
     <nav class="menu">
         <ul>
-          <li><a href="Scoreboard.html">Scoreboard</a></li>
-          <li><a href="Stats.html">Stats</a></li>
-          <li><a href="Hockey.html">Config</a></li>
+          <li><a href="/index.html">&#8592; Main</a></li>
+          <li><a href="/hockey/Scoreboard.html">Scoreboard</a></li>
+          <li><a href="/hockey/Stats.html">Stats</a></li>
+          <li><a href="/hockey/Hockey.html">Config</a></li>
         </ul>
       </nav>
-    
+
   <h1>Hockey Configuration</h1>
 
     <!-- Scoreboard -->
     <div class="scoreboard-container">
         <div id="gameStatus" class="game-status"></div>
-            
+
         <div class="scoreboard">
             <div class="team-score" id="scoreLeft">00</div>
             <div class="time-period">
@@ -122,27 +123,9 @@
       data: {
         labels: [],
         datasets: [
-          {
-            label: 'Pin 34',
-            data: [],
-            borderColor: 'red',
-            borderWidth: 1,
-            fill: false,
-          },
-          {
-            label: 'Pin 39',
-            data: [],
-            borderColor: 'blue',
-            borderWidth: 1,
-            fill: false,
-          },
-          {
-            label: 'Pin 5',
-            data: [],
-            borderColor: 'green',
-            borderWidth: 1,
-            fill: false,
-          }
+          { label: 'Pin 34', data: [], borderColor: '#e94560', borderWidth: 1, fill: false },
+          { label: 'Pin 39', data: [], borderColor: '#2196f3', borderWidth: 1, fill: false },
+          { label: 'Pin 5', data: [], borderColor: '#4caf50', borderWidth: 1, fill: false }
         ]
       },
       options: {
@@ -155,22 +138,19 @@
 
     function updateChart(pin34, pin39, pin5) {
       const time = new Date().toLocaleTimeString();
-
       ioChart.data.labels.push(time);
       ioChart.data.datasets[0].data.push(pin34);
       ioChart.data.datasets[1].data.push(pin39);
       ioChart.data.datasets[2].data.push(pin5);
-
       if (ioChart.data.labels.length > MAX_POINTS) {
         ioChart.data.labels.shift();
         ioChart.data.datasets.forEach(dataset => dataset.data.shift());
       }
-
       ioChart.update();
     }
 
     function sendCommand(command) {
-      fetch(`${command}`, { method: 'POST' })
+      fetch(`/hockey/${command}`, { method: 'POST' })
         .then(response => response.text())
         .then(data => console.log(data))
         .catch(error => console.error('Error:', error));
@@ -180,10 +160,7 @@
       const seconds = document.getElementById('introDurationSeconds').value;
       fetch(`/hockey/setIntroDuration?duration_s=${seconds}`, { method: 'POST' })
         .then(response => response.text())
-        .then(data => {
-          console.log(data);
-          updateScoreboard(); // Refresh scoreboard to show new value
-        })
+        .then(data => { console.log(data); updateScoreboard(); })
         .catch(error => console.error('Error setting intro duration:', error));
     }
 
@@ -191,10 +168,7 @@
       const seconds = document.getElementById('goalCelebrationSeconds').value;
       fetch(`/hockey/setGoalCelebrationDuration?duration_s=${seconds}`, { method: 'POST' })
         .then(response => response.text())
-        .then(data => {
-          console.log(data);
-          updateScoreboard();
-        })
+        .then(data => { console.log(data); updateScoreboard(); })
         .catch(error => console.error('Error setting goal celebration duration:', error));
     }
 
@@ -202,10 +176,7 @@
       const seconds = document.getElementById('puckDropSeconds').value;
       fetch(`/hockey/setPuckDropDuration?duration_s=${seconds}`, { method: 'POST' })
         .then(response => response.text())
-        .then(data => {
-          console.log(data);
-          updateScoreboard();
-        })
+        .then(data => { console.log(data); updateScoreboard(); })
         .catch(error => console.error('Error setting puck drop duration:', error));
     }
 
@@ -213,40 +184,33 @@
       const seconds = document.getElementById('periodIntermissionSeconds').value;
       fetch(`/hockey/setPeriodIntermissionDuration?duration_s=${seconds}`, { method: 'POST' })
         .then(response => response.text())
-        .then(data => {
-          console.log(data);
-          updateScoreboard();
-        })
+        .then(data => { console.log(data); updateScoreboard(); })
         .catch(error => console.error('Error setting period intermission duration:', error));
     }
+
     function setPeriodLength() {
-      const minutes = document.getElementById(`periodLength`).value;
-      fetch(`setPeriodLength?minutes=${minutes}`, { method: 'POST' })
+      const minutes = document.getElementById('periodLength').value;
+      fetch(`/hockey/setPeriodLength?minutes=${minutes}`, { method: 'POST' })
         .then(response => response.text())
         .then(data => console.log(data))
         .catch(error => console.error('Error:', error));
     }
 
-
     function setDelta(side) {
       const delta = document.getElementById(`${side}Delta`).value;
       fetch(`/hockey/setDelta?side=${side}&value=${delta}`, { method: 'POST' })
         .then(response => response.text())
-        .then(data => {
-            console.log(data);
-            updateScoreboard(); // Refresh scoreboard after setting delta
-        })
+        .then(data => { console.log(data); updateScoreboard(); })
         .catch(error => console.error('Error:', error));
     }
 
     function requestData() {
-      fetch('sensors')
+      fetch('/hockey/sensors')
         .then(response => response.json())
         .then(data => {
           document.getElementById("pin34").innerText = data.pin34 ?? "?";
           document.getElementById("pin39").innerText = data.pin39 ?? "?";
           document.getElementById("pin5").innerText = data.pin5 ?? "?";
-
           updateChart(data.pin34, data.pin39, data.pin5);
         })
         .catch(() => {
@@ -261,74 +225,53 @@
 
     let previousStatus = null;
 
-
     function updateScoreboard() {
-        fetch('scoreboard')
-            .then(res => res.json()) // Parse the response as JSON
+        fetch('/hockey/scoreboard')
+            .then(res => res.json())
             .then(data => {
-                 // Format scores as double digits
                 const scoreLeft = data.scoreLeft.toString().padStart(2, '0');
                 const scoreRight = data.scoreRight.toString().padStart(2, '0');
-
-                // Update the scoreboard with the formatted scores
                 document.getElementById('scoreLeft').innerText = scoreLeft;
                 document.getElementById('scoreRight').innerText = scoreRight;
                 document.getElementById('time').innerText = data.time ?? "??:??";
                 document.getElementById('period').innerText = data.period ?? "?";
-               // document.getElementById('periodLength').value = data.periodLength ?? "0";
                 document.getElementById('periodLenghtValue').innerText = data.periodLength ?? "0";
-                
-                
-                
+
                 let gameStatus = data.gameStatus ?? "?";
-                
-                console.log(`Game Status: ${gameStatus}`);             
+                console.log(`Game Status: ${gameStatus}`);
                 document.getElementById('gameStatus').innerText = `Game Status: ${gameStatus}`;
 
-                // Update delta values
                 document.getElementById('leftValue').innerText = data.leftDeltaValue !== undefined ? data.leftDeltaValue : 'N/A';
                 document.getElementById('rightValue').innerText = data.rightDeltaValue !== undefined ? data.rightDeltaValue : 'N/A';
 
-                // Update "Current Value" spans (always)
                 document.getElementById('currentIntroDurationSeconds').innerText = (data.introDurationSeconds ?? "0") + " seconds";
                 document.getElementById('currentGoalCelebrationSeconds').innerText = (data.goalCelebrationSeconds ?? "0") + " seconds";
                 document.getElementById('currentPuckDropSeconds').innerText = (data.puckDropSeconds ?? "0") + " seconds";
                 document.getElementById('currentPeriodIntermissionSeconds').innerText = (data.periodIntermissionSeconds ?? "0") + " seconds";
 
-                // Update period length display span (always) - This was already present:
-                // document.getElementById('periodLenghtValue').innerText = data.periodLength ?? "0";
-
-
                 if (isInitialScoreboardLoad) {
-                    // Populate input fields only on the first run
                     document.getElementById('periodLength').value = data.periodLength ?? "";
                     document.getElementById('leftDelta').value = data.leftDeltaValue !== undefined ? data.leftDeltaValue : '';
                     document.getElementById('rightDelta').value = data.rightDeltaValue !== undefined ? data.rightDeltaValue : '';
-
                     document.getElementById('introDurationSeconds').value = data.introDurationSeconds ?? "";
                     document.getElementById('goalCelebrationSeconds').value = data.goalCelebrationSeconds ?? "";
                     document.getElementById('puckDropSeconds').value = data.puckDropSeconds ?? "";
                     document.getElementById('periodIntermissionSeconds').value = data.periodIntermissionSeconds ?? "";
-
-                    isInitialScoreboardLoad = false; // Set flag to false after first population
+                    isInitialScoreboardLoad = false;
                 }
             })
             .catch(error => {
                 console.error('Error fetching scoreboard:', error);
-                // Handle errors by showing default values
                 document.getElementById('scoreLeft').innerText = "00";
                 document.getElementById('scoreRight').innerText = "00";
                 document.getElementById('time').innerText = "??:??";
                 document.getElementById('period').innerText = "?";
                 document.getElementById('gameStatus').innerText = "Game Status: ?";
             });
-}
+    }
 
-    updateScoreboard(); // Call immediately on load
+    updateScoreboard();
     setInterval(updateScoreboard, 900);
-   
-
-
   </script>
 </body>
 </html>

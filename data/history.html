@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor History</title>
+    <link rel="stylesheet" type="text/css" href="esp32.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="components/topMenu.js" type="text/javascript" defer></script>
+    <script src="components/footer.js" type="text/javascript" defer></script>
+</head>
+<body>
+    <header-component></header-component>
+
+    <h1>Sensor History</h1>
+
+    <div class="time-range-btns">
+        <button class="btn active" onclick="setRange(120)" id="btn2m">2 min</button>
+        <button class="btn" onclick="setRange(300)" id="btn5m">5 min</button>
+        <button class="btn" onclick="setRange(600)" id="btn10m">10 min</button>
+    </div>
+
+    <div class="chart-container"><canvas id="tempChart"></canvas></div>
+    <div class="chart-container"><canvas id="pressChart"></canvas></div>
+    <div class="chart-container"><canvas id="sysChart"></canvas></div>
+
+    <script>
+    let allData = [];
+    let rangeSeconds = 120;
+    let tempChart, pressChart, sysChart;
+
+    const chartColors = {
+        temp: '#e94560', hum: '#64ffda', pres: '#2196f3',
+        batt: '#ff9800', heap: '#4caf50', rssi: '#a0a0c0'
+    };
+
+    function getStyle(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+    function makeChart(ctx, labels, datasets, yTitle) {
+        const textCol = getStyle('--text-secondary') || '#a0a0c0';
+        const isLight = document.documentElement.dataset.theme === 'light';
+        const gridCol = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)';
+        return new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true, maintainAspectRatio: true, animation: false,
+                plugins: { legend: { labels: { color: textCol } } },
+                scales: {
+                    x: { ticks: { color: textCol, maxTicksLimit: 8 }, grid: { color: gridCol } },
+                    y: { title: { display: !!yTitle, text: yTitle || '', color: textCol }, ticks: { color: textCol }, grid: { color: gridCol } }
+                }
+            }
+        });
+    }
+
+    function filterByRange(data) {
+        if (!data.length) return data;
+        const latest = data[data.length - 1].t;
+        const cutoff = latest - rangeSeconds * 1000;
+        return data.filter(d => d.t >= cutoff);
+    }
+
+    function toTimeLabel(t) {
+        const totalSec = Math.floor(t / 1000);
+        const m = Math.floor(totalSec / 60) - Math.floor(totalSec / 3600) * 60;
+        const sec = totalSec - Math.floor(totalSec / 60) * 60;
+        return m + ':' + String(sec).padStart(2, '0');
+    }
+
+    function updateCharts() {
+        const filtered = filterByRange(allData);
+        const labels = filtered.map(d => toTimeLabel(d.t));
+        const ds = (key, color, label) => ({
+            label, data: filtered.map(d => parseFloat(d[key])), borderColor: color, borderWidth: 2, pointRadius: 0, fill: false, tension: 0.2
+        });
+
+        if (tempChart) tempChart.destroy();
+        if (pressChart) pressChart.destroy();
+        if (sysChart) sysChart.destroy();
+
+        tempChart = makeChart(document.getElementById('tempChart'), labels, [
+            ds('temp', chartColors.temp, 'Temperature (C)'),
+            ds('hum', chartColors.hum, 'Humidity (%%)')
+        ]);
+        pressChart = makeChart(document.getElementById('pressChart'), labels, [
+            ds('pres', chartColors.pres, 'Pressure (hPa)')
+        ]);
+        sysChart = makeChart(document.getElementById('sysChart'), labels, [
+            ds('batt', chartColors.batt, 'Battery (V)'),
+            { label: 'Heap (KB)', data: filtered.map(d => Math.round(d.heap/1024)), borderColor: chartColors.heap, borderWidth: 2, pointRadius: 0, fill: false, tension: 0.2 },
+            ds('rssi', chartColors.rssi, 'RSSI (dBm)')
+        ]);
+    }
+
+    function setRange(sec) {
+        rangeSeconds = sec;
+        document.querySelectorAll('.time-range-btns .btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn' + (sec < 200 ? '2m' : sec < 400 ? '5m' : '10m')).classList.add('active');
+        updateCharts();
+    }
+
+    async function fetchSensors() {
+        try {
+            const r = await fetch('/api/logs/sensors');
+            allData = await r.json();
+            updateCharts();
+        } catch(e) { console.error('Sensor fetch error:', e); }
+    }
+
+    fetchSensors();
+    setInterval(fetchSensors, 10000);
+    </script>
+
+    <footer-component></footer-component>
+</body>
+</html>

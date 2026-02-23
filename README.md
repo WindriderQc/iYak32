@@ -95,6 +95,30 @@ The web interface interacts with the ESP32 through the following HTTP API endpoi
     mqtt.txt  file must be in the data folder with a simple line:
 user:password
 
+## Local config files (gitignored) and examples
+
+The following runtime files are intentionally gitignored (local secrets / per-device settings):
+
+- `data/esp32config.json`
+- `data/config.txt`
+- `data/mqtt.txt`
+
+Use these tracked templates to initialize local files:
+
+- `data/esp32config.example.json` -> copy to `data/esp32config.json`
+- `data/config.example.txt` -> copy to `data/config.txt`
+- `data/mqtt.example.txt` -> copy to `data/mqtt.txt`
+
+Quick setup (PowerShell):
+
+```powershell
+Copy-Item data/esp32config.example.json data/esp32config.json
+Copy-Item data/config.example.txt data/config.txt
+Copy-Item data/mqtt.example.txt data/mqtt.txt
+```
+
+Then edit the copied local files with your real SSID/password/MQTT settings before upload.
+
     ### Standard MQTT Message Format
 
     For many data-rich outgoing messages (such as sensor data updates and heartbeats), the ESP32 device publishes data to MQTT topics using a standardized JSON structure. This provides consistency for client applications consuming these messages.

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Diagnostics</title>
+    <link rel="stylesheet" type="text/css" href="esp32.css">
+    <script src="components/topMenu.js" type="text/javascript" defer></script>
+    <script src="components/footer.js" type="text/javascript" defer></script>
+</head>
+<body>
+    <header-component></header-component>
+
+    <h1>System Diagnostics</h1>
+
+    <div style="text-align:center; margin:16px;">
+        <button class="btn bigButton" onclick="runTest()" id="testBtn">Run Self-Test</button>
+    </div>
+
+    <div class="test-list" id="testResults">
+        <p style="text-align:center; color:var(--text-secondary);">Click "Run Self-Test" to check all systems.</p>
+    </div>
+
+    <script>
+    const icons = { pass: '\u2713', fail: '\u2717', warn: '~' };
+    const classes = { pass: 'test-pass', fail: 'test-fail', warn: 'test-warn' };
+
+    function esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    async function runTest() {
+        const btn = document.getElementById('testBtn');
+        const results = document.getElementById('testResults');
+        btn.textContent = 'Testing...';
+        btn.disabled = true;
+        results.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">Running diagnostics...</p>';
+
+        try {
+            const r = await fetch('/api/system/selftest');
+            const tests = await r.json();
+
+            results.innerHTML = tests.map(t => {
+                const st = esc(t.status || 'warn');
+                return `
+                <div class="test-item">
+                    <div>
+                        <span class="${classes[t.status] || 'test-warn'}" style="font-size:1.3rem; margin-right:8px;">${icons[t.status] || '?'}</span>
+                        <span class="test-name">${esc(t.name)}</span>
+                    </div>
+                    <div>
+                        <span class="badge badge-${st}">${st.toUpperCase()}</span>
+                        <span class="test-detail" style="margin-left:8px;">${esc(t.detail)}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e) {
+            results.innerHTML = '<p style="text-align:center; color:var(--accent-danger);">Self-test failed: ' + esc(e.message) + '</p>';
+        }
+
+        btn.textContent = 'Run Again';
+        btn.disabled = false;
+    }
+    </script>
+
+    <footer-component></footer-component>
+</body>
+</html>

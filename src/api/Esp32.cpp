@@ -8,6 +8,7 @@
 #include "IPin.h"         // For Pin object
 #include "Storage.h"      // For Storage functions
 #include "Mqtt.h"         // For Mqtt functions/objects (like Mqtt::mqttClient, Mqtt::setup)
+#include "MqttCommandRouter.h" // For MQTT command dispatch
 #include <Wire.h>         // For I2C
 #include <SPIFFS.h>       // For SPIFFS (though Esp32::setup handles begin)
 #include <esp_log.h>      // For esp_log_level_set
@@ -22,14 +23,21 @@ namespace Esp32 {
     float vBAT = 0.0f;
     byte vBATSampleSize = 5; 
     int battery_monitor_pin_ = 35; // Default from previous setup, will be overridden by JSON config if present
+    float battery_divider_ratio_ = 2.0f; // Typical Feather VBAT divider is ~2:1
+    float battery_calibration_factor_ = 1.0f;
     Esp32::Pin* ios[HUZZAH32]; 
     WifiManager wifiManager;
     Hourglass hourglass;
+    ConfigManager configManager;
 
     bool buzzer_enabled_ = false;
     int configured_buzzer_pin_ = -1;
     int mqtt_data_interval_seconds_ = 5;
-   
+
+    // Tides config (defaults to Quebec City)
+    float tides_lat_ = 46.8139f;
+    float tides_lon_ = -71.2082f;
+
     std::vector<IO_Pin_Detail> configured_pins; // Definition for the vector
 
     // Function Definitions
@@ -45,9 +53,7 @@ namespace Esp32 {
         Serial.print("valid io: ");
         Serial.println(io);
         if(io >= 0 && io < HUZZAH32 && ios[io] != nullptr) { // Added bounds check
-            if(ios[io]->config.gpio != 0) { // Assuming gpio 0 might be invalid or unconfigured
-                 return true;
-            }
+            return true;  // GPIO 0 is a valid pin on ESP32, don't reject it
         }
         return false;
     }
@@ -131,75 +137,31 @@ namespace Esp32 {
             vBAT = 0.0f;
             return vBAT;
         }
-        // TODO: Add check here if battery_monitor_pin_ is a valid ADC pin
-        vBAT = (127.0f / 100.0f) * 3.30f * float(analogRead(battery_monitor_pin_)) / ADC_Max;
+
+        uint32_t battery_pin_mv = analogReadMilliVolts(battery_monitor_pin_);
+        if (battery_pin_mv == 0) {
+            vBAT = 0.0f;
+            return vBAT;
+        }
+
+        vBAT = (battery_pin_mv / 1000.0f) * battery_divider_ratio_ * battery_calibration_factor_;
         return vBAT;
     }
 
     float getBattRemaining(bool print) {
         float voltage_sum = 0.0f;
         for (byte i = 0; i < vBATSampleSize; i++) {
-            voltage_sum += ceilf(getBatteryVoltage() * 100) / 100;
+            voltage_sum += getBatteryVoltage();
         }
         float average_vBAT = voltage_sum / vBATSampleSize;
         vBAT = average_vBAT;
         if(print) {
-            batteryText = String(vBAT);
+            batteryText = String(vBAT, 2);
             Serial.print("Battery Voltage: ");
             Serial.print(batteryText);
             Serial.println("V");
         }
         return vBAT;
-    }
-
-    // String getJsonString(JsonDocument& doc, bool isPretty) { // Moved to JsonTools.cpp
-    //     String str = "";
-    //     if (isPretty) {
-    //         serializeJsonPretty(doc, str);
-    //     } else {
-    //         serializeJson(doc, str);
-    //     }
-    //     return str;
-    // }
-
-    void mqttIncoming(char* topic, byte* message, unsigned int length) {
-        String topicStr = String(topic);
-        #ifdef VERBOSE
-        Serial.println(topicStr);
-        Serial.print("Msg bytes: "); Serial.println(length);
-        #endif
-
-        if(topicStr.indexOf(Esp32::DEVICE_NAME) >= 0) {
-            if(topicStr.indexOf("/configIOs") >= 0) {
-                JsonDocument config; // Use local JsonDocument
-                DeserializationError error = deserializeJson(config, message, length);
-                if (error) {
-                    Serial.print(F("deserializeJson() failed: "));  Serial.println(error.c_str()); return;
-                }
-                for (JsonObject elem : config.as<JsonArray>()) {
-                    unsigned int io = elem["io"];
-                    const char* mode = elem["mode"];
-                    const char* lbl = elem["lbl"];
-                    bool isA = elem["isA"]; // ArduinoJson V6 uses bool directly
-                    Esp32::configPin(io, mode, lbl, isA);
-                }
-                Serial.println(F("IO Config received and completed"));
-            } else if(topicStr.indexOf("/io/") >= 0) {
-                Mqtt::MqttMsg mqttMsg = Mqtt::sliceMqttMsg(topic, message, length);
-                int io = atoi(mqttMsg.msgTokens[0]);
-                if(Esp32::validIO(io)) {
-                    if(topicStr.indexOf("/on") >= 0) {
-                        digitalWrite(io, HIGH); Serial.print(F("Setting ON output ")); Serial.println(io); return;
-                    } else if(topicStr.indexOf("/off") >= 0) {
-                        digitalWrite(io, LOW);  Serial.print(F("Setting OFF output ")); Serial.println(io); return;
-                    }
-                } else {
-                     Serial.println(F("Invalid IO"));
-                }
-            } else if (topicStr.indexOf("/reboot") >= 0) {
-                Esp32::reboot();
-            }
-        } else { /* Not my business */ }
     }
 
     void executeJsonConfig() {
@@ -220,6 +182,10 @@ namespace Esp32 {
 
         Esp32::buzzer_enabled_ = configJson_["buzzer_enabled"] | false;
         Esp32::configured_buzzer_pin_ = configJson_["buzzer_pin"] | 14;
+        Esp32::battery_divider_ratio_ = configJson_["battery_divider_ratio"] | 2.0f;
+        if (Esp32::battery_divider_ratio_ <= 0.0f) Esp32::battery_divider_ratio_ = 2.0f;
+        Esp32::battery_calibration_factor_ = configJson_["battery_calibration_factor"] | 1.0f;
+        if (Esp32::battery_calibration_factor_ <= 0.0f) Esp32::battery_calibration_factor_ = 1.0f;
 
         if (Esp32::buzzer_enabled_ && Esp32::configured_buzzer_pin_ != -1) {
             BuzzerModule::init(Esp32::configured_buzzer_pin_); // Changed to BuzzerModule
@@ -237,92 +203,55 @@ namespace Esp32 {
         }
         Serial.printf("Esp32: MQTT data send interval set to %d seconds.\n", Esp32::mqtt_data_interval_seconds_);
 
-        String mqtturl = configJson_["mqtturl"].as<String>();
+        // Tides configuration
+        Esp32::tides_lat_ = configJson_["tides_lat"] | 46.8139f;
+        Esp32::tides_lon_ = configJson_["tides_lon"] | -71.2082f;
+        Serial.printf("Esp32: Tides location: lat=%.4f, lon=%.4f\n", Esp32::tides_lat_, Esp32::tides_lon_);
 
         if(Mqtt::isEnabled) {
-            Mqtt::mqttClient.setCallback(mqttIncoming);
-            if (!Mqtt::setup(DEVICE_NAME, Esp32::spiffsMounted))Serial.print("Mqtt setup fail\n\n");
-            else Serial.print("Mqtt setup completed\n\n");
+            Mqtt::mqttClient.setCallback(MqttCommandRouter::handleIncoming);
+            if (!Mqtt::setup(DEVICE_NAME, configJson_)) Serial.println(F("MQTT setup failed\n"));
+            else Serial.println(F("MQTT setup initiated\n"));
         }
     }
 
-    bool loadConfig( bool doExecuteConfig, JsonDocument* returnDoc) {
-        if (!Esp32::spiffsMounted) { // Check if SPIFFS is mounted
+    bool loadConfig(bool doExecuteConfig, JsonDocument* returnDoc) {
+        if (!Esp32::spiffsMounted) {
             Serial.println(F("Error: SPIFFS not mounted. Cannot load config."));
             return false;
         }
-        String name = Esp32::CONFIG_FILENAME;
-        if (!SPIFFS.exists(name)) {
-            Serial.print("esp32Config file "); Serial.print(name); Serial.println(" not found; using system defaults.");
+
+        if (!configManager.loadConfig(Esp32::CONFIG_FILENAME)) {
             return false;
-        } else {
-            Serial.print(F("\n\nLoading preferences from file "));
-            Serial.println(Esp32::CONFIG_FILENAME);
-            String file_content = Storage::readFile(Esp32::CONFIG_FILENAME);
-            // int config_file_size = file_content.length(); // Already available in Storage::readFile if needed
-            // Serial.println("Config file size: " + String(config_file_size)); // Redundant if Storage::readFile logs it
-
-            // Using a local doc for deserialization then copy if successful
-            JsonDocument tempDoc; // Use temporary doc
-            DeserializationError error = deserializeJson(tempDoc, file_content);
-            if (error) {
-                Serial.print(F("deserializeJson() failed: ")); Serial.println(error.c_str());
-                return false;
-            }
-
-            Storage::dumpFile(Esp32::CONFIG_FILENAME);
-
-            if (returnDoc) {
-                *returnDoc = tempDoc; // Copy to provided doc if any
-            }
-
-            configJson_ = tempDoc; // Assign to global configJson_
-            configString_ = JsonTools::getJsonString(configJson_, true); // Update global configString_
-
-            // Apply hockey settings if present
-         /*   if (configJson_["hockey_settings"].is<JsonObjectConst>()) { // Simplified check
-                JsonVariantConst hockeySettingsVariant = configJson_["hockey_settings"]; // This is fine
-                // if (hockeySettingsVariant.is<JsonObjectConst>()) { // This inner check is now redundant
-                hockey.applySettings(hockeySettingsVariant.as<JsonObjectConst>());
-                Serial.println(F("Esp32::loadConfig: Applied hockey settings from config."));
-                // } else {
-                //     Serial.println(F("Esp32::loadConfig: 'hockey_settings' found but not a JSON object. Using defaults."));
-                // }
-            } else {
-                Serial.println(F("Esp32::loadConfig: No 'hockey_settings' or it's not an object. Hockey instance will use its defaults."));
-            }*/
-
-            if(doExecuteConfig) executeJsonConfig();
-            return true;
         }
+
+        configJson_ = configManager.getConfig();
+        configString_ = configManager.getConfigString(true);
+
+        if (returnDoc) {
+            *returnDoc = configJson_;
+        }
+
+        if (doExecuteConfig) executeJsonConfig();
+        return true;
     }
 
-    bool saveConfig(JsonDocument& config, bool do_reboot) { // Changed to pass JsonDocument by reference
-        if (!Esp32::spiffsMounted) { // Check if SPIFFS is mounted
+    bool saveConfig(JsonDocument& config, bool do_reboot) {
+        if (!Esp32::spiffsMounted) {
             Serial.println(F("Error: SPIFFS not mounted. Cannot save config."));
             return false;
         }
-        SPIFFS.exists(Esp32::CONFIG_FILENAME) ? Serial.print("Updating ") : Serial.print("Creating ");
-        Serial.println(Esp32::CONFIG_FILENAME);
 
-        // Ensure hockey_settings object exists and populate it
-       /* JsonObject hockeySettingsJson;
-        if (config["hockey_settings"].is<JsonObject>()) { // Simplified check
-            hockeySettingsJson = config["hockey_settings"].as<JsonObject>();
-        } else {
-            hockeySettingsJson = config["hockey_settings"].to<JsonObject>(); // Fixed deprecated createNestedObject
+        if (!configManager.saveConfig(Esp32::CONFIG_FILENAME, config)) {
+            Serial.println(F("Error: ConfigManager failed to save config."));
+            return false;
         }
-        hockey.populateSettings(hockeySettingsJson);
-        Serial.println(F("Esp32::saveConfig: Populated hockey_settings into the config document."));*/
 
-        configJson_ = config; // Update global
-        configString_ = JsonTools::getJsonString(configJson_, true);
+        configJson_ = config;
+        configString_ = configManager.getConfigString(true);
 
-        Storage::writeFile(Esp32::CONFIG_FILENAME, configString_);
-        Storage::dumpFile(Esp32::CONFIG_FILENAME);
-
-        if(do_reboot) Esp32::reboot();
-        else loadConfig(false); // Reload to ensure consistency without rebooting & executing
+        if (do_reboot) Esp32::reboot();
+        else loadConfig(false);
         return true;
     }
 
@@ -340,6 +269,8 @@ namespace Esp32 {
 
 
         // Esp32::battery_monitor_pin_ = 35; // Already initialized at definition
+        analogReadResolution(12);
+        analogSetPinAttenuation(battery_monitor_pin_, ADC_11db);
 
         if(!SPIFFS.begin(false)) {
             Serial.println("SPIFFS Mount failed\nDid not find filesystem - this can happen on first-run initialisation\n  Formatting...");
@@ -373,6 +304,9 @@ namespace Esp32 {
                 configDoc["buzzer_enabled"] = false;
                 configDoc["buzzer_pin"] = 14;
                 configDoc["mqttDataIntervalSec"] = 5;
+                configDoc["tides_lat"] = 46.8139f;
+                configDoc["tides_lon"] = -71.2082f;
+                configDoc["tides_api_key"] = "";
                 Serial.println("setup -> Could not read Config file -> initializing new file");
 
                 saveConfig(configDoc, false); // Pass local temp doc, saveConfig updates global configJson_

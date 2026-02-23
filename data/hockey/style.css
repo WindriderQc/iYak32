@@ -1,161 +1,162 @@
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin: 20px;
-}
+/* Hockey module styles - layers on top of esp32.css dark theme */
+
+body { margin: var(--spacing-lg, 20px); }
+
 .form-container {
     margin: 20px auto;
     padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 10px;
+    border: 1px solid var(--border-color, #2a2a4a);
+    border-radius: var(--border-radius, 8px);
+    background: var(--bg-secondary, #16213e);
     width: 300px;
+    color: var(--text-primary, #e8e8e8);
 }
-.scoreboard {
-    font-size: 48px;
-    font-weight: bold;
-    margin: 20px 0;
+.form-container h3 { color: var(--text-heading, #fff); }
+.form-container label { color: var(--text-secondary, #a0a0c0); }
+.form-container input[type="number"] {
+    background: var(--bg-input, #2a2a4a);
+    color: var(--text-primary, #e8e8e8);
+    border: 1px solid var(--border-color, #2a2a4a);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 1rem;
 }
+
 .button {
     padding: 10px 20px;
     margin: 10px;
-    font-size: 16px;
+    font-size: 1rem;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
-}
-.button-green {
-    background-color: #4CAF50;
+    font-weight: 600;
     color: white;
+    background: var(--accent-info, #2196f3);
+    transition: all 0.15s ease;
 }
-.button-red {
-    background-color: #f44336;
-    color: white;
-}
+.button:hover { filter: brightness(1.15); }
+.button-green { background-color: var(--accent-success, #4CAF50); }
+.button-red { background-color: var(--accent-danger, #f44336); }
 
 .form-wrapper {
     display: flex;
     gap: 20px;
     flex-wrap: wrap;
     margin-bottom: 20px;
-  }
-
-  .form-container {
-    border: 1px solid #ccc;
-    padding: 15px;
-    border-radius: 8px;
+    justify-content: center;
+}
+.form-wrapper .form-container {
     flex: 1;
     min-width: 250px;
-  }
+    width: auto;
+}
 
-  .menu {
-    background-color: #333;
+.menu {
+    background-color: var(--nav-bg, #0d1b2a);
     overflow: hidden;
     display: flex;
     justify-content: center;
     padding: 10px 0;
     margin-bottom: 20px;
+    border-radius: var(--border-radius, 8px);
 }
-
 .menu ul {
     list-style-type: none;
     margin: 0;
     padding: 0;
     display: flex;
-    gap: 20px;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
-
-.menu li {
-    display: inline;
-}
-
+.menu li { display: inline; }
 .menu a {
     text-decoration: none;
-    color: white;
-    padding: 10px 20px;
-    font-size: 1.2em;
+    color: var(--nav-text, #e0e0e0);
+    padding: 8px 16px;
+    font-size: 1.1em;
     font-weight: bold;
-    transition: background-color 0.3s;
+    transition: background-color 0.15s ease;
+    border-radius: 4px;
 }
-
 .menu a:hover {
-    background-color: #575757;
-    border-radius: 5px;
+    background-color: rgba(233,69,96,0.15);
+    color: var(--nav-hover, #e94560);
 }
 
-  canvas {
-    max-width: 100%;
-  }
+canvas { max-width: 100%; }
 
-.game-status {
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-.game-status-gif {
-   /* width: 240px; /* Adjust size as needed */
-    height: 240px;
-}
-
+.game-status { text-align: center; margin-bottom: 10px; }
+.game-status-gif { height: 240px; }
 
 .scoreboard-container {
     text-align: center;
-    font-family: Arial, sans-serif;
+    font-family: inherit;
     margin: 20px auto;
-    width: 640px; /* Increase the width of the scoreboard container */
-    border: 2px solid black;
+    width: 100%;
+    max-width: 640px;
+    border: 2px solid var(--border-color, #2a2a4a);
     border-radius: 10px;
-    background-color: #222;
-    color: white;
+    background-color: var(--bg-secondary, #16213e);
+    color: var(--text-primary, #e8e8e8);
     padding: 10px;
-    box-sizing: border-box; /* Include padding in the total width */
+    box-sizing: border-box;
 }
-
 .scoreboard {
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 2em;
     margin: 20px 0;
-    padding: 0 10px; /* Reduce padding slightly to save space */
-    box-sizing: border-box; /* Ensure padding is included in the total width */
+    padding: 0 10px;
+    box-sizing: border-box;
 }
-
 .team-score {
-    flex: 1; /* Allow scores to take equal space */
+    flex: 1;
     text-align: center;
     font-weight: bold;
-    background-color: #444;
+    background-color: var(--bg-tertiary, #0f3460);
     padding: 10px;
     border-radius: 5px;
-    font-size: 3em; /* Keep the font size large */
-    max-width: 120px; /* Reduce max width slightly to fit within the container */
-    box-sizing: border-box; /* Include padding in the width */
+    font-size: 3em;
+    max-width: 120px;
+    box-sizing: border-box;
 }
-
-
 .time-period {
-    flex: 2; /* Allow the time to take more space */
+    flex: 2;
     text-align: center;
-    margin: 0 10px; /* Add spacing between the time and scores */
+    margin: 0 10px;
 }
+.time { font-size: 2.5em; font-weight: bold; margin-bottom: 5px; }
+.period { text-align: center; }
+.period-value { font-size: 2.5em; font-weight: bold; }
+.period-label { font-size: 1em; font-weight: normal; margin-top: -5px; }
 
-.time {
-    font-size: 2.5em;
-    font-weight: bold;
-    margin-bottom: 5px;
+/* Stats table */
+.stats-table {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    border-collapse: collapse;
 }
-
-.period {
+.stats-table th, .stats-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color, #2a2a4a);
     text-align: center;
+    color: var(--text-primary, #e8e8e8);
+}
+.stats-table th {
+    background: var(--bg-tertiary, #0f3460);
+    color: var(--text-heading, #fff);
 }
 
-.period-value {
-    font-size: 2.5em;
-    font-weight: bold;
-}
-
-.period-label {
-    font-size: 1em;
-    font-weight: normal;
-    margin-top: -5px;
+@media (max-width: 600px) {
+    .form-wrapper { flex-direction: column; }
+    .form-container { width: 100%; min-width: auto; }
+    .scoreboard { font-size: 1.2em; }
+    .team-score { font-size: 2em; max-width: 80px; }
+    .time { font-size: 1.8em; }
+    .period-value { font-size: 1.8em; }
+    .game-status-gif { height: 150px; }
+    .menu a { padding: 6px 10px; font-size: 0.95em; }
 }

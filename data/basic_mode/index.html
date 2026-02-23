@@ -4,56 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Basic Mode Control</title>
-    <link rel="stylesheet" href="../colors.css">
     <link rel="stylesheet" href="../esp32.css">
-    <link rel="stylesheet" href="../utilities.css">
-    <style>
-        .button-placeholder {
-            padding: 10px 20px;
-            border: 1px solid #ccc;
-            background-color: #f0f0f0;
-            margin: 10px;
-            display: inline-block;
-            border-radius: 5px;
-        }
-        .led-status {
-            width: 50px;
-            height: 50px;
-            border: 1px solid #000;
-            margin: 10px;
-            display: inline-block;
-            border-radius: 50%; /* Make it circular */
-            background-color: #666; /* Default to OFF color (grey) */
-        }
-        .led-on {
-            background-color: #00ff00; /* Green for ON */
-        }
-        .led-off {
-            background-color: #ff0000; /* Red for OFF - or use grey/default */
-        }
-        .container {
-            padding: 20px;
-        }
-        .control-group {
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #eee;
-            border-radius: 5px;
-        }
-        h2 {
-            margin-top: 0;
-        }
-    </style>
+    <script src="../components/topMenu.js" type="text/javascript" defer></script>
+    <script src="../components/footer.js" type="text/javascript" defer></script>
 </head>
 <body>
-    <header>
-        <!-- Placeholder for topMenu, assuming it's injected by topMenu.js -->
-        <div id="topMenu"></div>
-    </header>
+    <header-component></header-component>
 
-    <div class="container">
-        <h1>Basic Mode Status</h1>
+    <div class="content-center" style="max-width:700px;">
+        <h1>Basic Mode Control</h1>
 
+        <!-- Sound Toggle -->
+        <div class="control-group">
+            <h2>Sound</h2>
+            <div class="info-row">
+                <span class="info-label">Sound Effects</span>
+                <label class="switch">
+                    <input type="checkbox" id="soundToggle" onchange="toggleSound()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- LEDs -->
         <div class="control-group">
             <h2>Button 1 / LED 1 (GPIO 21)</h2>
             <div class="button-placeholder">Physical Button 1</div>
@@ -72,20 +45,28 @@
             <div class="led-status" id="led3_status"></div>
         </div>
 
+        <!-- Analog with Threshold Sliders -->
         <div class="control-group">
             <h2>Analog Button 1 (GPIO 34)</h2>
-            <p>Value: <span id="analog1_value">...</span></p>
-            <p>Threshold: <span id="analog1_threshold">...</span></p>
+            <p>Value: <span id="analog1_value" style="color:var(--text-accent)">...</span></p>
+            <div class="info-row">
+                <span class="info-label">Threshold: <span id="analog1_threshold" style="color:var(--text-accent)">...</span></span>
+                <input type="range" id="thresh1" min="0" max="4095" value="2000" style="flex:1;margin-left:12px;" onchange="setThreshold(1, this.value)">
+            </div>
         </div>
 
         <div class="control-group">
             <h2>Analog Button 2 (GPIO 39)</h2>
-            <p>Value: <span id="analog2_value">...</span></p>
-            <p>Threshold: <span id="analog2_threshold">...</span></p>
+            <p>Value: <span id="analog2_value" style="color:var(--text-accent)">...</span></p>
+            <div class="info-row">
+                <span class="info-label">Threshold: <span id="analog2_threshold" style="color:var(--text-accent)">...</span></span>
+                <input type="range" id="thresh2" min="0" max="4095" value="2000" style="flex:1;margin-left:12px;" onchange="setThreshold(2, this.value)">
+            </div>
         </div>
     </div>
 
-    <script src="../components/topMenu.js"></script>
     <script src="basic_mode.js"></script>
+
+    <footer-component></footer-component>
 </body>
 </html>

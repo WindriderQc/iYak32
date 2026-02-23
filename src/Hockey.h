@@ -45,7 +45,7 @@ namespace Hockey
     class Hockey; // Forward declaration
     extern Hockey hockey; // extern declaration
 
-    void handleHockeyEvent(AceButton* button, uint8_t eventType, uint8_t buttonState) {
+    inline void handleHockeyEvent(AceButton* button, uint8_t eventType, uint8_t buttonState) {
         int pin = button->getPin();
         if (eventType == AceButton::kEventClicked) {
             if (pin == PAUSE_PIN) {
@@ -366,14 +366,14 @@ namespace Hockey
         int scoreRight = 0;
         int period = 1;
         unsigned long lastLoop;
-        int periodLength = 60000;
-        int time = 60000;
+        long periodLength = 60000;
+        long time = 60000;
         bool bSwitch = false;
     
         String scoreString = "00:00";
         String timeString = "00:00";
 
-        char* goalLeftStatus;
+        char* goalLeftStatus = nullptr;
         HOCKEY_state previous_state_;
         String last_displayed_string_on_7segment_;
         HOCKEY_state current_game_state_;

@@ -156,8 +156,8 @@ namespace Boat
         int ADC_max_ = 4095;
         int speed_ = 0;
         int direction_ = 0;
-        int prevSpeedPin_;
-        int  prevDirPin_;
+        int prevSpeedPin_ = 0;
+        int prevDirPin_ = 0;
 
         Servo myservo; 
 
@@ -168,4 +168,4 @@ namespace Boat
     
 }
 
-Boat::Boat boat = Boat::Boat();
+extern Boat::Boat boat;  // Definition moved to main.cpp inside #ifdef BOAT

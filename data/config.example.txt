@@ -1,0 +1,4 @@
+# Preferred Wi-Fi fallback list
+# Format: SSID:PASSWORD
+# Add one network per line
+YOUR_SSID:YOUR_PASSWORD

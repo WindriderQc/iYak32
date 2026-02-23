@@ -5,8 +5,8 @@
 
  namespace GPS {
 
-    static int lon = 77;
-    static int lat = 55;
+    const int lon = 77;
+    const int lat = 55;
 
     class Gps 
     {

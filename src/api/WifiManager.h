@@ -19,7 +19,6 @@ TODO: possibility to have a fixed IP address configured from EEPROM?  and adapt 
 class WifiManager {
     public:
         void setup(bool enableOTA, String ssid, String password);
-        void setup(bool enableOTA);
         void loop();
 
         bool isConnected();
@@ -27,7 +26,6 @@ class WifiManager {
         String getIPString();
         String getSSID();
         void setSSID(String ssid);
-        String getPASS();
         void setPASS(String pass);
         int getWiFiStrength(); // Removed points parameter
         void relaunchOTA();
@@ -39,18 +37,29 @@ class WifiManager {
         bool tryConnectToPreferredNetworks();
         bool tryConnectToUserNetwork(String ssid, String password);
         void startAccessPoint();
-    
+        void loadPreferredNetworks();
+        bool tryReconnectStep();
+
         bool isWifiConnected_ = false;
-        // const static int numPreferredNetworks = 3; // Removed
-        std::vector<String> preferredSsids_; // Changed to std::vector<String>
-        std::vector<String> preferredPasswords_; // Changed to std::vector<String>
+        std::vector<String> preferredSsids_;
+        std::vector<String> preferredPasswords_;
 
         bool isAutoReconnect_ = false;
         bool isOTA_ = false;
-   
+        bool isOTAInProgress_ = false;
+        unsigned long last_reconnect_attempt_ms_ = 0;
+        const unsigned long reconnect_interval_ms_ = 15000;
+
         IPAddress ipAddress_;
-        String ssid_; // Stays as is (already has underscore, though not strictly private style, but per instructions)
-        String password_; // Renamed from pass_
+        String ssid_;
+        String password_;
+
+        // Non-blocking reconnect state machine
+        enum class ReconnectState { IDLE, CONNECTING_USER, CONNECTING_PREFERRED };
+        ReconnectState reconnect_state_ = ReconnectState::IDLE;
+        unsigned long reconnect_start_time_ = 0;
+        int preferred_network_index_ = 0;
+        bool preferred_networks_loaded_ = false;
 
         // For non-blocking RSSI averaging
         std::vector<long> rssi_samples_;

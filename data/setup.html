@@ -3,203 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 Web Server</title>
-    <link rel="icon" type="image/png" href="favicon.ico">
-    <!-- Include p5.js library -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>  -->
-    
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <title>iYak32 Setup</title>
     <link rel="stylesheet" type="text/css" href="colors.css">
     <link rel="stylesheet" type="text/css" href="esp32.css">
     <link rel="stylesheet" type="text/css" href="utilities.css">
     <script src="components/topMenu.js" type="text/javascript" defer></script>
-    <script src="components/footer.js" type="text/javascript" defer></script>  
+    <script src="components/footer.js" type="text/javascript" defer></script>
 </head>
 <body>
     <header-component></header-component>
 
-    <div class=''>
-    <div class=''>  
+    <div class="content-center" style="max-width:600px;">
 
-  <h1>ESP32 Setup Server</h1>
-  
-  </br>
-  <form class="info-form">
-    <div class="info-row">
-        <label class="info-label">Current Time:</label>
-        <span class="info-data">%TIME%</span>
-    </div>
-    <div class="info-row">
-        <label class="info-label">Local IP:</label>
-        <span class="info-data">%LOCALIP%</span>
-    </div>
-    <div class="info-row">
-        <label class="info-label">SSID:</label>
-        <span class="info-data">%SSID%</span>
-    </div>
-</form>
-<br><br>
+    <h1>iYak32 Setup</h1>
+
+    <form class="info-form">
+        <div class="info-row">
+            <label class="info-label">Current Time:</label>
+            <span class="info-data">%TIME%</span>
+        </div>
+        <div class="info-row">
+            <label class="info-label">Local IP:</label>
+            <span class="info-data">%LOCALIP%</span>
+        </div>
+        <div class="info-row">
+            <label class="info-label">SSID:</label>
+            <span class="info-data">%SSID%</span>
+        </div>
+    </form>
+
+    <br>
     <h2>Network Configuration</h2>
-    <p>Configure the user network settings for the ESP32 device.</p>
-  <form>
-    
+    <p>Configure the network settings for the ESP32 device.</p>
 
-    
+    <form class="card" style="text-align:left; padding:20px;">
+        <div>
+            <label class="inline" for="ssid">SSID:</label>
+            <input type="text" id="ssid" value=""><br>
+            <label class="inline" for="pass">Password:</label>
+            <input type="password" id="pass" value="***">
+        </div>
 
-    <div>
-        <label class="inline" for="ssid"> SSID: </label>
-        <input type="text" id="ssid" value="UG"><br>
-        <label class="inline" for="pass"> Password: </label>
-        <input type="password" id="pass" value="***">
-    </div>
-
-    <br><br>
-
-    <div>
-        <input class="check" type="checkbox" id="isMqttEnabled" name="isMqttEnabled" value = false>
-        <label class="inline" for="isMqttEnabled"> Enable MQTT </label>
         <br>
-        <input class="check" type="checkbox" id="isCnfServ" name="isCnfServ" value = false>
-        <label class="inline" for="isCnfServ"> Load IO Config from Server </label> 
-        <br><br>
-        <label for="profileId"> Select Device Profile </label>
-        <input type="text" id="profileName" name="profileName" value="default_ESP32"><br>
-    </div>
+        <div>
+            <input class="check" type="checkbox" id="isMqttEnabled" name="isMqttEnabled" value="false">
+            <label class="inline" for="isMqttEnabled">Enable MQTT</label>
+            <br>
+            <input class="check" type="checkbox" id="isCnfServ" name="isCnfServ" value="false">
+            <label class="inline" for="isCnfServ">Load IO Config from Server</label>
+            <br><br>
+            <label for="profileId">Select Device Profile</label>
+            <input type="text" id="profileName" name="profileName" value="default_ESP32"><br>
+        </div>
 
-    <br><br><br>
-
-    <div>
+        <br>
+        <h3>MQTT Settings</h3>
         <div>
             <label class="inline" for="mqtturl">MQTT IP/URL</label>
             <input type="text" id="mqtturl" size="20" value="%MQTTURL%">
-            
-     
-            <label class="inline" for="mqttport">PORT</label> 
+            <label class="inline" for="mqttport">PORT</label>
             <input type="text" id="mqttport" value="1883"><br>
             <label class="inline" for="mqttDataInterval">Data Send Interval (seconds):</label>
             <input type="number" id="mqttDataInterval" name="mqttDataInterval" value="5" min="1">
         </div>
-    </div>
 
-      <br><br>
-      <h3>Timezone Configuration</h3>
-      <div>
-          <label class="inline" for="gmtOffset">GMT Offset (seconds):</label>
-          <input type="number" id="gmtOffset" name="gmtOffset" value="-18000">
-      </div>
-      <div>
-          <label class="inline" for="dstOffset">Daylight Saving Offset (seconds):</label>
-          <input type="number" id="dstOffset" name="dstOffset" value="3600">
-      </div>
+        <br>
+        <h3>Timezone Configuration</h3>
+        <div>
+            <label class="inline" for="gmtOffset">GMT Offset (seconds):</label>
+            <input type="number" id="gmtOffset" name="gmtOffset" value="-18000">
+        </div>
+        <div>
+            <label class="inline" for="dstOffset">Daylight Saving Offset (seconds):</label>
+            <input type="number" id="dstOffset" name="dstOffset" value="3600">
+        </div>
 
-      <br><br>
-      <h3>Buzzer Configuration</h3>
-      <div>
-          <input class="check" type="checkbox" id="buzzerEnabled" name="buzzerEnabled">
-          <label class="inline" for="buzzerEnabled">Enable Buzzer</label>
-      </div>
-      <div>
-          <label class="inline" for="buzzerPin">Buzzer GPIO Pin:</label>
-          <input type="number" id="buzzerPin" name="buzzerPin" value="-1" min="-1" max="39">
-          <small>(Set to -1 to disable pin)</small>
-      </div>
+        <br>
+        <h3>Buzzer Configuration</h3>
+        <div>
+            <input class="check" type="checkbox" id="buzzerEnabled" name="buzzerEnabled">
+            <label class="inline" for="buzzerEnabled">Enable Buzzer</label>
+        </div>
+        <div>
+            <label class="inline" for="buzzerPin">Buzzer GPIO Pin:</label>
+            <input type="number" id="buzzerPin" name="buzzerPin" value="-1" min="-1" max="39">
+            <small style="color:var(--text-secondary)">(Set to -1 to disable pin)</small>
+        </div>
+
+        <br>
+        <h3>Tides Configuration</h3>
+        <div>
+            <label class="inline" for="tidesApiKey">API Key:</label>
+            <input type="password" id="tidesApiKey" name="tidesApiKey" value="" placeholder="worldtides.info API key">
+            <small style="color:var(--text-secondary)">(from worldtides.info)</small>
+        </div>
+        <div>
+            <label class="inline" for="tidesLat">Latitude:</label>
+            <input type="number" id="tidesLat" name="tidesLat" step="0.0001" value="46.8139">
+        </div>
+        <div>
+            <label class="inline" for="tidesLon">Longitude:</label>
+            <input type="number" id="tidesLon" name="tidesLon" step="0.0001" value="-71.2082">
+        </div>
+
+        <br>
+        <div style="text-align:center;">
+            <button type="button" class="btn bigButton" id="saveBtn" onclick="saveNetworkConfig()">Save Configuration</button>
+        </div>
+    </form>
 
     <br>
-    <button class="btn bigButton" onclick=saveNetworkConfig()> Save to ESP32 Config JSON </button>
-  </form>
+    <a href="/data">View esp32config.json</a>
 
-  <br><br><br>
+    </div>
 
-  <a href="/data">esp32config.json</a>
-
-  </div>
-  </div>
-
-
-  <script>
-    const configJson = %CONFIG%
-    </script>
-    
     <script>
-    console.log(configJson)
-    console.log('SSID:', configJson.ssid)
-    actualizeFields(configJson)
+    const configJson = %CONFIG%;
+    console.log(configJson);
+    actualizeFields(configJson);
 
-   /* async function changeSSID() 
-    {
-        let ssid = document.getElementById("ssid").value
-        let pass = document.getElementById("pass").value
-    
-        const data = { ssid, pass };
-        const options = {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
-        };
-        const response = await fetch('/ssid', options);
-        const respjson = await response.json();
-        console.log(respjson);
-    }*/
-    
-    
- 
+    async function saveNetworkConfig() {
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
 
-    async function saveNetworkConfig() 
-    {
-        let mqtturl = document.getElementById("mqtturl").value    
-        let mqttport = document.getElementById("mqttport").value
-       
-        let ssid = document.getElementById("ssid").value
-        let pass = document.getElementById("pass").value
-
-        let isMqtt = document.getElementById("isMqttEnabled").checked
-        let isConfigFromServer = document.getElementById("isCnfServ").checked
-
+        let mqtturl = document.getElementById("mqtturl").value;
+        let mqttport = document.getElementById("mqttport").value;
+        let ssid = document.getElementById("ssid").value;
+        let pass = document.getElementById("pass").value;
+        let isMqtt = document.getElementById("isMqttEnabled").checked;
+        let isConfigFromServer = document.getElementById("isCnfServ").checked;
         let gmtOffset = parseInt(document.getElementById("gmtOffset").value);
         let dstOffset = parseInt(document.getElementById("dstOffset").value);
-
         let buzzerEnabled = document.getElementById("buzzerEnabled").checked;
         let buzzerPin = parseInt(document.getElementById("buzzerPin").value);
-
         let mqttDataIntervalSec = parseInt(document.getElementById("mqttDataInterval").value);
-        if (isNaN(mqttDataIntervalSec) || mqttDataIntervalSec < 1) {
-            mqttDataIntervalSec = 5;
-        }
-    
-        const data = {  isMqtt, isConfigFromServer, ssid, pass, mqtturl, mqttport, gmtOffset_sec: gmtOffset, daylightOffset_sec: dstOffset, buzzer_enabled: buzzerEnabled, buzzer_pin: buzzerPin, mqttDataIntervalSec: mqttDataIntervalSec };
+        if (isNaN(mqttDataIntervalSec) || mqttDataIntervalSec < 1) mqttDataIntervalSec = 5;
+        let tidesLat = parseFloat(document.getElementById("tidesLat").value) || 46.8139;
+        let tidesLon = parseFloat(document.getElementById("tidesLon").value) || -71.2082;
+        let tidesApiKey = document.getElementById("tidesApiKey").value;
+        let profileName = document.getElementById("profileName").value;
 
-        console.log( "Saving:", data)
-        const options = { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify(data) }
-        const response = await fetch('/config', options)
-        const respjson = await response.json()
-        console.log(respjson); 
-        await fetch('/reboot')
+        const data = {
+            isMqtt, isConfigFromServer, ssid, pass, mqtturl, mqttport,
+            gmtOffset_sec: gmtOffset, daylightOffset_sec: dstOffset,
+            buzzer_enabled: buzzerEnabled, buzzer_pin: buzzerPin,
+            mqttDataIntervalSec: mqttDataIntervalSec,
+            tides_lat: tidesLat, tides_lon: tidesLon,
+            profileName: profileName
+        };
+        // Only include tides_api_key if user entered a new value (not the masked placeholder)
+        if (tidesApiKey && tidesApiKey !== '***') {
+            data.tides_api_key = tidesApiKey;
+        }
+
+        console.log("Saving:", data);
+        const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
+
+        try {
+            const response = await fetch('/config', options);
+            const respjson = await response.json();
+            console.log(respjson);
+
+            saveBtn.textContent = 'Saved! Rebooting...';
+            saveBtn.style.background = 'var(--accent-success)';
+
+            setTimeout(async () => { await fetch('/reboot'); }, 500);
+
+            let countdown = 10;
+            const interval = setInterval(() => {
+                saveBtn.textContent = `Rebooting... reconnect in ${countdown}s`;
+                countdown--;
+                if (countdown < 0) {
+                    clearInterval(interval);
+                    saveBtn.textContent = 'Reconnecting...';
+                    setTimeout(() => { window.location.reload(); }, 2000);
+                }
+            }, 1000);
+        } catch (err) {
+            console.error('Save failed:', err);
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Failed - Retry';
+            saveBtn.style.background = 'var(--accent-danger)';
+            setTimeout(() => {
+                saveBtn.textContent = 'Save Configuration';
+                saveBtn.style.background = '';
+            }, 3000);
+        }
     }
 
-
-    function actualizeFields(dataJson)
-    {
-        document.getElementById("mqtturl").value = dataJson["mqtturl"]    
-        document.getElementById("mqttport").value = dataJson["mqttport"]
-       
-        document.getElementById("ssid").value = dataJson["ssid"]
-        document.getElementById("pass").value = dataJson["pass"]
-
-        document.getElementById("isMqttEnabled").checked = dataJson["isMqtt"]
-        document.getElementById("isCnfServ").checked = dataJson["isConfigFromServer"]
-        document.getElementById("profileName").value = dataJson["profileName"]
+    function actualizeFields(dataJson) {
+        document.getElementById("mqtturl").value = dataJson["mqtturl"] || '';
+        document.getElementById("mqttport").value = dataJson["mqttport"] || '1883';
+        document.getElementById("ssid").value = dataJson["ssid"] || '';
+        document.getElementById("pass").value = dataJson["pass"] || '';
+        document.getElementById("isMqttEnabled").checked = dataJson["isMqtt"];
+        document.getElementById("isCnfServ").checked = dataJson["isConfigFromServer"];
+        document.getElementById("profileName").value = dataJson["profileName"] || '';
         document.getElementById("gmtOffset").value = dataJson["gmtOffset_sec"] !== undefined ? dataJson["gmtOffset_sec"] : -18000;
         document.getElementById("dstOffset").value = dataJson["daylightOffset_sec"] !== undefined ? dataJson["daylightOffset_sec"] : 3600;
         document.getElementById("buzzerEnabled").checked = dataJson["buzzer_enabled"] || false;
         document.getElementById("buzzerPin").value = dataJson["buzzer_pin"] !== undefined ? dataJson["buzzer_pin"] : -1;
         document.getElementById("mqttDataInterval").value = dataJson["mqttDataIntervalSec"] !== undefined ? dataJson["mqttDataIntervalSec"] : 5;
+        document.getElementById("tidesLat").value = dataJson["tides_lat"] !== undefined ? dataJson["tides_lat"] : 46.8139;
+        document.getElementById("tidesLon").value = dataJson["tides_lon"] !== undefined ? dataJson["tides_lon"] : -71.2082;
+        document.getElementById("tidesApiKey").value = dataJson["tides_api_key"] ? '***' : '';
     }
+    </script>
 
-  </script>
-
-<footer-component></footer-component>
-
+    <footer-component></footer-component>
 </body>
 </html>

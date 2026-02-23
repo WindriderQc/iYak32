@@ -59,8 +59,8 @@ namespace Sensor {
         int getFluctDetection() const { return fluctDetection; }
 
 
-    private:      
-        volatile int lastValue;
+    private:
+        volatile int lastValue = 0;
         int fluctDetection = 1000;
         bool puckDropped = false;
         bool puckDetect = false;

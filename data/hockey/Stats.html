@@ -4,21 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hockey Stats</title>
+  <link rel="stylesheet" type="text/css" href="/esp32.css">
   <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-  <!-- Horizontal Menu -->
   <nav class="menu">
     <ul>
-      <li><a href="Scoreboard.html">Scoreboard</a></li>
-      <li><a href="Stats.html">Stats</a></li>
-      <li><a href="Hockey.html">Config</a></li>
+      <li><a href="/index.html">&#8592; Main</a></li>
+      <li><a href="/hockey/Scoreboard.html">Scoreboard</a></li>
+      <li><a href="/hockey/Stats.html">Stats</a></li>
+      <li><a href="/hockey/Hockey.html">Config</a></li>
     </ul>
   </nav>
 
   <h1>Last 10 Game Scores</h1>
 
-  <div class="stats-container">
+  <div style="padding: 0 16px;">
     <table class="stats-table">
       <thead>
         <tr>
@@ -29,32 +30,37 @@
         </tr>
       </thead>
       <tbody id="statsTableBody">
-        <!-- Rows will be dynamically populated -->
       </tbody>
     </table>
   </div>
 
   <script>
-    // Fetch the stats from the text file and populate the table
-    fetch('game_scores.txt')
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str || '';
+      return d.innerHTML;
+    }
+
+    fetch('/hockey/game_scores.txt')
       .then(response => response.text())
       .then(data => {
-        const rows = data.trim().split('\n'); // Split the file into lines
+        const rows = data.trim().split('\n');
         const tableBody = document.getElementById('statsTableBody');
-        rows.slice(-10).reverse().forEach((row, index) => { // Get the last 10 rows
+        rows.slice(-10).reverse().forEach((row, index) => {
           const [scoreLeft, scoreRight, period] = row.split(',');
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${rows.length - index}</td>
-            <td>${scoreLeft}</td>
-            <td>${scoreRight}</td>
-            <td>${period}</td>
+            <td>${esc(scoreLeft)}</td>
+            <td>${esc(scoreRight)}</td>
+            <td>${esc(period)}</td>
           `;
           tableBody.appendChild(tr);
         });
       })
       .catch(error => {
         console.error('Error loading game scores:', error);
+        document.getElementById('statsTableBody').innerHTML = '<tr><td colspan="4">No game data available</td></tr>';
       });
   </script>
 </body>

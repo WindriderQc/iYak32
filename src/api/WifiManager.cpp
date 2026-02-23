@@ -13,6 +13,9 @@
 void WifiManager::setup(bool enableOTA, String ssid, String password) 
 {    
     WiFi.mode(WIFI_STA); // Start ESP32 in Station mode (client mode) 
+    WiFi.disconnect();
+    isWifiConnected_ = false;
+    isAutoReconnect_ = true;
     
     ssid_ = ssid;
     password_ = password;
@@ -52,6 +55,19 @@ void WifiManager::setupOTA()
     const char* hostname = "iyak32"; // Define your desired hostname
     ArduinoOTA.setHostname(hostname);
 
+    ArduinoOTA.onStart([this]() {
+        isOTAInProgress_ = true;
+        Serial.println(F("OTA start"));
+    });
+    ArduinoOTA.onEnd([this]() {
+        isOTAInProgress_ = false;
+        Serial.println(F("OTA end"));
+    });
+    ArduinoOTA.onError([this](ota_error_t error) {
+        isOTAInProgress_ = false;
+        Serial.printf("OTA error[%u]\n", error);
+    });
+
     isOTA_ = true;
 
    
@@ -78,12 +94,36 @@ void WifiManager::relaunchOTA()
 
 void WifiManager::loop() 
 {
-    if ((!isWifiConnected_) && isAutoReconnect_) {
-        if(!tryConnectToUserNetwork(ssid_, password_)) tryConnectToPreferredNetworks();
-        //tryConnectToUserNetwork(ssid_, password_);
-    }
-    if(isOTA_) handleOTA(); // Handle OTA updates
+    if(isOTA_) handleOTA(); // Handle OTA updates first
 
+    if (isOTAInProgress_) {
+        return;
+    }
+
+    if (WiFi.status() != WL_CONNECTED) {
+        isWifiConnected_ = false;
+    }
+
+    if ((!isWifiConnected_) && isAutoReconnect_) {
+        if (reconnect_state_ == ReconnectState::IDLE) {
+            if (last_reconnect_attempt_ms_ == 0 || (millis() - last_reconnect_attempt_ms_) >= reconnect_interval_ms_) {
+                last_reconnect_attempt_ms_ = millis();
+                // Start non-blocking reconnect attempt
+                if (!ssid_.isEmpty() && ssid_ != "iYak32") {
+                    WiFi.begin(ssid_, password_);
+                    reconnect_start_time_ = millis();
+                    reconnect_state_ = ReconnectState::CONNECTING_USER;
+                    Serial.print(F("WiFi: Reconnecting to "));
+                    Serial.println(ssid_);
+                } else {
+                    preferred_network_index_ = 0;
+                    reconnect_state_ = ReconnectState::CONNECTING_PREFERRED;
+                }
+            }
+        } else {
+            tryReconnectStep();
+        }
+    }
     // Non-blocking WiFi Strength Sampling & Averaging
     const unsigned int RSSI_SAMPLE_INTERVAL_MS = 200; // How often to take a new sample
 
@@ -127,11 +167,20 @@ void WifiManager::handleOTA()
 
 bool WifiManager::tryConnectToUserNetwork(String ssid, String password) 
 {
-    Serial.print("Attempting to connect to User network");
+    ssid.trim();
+    password.trim();
+
+    Serial.print("Attempting to connect to User network: ");
     if(ssid.isEmpty()) {
         Serial.println(" - No user network provided");
         return false;
     }
+
+    if (ssid == "iYak32") {
+        Serial.println("iYak32 (AP fallback SSID detected, skipping as user network)");
+        return false;
+    }
+
     Serial.println(ssid);
 
     WiFi.begin(ssid, password);
@@ -164,32 +213,43 @@ bool WifiManager::tryConnectToPreferredNetworks()
         return false;
     }
 
-    File configFile = SPIFFS.open("/esp32config.json", "r");
+    File configFile = SPIFFS.open("/config.txt", "r");
     if (!configFile) {
-        Serial.println("Failed to open esp32config.json");
+        Serial.println("Failed to open config.txt");
         return false;
     }
 
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, configFile);
-    configFile.close();
+    Serial.println("SPIFFS mounted and config.txt found for SSID and credentials");
 
-    if (error) {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.c_str());
-        return false;
-    }
+    while (configFile.available()) {
+        String line = configFile.readStringUntil('\n');
+        line.trim();
 
-    const char* ssid = doc["wifi_ssid"];
-    const char* password = doc["wifi_password"];
+        if (line.isEmpty() || line.startsWith("#")) {
+            continue;
+        }
 
-    if (ssid && password) {
-        Serial.print("Attempting to connect to Preferred network from esp32config.json: ");
-        Serial.println(ssid);
+        int separatorPos = line.indexOf(':');
+        if (separatorPos <= 0) {
+            continue;
+        }
 
-        WiFi.begin(ssid, password);
+        String candidateSsid = line.substring(0, separatorPos);
+        String candidatePassword = line.substring(separatorPos + 1);
 
-        int timeout = 15; // Wait for connection for 15 seconds
+        candidateSsid.trim();
+        candidatePassword.trim();
+
+        if (candidateSsid.isEmpty()) {
+            continue;
+        }
+
+        Serial.print("Attempting to connect to Preferred network: ");
+        Serial.println(candidateSsid);
+
+        WiFi.begin(candidateSsid.c_str(), candidatePassword.c_str());
+
+        int timeout = 15;
         while (WiFi.status() != WL_CONNECTED && timeout > 0) {
             delay(1000);
             timeout--;
@@ -197,35 +257,131 @@ bool WifiManager::tryConnectToPreferredNetworks()
 
         if (WiFi.status() == WL_CONNECTED) {
             isWifiConnected_ = true;
-            ssid_ = ssid;
+            ssid_ = candidateSsid;
             ipAddress_ = WiFi.localIP();
 
-            Serial.print("Connected to ");  Serial.println(ssid);
+            Serial.print("Connected to ");  Serial.println(candidateSsid);
             Serial.print("IP address: ");   Serial.println(ipAddress_);
+            configFile.close();
             return true;
         }
-    } else {
-        Serial.println("Could not find wifi_ssid or wifi_password in esp32config.json");
     }
 
-    Serial.println("Failed to connect to any preferred network");
+    configFile.close();
+    Serial.println("Failed to connect to any preferred network from config.txt");
     return false;
 }
 
 
-void WifiManager::startAccessPoint() 
-{
-    // Set the SSID (name) and password of the Access Point
-    const char* apSsid = "iYak32";
-    const char* apPassword = "12345678";
+void WifiManager::loadPreferredNetworks() {
+    if (preferred_networks_loaded_) return;
+    preferredSsids_.clear();
+    preferredPasswords_.clear();
 
-    // Start the Access Point with the specified SSID and password
-    WiFi.softAP(apSsid, apPassword);
+    if (!Esp32::spiffsMounted) return;
+
+    File configFile = SPIFFS.open("/config.txt", "r");
+    if (!configFile) return;
+
+    while (configFile.available()) {
+        String line = configFile.readStringUntil('\n');
+        line.trim();
+        if (line.isEmpty() || line.startsWith("#")) continue;
+        int sep = line.indexOf(':');
+        if (sep <= 0) continue;
+        String s = line.substring(0, sep);
+        String p = line.substring(sep + 1);
+        s.trim(); p.trim();
+        if (!s.isEmpty()) {
+            preferredSsids_.push_back(s);
+            preferredPasswords_.push_back(p);
+        }
+    }
+    configFile.close();
+    preferred_networks_loaded_ = true;
+}
+
+bool WifiManager::tryReconnectStep() {
+    const unsigned long CONNECT_TIMEOUT_MS = 15000;
+
+    switch (reconnect_state_) {
+        case ReconnectState::CONNECTING_USER: {
+            if (WiFi.status() == WL_CONNECTED) {
+                isWifiConnected_ = true;
+                ipAddress_ = WiFi.localIP();
+                reconnect_state_ = ReconnectState::IDLE;
+                Serial.print(F("WiFi: Reconnected to ")); Serial.println(ssid_);
+                return true;
+            }
+            if (millis() - reconnect_start_time_ > CONNECT_TIMEOUT_MS) {
+                Serial.println(F("WiFi: User network reconnect timeout, trying preferred..."));
+                preferred_network_index_ = 0;
+                reconnect_start_time_ = 0;  // Reset so CONNECTING_PREFERRED doesn't inherit stale elapsed time
+                reconnect_state_ = ReconnectState::CONNECTING_PREFERRED;
+            }
+            return false;
+        }
+        case ReconnectState::CONNECTING_PREFERRED: {
+            // Check if current attempt succeeded
+            if (WiFi.status() == WL_CONNECTED) {
+                isWifiConnected_ = true;
+                ipAddress_ = WiFi.localIP();
+                if (preferred_network_index_ > 0 && preferred_network_index_ <= (int)preferredSsids_.size()) {
+                    ssid_ = preferredSsids_[preferred_network_index_ - 1];
+                }
+                reconnect_state_ = ReconnectState::IDLE;
+                Serial.print(F("WiFi: Reconnected. IP: ")); Serial.println(ipAddress_);
+                return true;
+            }
+
+            loadPreferredNetworks();
+
+            // Check timeout for current preferred network attempt
+            if (reconnect_start_time_ != 0 && (millis() - reconnect_start_time_) < CONNECT_TIMEOUT_MS) {
+                return false; // Still waiting
+            }
+
+            // Move to next preferred network
+            if (preferred_network_index_ < (int)preferredSsids_.size()) {
+                Serial.print(F("WiFi: Trying preferred network: "));
+                Serial.println(preferredSsids_[preferred_network_index_]);
+                WiFi.begin(preferredSsids_[preferred_network_index_].c_str(),
+                           preferredPasswords_[preferred_network_index_].c_str());
+                reconnect_start_time_ = millis();
+                preferred_network_index_++;
+                return false;
+            }
+
+            // Exhausted all networks
+            Serial.println(F("WiFi: All reconnect attempts failed."));
+            reconnect_state_ = ReconnectState::IDLE;
+            return false;
+        }
+        default:
+            reconnect_state_ = ReconnectState::IDLE;
+            return false;
+    }
+}
+
+void WifiManager::startAccessPoint()
+{
+    const char* apSsid = "iYak32";
+
+    // Use configurable AP password if set, otherwise derive from device MAC
+    String apPasswordStr = Esp32::configJson_["ap_password"] | "";
+    apPasswordStr.trim();
+    if (apPasswordStr.isEmpty()) {
+        // Derive per-device password from MAC-based device name (e.g. "iYak_A1B2_32")
+        apPasswordStr = "iYak_" + Esp32::DEVICE_NAME.substring(4) + "_32";
+    }
+
+    WiFi.softAP(apSsid, apPasswordStr.c_str());
 
     ssid_ = (char*)apSsid;
     ipAddress_ = WiFi.softAPIP();
-    Serial.print(F("Access Point IP address: ")); Serial.println(ipAddress_);
-  // Additional configurations for the Access Point can be done here
+    Serial.print(F("Access Point started. SSID: ")); Serial.println(apSsid);
+    Serial.print(F("AP Password: ")); Serial.println(apPasswordStr);
+    Serial.print(F("AP IP address: ")); Serial.println(ipAddress_);
 }
 
 bool WifiManager::isConnected() 
@@ -236,8 +392,6 @@ bool WifiManager::isConnected()
 String WifiManager::getSSID() {     return ssid_;    }
 
 void WifiManager::setSSID(String ssid) {     ssid_ =  ssid;  }
-
-//char* WifiManager::getPASS() {     return password_;    } // Assuming getPASS should reflect new name
 
 void WifiManager::setPASS(String pass) {     password_ =  pass;  }
 

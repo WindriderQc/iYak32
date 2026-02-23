@@ -17,7 +17,7 @@ namespace Oled {
   #define OLED_I2C_ADDRESS 0x3C
 
   // Declaration for SSD1306 display connected using I2C:
-  Adafruit_SSD1306 oled(OLED_WIDTH, OLED_HEIGHT, &Wire, -1, 800000U);  // 800000U => ESP32 can use I2C up to 800KHz when Oled device supports it
+  extern Adafruit_SSD1306 oled;  // Definition in main.cpp
 
   // Declaration for SSD1306 display connected using software SPI:
   /*
