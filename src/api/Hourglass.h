@@ -42,19 +42,27 @@
                 timeval now;
                 gettimeofday(&now, nullptr);
 
-                char utc[80];
-                char utc_with_millis[84];
-                strftime(utc, sizeof(utc), "%Y-%m-%d %H:%M:%S%f", localtime(&now.tv_sec));
-                sprintf(utc_with_millis, "%s.%03d", utc, (int)(now.tv_usec / 1000));
+                char localDate[24];
+                strftime(localDate, sizeof(localDate), "%Y-%m-%d %H:%M:%S", localtime(&now.tv_sec));
+                char localWithMillis[28];
+                snprintf(localWithMillis, sizeof(localWithMillis), "%s.%03ld", localDate, now.tv_usec / 1000);
 
-                String datetime;
-
-                if(withMillis) datetime = utc_with_millis;
-                else           datetime = utc;
-
+                String datetime = withMillis ? localWithMillis : localDate;
                 if(print) Serial.println("Date : " + datetime);
-
                 return datetime;
+            }
+
+            String getUtcIsoString()
+            {
+                timeval now;
+                gettimeofday(&now, nullptr);
+                tm utcTime;
+                gmtime_r(&now.tv_sec, &utcTime);
+                char utcDate[24];
+                strftime(utcDate, sizeof(utcDate), "%Y-%m-%dT%H:%M:%S", &utcTime);
+                char utcWithMillis[30];
+                snprintf(utcWithMillis, sizeof(utcWithMillis), "%s.%03ldZ", utcDate, now.tv_usec / 1000);
+                return String(utcWithMillis);
             }
 
 

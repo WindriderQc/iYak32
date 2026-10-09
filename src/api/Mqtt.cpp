@@ -308,7 +308,7 @@ namespace Mqtt {
 
         JsonDocument doc;
 
-        doc["timestamp"] = Esp32::hourglass.getDateTimeString(false, true);
+        doc["timestamp"] = Esp32::hourglass.getUtcIsoString();
         doc["sender"] = Esp32::DEVICE_NAME;
         doc["message_type"] = message_type;
 
