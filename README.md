@@ -95,6 +95,22 @@ The web interface interacts with the ESP32 through the following HTTP API endpoi
     mqtt.txt  file must be in the data folder with a simple line:
 user:password
 
+## Local sensor MQTT topics
+
+In addition to the existing JSON envelope on `esp32/data/<DEVICE_NAME>`, the firmware publishes plain numeric readings every `mqttDataIntervalSec` seconds to `sensors/<DEVICE_NAME>/<measure>`. The current board identifies as `ESP_15605`. No reading is sent for an unavailable sensor.
+
+| Measure | Unit | Source |
+|---|---|---|
+| `temperature` | °C | BMP280/BME280 |
+| `pressure` | hPa | BMP280/BME280 |
+| `altitude` | m | BMP280/BME280 estimate |
+| `humidity` | % | BME280 only |
+| `battery_voltage` | V | Battery ADC estimate |
+| `wifi_rssi` | dBm | Wi-Fi |
+| `cpu_temperature` | °C | ESP32 |
+
+Set `mqtturl`, `mqttport`, `mqttuser`, and `mqttpass` in the private `/esp32config.json` on the device. Keep the broker address and credentials out of tracked examples.
+
 ## Local config files (gitignored) and examples
 
 The following runtime files are intentionally gitignored (local secrets / per-device settings):

@@ -75,6 +75,7 @@ namespace Mqtt
     bool setup(String deviceName, const JsonDocument& config);
     void loop();
     void sendJson(std::vector<String> names, std::vector<String> values, String topic, bool print2console = false);
+    void publishSensorReading(const char* measure, float value, unsigned int decimals);
 
     // New standardized message publishing function
     void publishStandardMessage(

@@ -5,6 +5,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <cmath>
 
 namespace Mqtt {
     bool isEnabled = false;
@@ -264,6 +265,16 @@ namespace Mqtt {
             case MqttState::DISCONNECTED:
                 // Waiting for external trigger (forceReconnect)
                 break;
+        }
+    }
+
+    void publishSensorReading(const char* measure, float value, unsigned int decimals) {
+        if (!isEnabled || !mqttClient.connected() || !std::isfinite(value)) return;
+        const String topic = "sensors/" + Esp32::DEVICE_NAME + "/" + measure;
+        const String payload(value, decimals);
+        if (!mqttClient.publish(topic.c_str(), payload.c_str())) {
+            Serial.print(F("MQTT: Sensor publish failed on "));
+            Serial.println(topic);
         }
     }
 

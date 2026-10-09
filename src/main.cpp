@@ -124,6 +124,19 @@ void sendData() {
         "sensor_readings",                   // payload_type
         printToConsole
     );
+
+    // Scalar topics for local dashboards: sensors/<device>/<measure>.
+    Mqtt::publishSensorReading("cpu_temperature", Esp32::getCPUTemp(), 1);
+    Mqtt::publishSensorReading("wifi_rssi", Esp32::wifiManager.getWiFiStrength(), 0);
+    Mqtt::publishSensorReading("battery_voltage", Esp32::getBattRemaining(false), 2);
+    if (isBMXConnected) {
+        Mqtt::publishSensorReading("temperature", BMX280::getTemperature(), 1);
+        Mqtt::publishSensorReading("pressure", BMX280::getPressure(), 1);
+        Mqtt::publishSensorReading("altitude", BMX280::getAltitude(), 1);
+        if (BMX280::hasHumidity()) {
+            Mqtt::publishSensorReading("humidity", BMX280::getHumidity(), 1);
+        }
+    }
 }
 
 void printOled()
