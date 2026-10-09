@@ -65,14 +65,18 @@ public:
         // Analog Button 2 Setup
         analogButton2_.setup("AnalogButton2", Esp32::DEVICE_NAME, ANALOG_BUTTON2_PIN, false);
 
+        // Latch LEDs low before enabling outputs, even without an I/O config file.
         digitalWrite(LED1_PIN, LOW);
         digitalWrite(LED2_PIN, LOW);
         digitalWrite(LED3_PIN, LOW);
+        pinMode(LED1_PIN, OUTPUT);
+        pinMode(LED2_PIN, OUTPUT);
+        pinMode(LED3_PIN, OUTPUT);
         led1_state_ = false;
         led2_state_ = false;
         led3_state_ = false;
 
-        Serial.println("BasicMode: Setup complete with AceButton.");
+        Serial.println("BasicMode: Setup complete with AceButton and LED outputs.");
     }
 
     void loop() {
