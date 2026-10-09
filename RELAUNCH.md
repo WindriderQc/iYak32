@@ -10,10 +10,10 @@ The files `data/esp32config.json`, `data/config.txt`, and `data/mqtt.txt` are pr
 
 ## Build and device workflow on devX
 
-1. Use the private SSH alias `devX` and the checkout at `~/codes/iYak32`. Build with `~/.venvs/iyak32/bin/pio run -e esp32dev`. There is no automated test suite in this repository yet.
+1. Use the private SSH alias `devX` and the checkout at `~/codes/iYak32`. Build with `~/.venvs/iyak32/bin/pio run -e esp32dev`. There is no unit test suite in this repository yet.
 2. Confirm the CP210x USB bridge identity before attaching it from Windows to devX with USB/IP. Keep port 3240 on the private LAN and restrict access to devX. The Linux port is `/dev/ttyUSB0` when attached.
 3. Read the partition table and active OTA slot before flashing. This board has a 4 MB flash and separate application and SPIFFS partitions. Preserve a full private flash backup outside Git before the first write.
-4. Flash only the active application partition when changing firmware; do not upload the filesystem or rewrite the partition table for an ordinary code change. Verify the image hash, then check the serial boot log and read-only status endpoints.
+4. Flash only the active application partition when changing firmware; do not upload the filesystem or rewrite the partition table for an ordinary code change. Verify the image hash, check the serial boot log, then run `python3 scripts/smoke_device.py <device-ip>` from devX.
 5. If the serial log reports a brownout, stop further flashes and check USB power/cable stability. A successful esptool write proves flash transport, not a successful application boot.
 
 The first devX application-only flash completed and esptool verified its hash. Runtime acceptance is pending because the isolated board repeatedly reported a brownout before `BasicMode` finished setup. The same failure occurred over USB/IP and native Windows COM3, so the tunnel is not required to reproduce it. Later code commits have only passed the PlatformIO build. The changed `data/setup.html` is not on the device until a deliberate SPIFFS update; do not use `uploadfs` with an incomplete private filesystem image.
@@ -48,6 +48,6 @@ Ordered by risk and usefulness. "Built" means the source compiles; it does not c
 | 22 | Require an explicit OTA target instead of a hard-coded IP. | Built |
 | 23 | Make the hockey score writer and stats page use the same SPIFFS path. | Open; mode disabled |
 | 24 | Bundle required web assets locally so the UI works without Internet access. | Open |
-| 25 | Add a small build gate and hardware smoke checklist for boot, GPIO, web, MQTT, and mode selection. | Guide added; automation open |
+| 25 | Add a small build gate and hardware smoke checklist for boot, GPIO, web, MQTT, and mode selection. | Read-only BasicMode smoke script added and passed on device; serial and other modes remain manual |
 
 The older `PEER_REVIEW.md` contains stale claims (for example, it calls the buzzer blocking). Check current source and serial evidence before using it as a task list.
