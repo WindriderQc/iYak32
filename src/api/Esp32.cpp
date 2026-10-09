@@ -273,17 +273,9 @@ namespace Esp32 {
         analogSetPinAttenuation(battery_monitor_pin_, ADC_11db);
 
         if(!SPIFFS.begin(false)) {
-            Serial.println("SPIFFS Mount failed\nDid not find filesystem - this can happen on first-run initialisation\n  Formatting...");
-            ioBlink(LED_BUILTIN,100, 100, 4);
-            if (!SPIFFS.begin(true)) {
-                Serial.println("SPIFFS mount failed\nFormatting not possible - check if a SPIFFS partition is present for your board?");
-                ioBlink(LED_BUILTIN,100, 100, 8);
-                spiffsMounted = false;
-            } else {
-                Serial.println(F("SPIFFS Formatting complete."));
-                spiffsMounted = true;
-                Esp32::loadAndApplyIOConfig(); // Load and apply I/O config after formatting
-            }
+            Serial.println(F("SPIFFS mount failed; filesystem left intact for recovery."));
+            ioBlink(LED_BUILTIN,100, 100, 8);
+            spiffsMounted = false;
         } else {
             Serial.println("SPIFFS mounted successfully");
             spiffsMounted = true;
