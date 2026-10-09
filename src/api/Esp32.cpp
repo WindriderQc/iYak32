@@ -390,8 +390,8 @@ namespace Esp32 {
                 Serial.printf("Esp32: Unknown mode '%s' for GPIO %d. Defaulting to INPUT.\n", mode_str_json.c_str(), gpio);
             }
 
-            if ((gpio == 34 || gpio == 35 || gpio == 36 || gpio == 39) && actual_mode_arduino == OUTPUT) {
-                Serial.printf("Esp32: Warning! GPIO %d is input-only. Forcing mode to INPUT.\n", gpio);
+            if ((gpio == 34 || gpio == 35 || gpio == 36 || gpio == 39) && actual_mode_arduino != INPUT) {
+                Serial.printf("Esp32: GPIO %d has no output or internal pull resistor; forcing INPUT.\n", gpio);
                 configPin_mode_str = "IN";
                 actual_mode_arduino = INPUT;
                 mode_str_json = "INPUT";

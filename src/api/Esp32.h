@@ -22,7 +22,7 @@ namespace Esp32 {
     const String CONFIG_IO_FILENAME = "/io_config.json"; // Added for I/O config
     const int CONFIG_FILE_MAX_SIZE = 1024;
     const int ADC_Max = 4095;
-    #define HUZZAH32  39    //  39 pins for esp32   (Should match array size in .cpp)
+    #define HUZZAH32  40    // GPIO indices 0..39 (array size in Esp32.cpp)
     #define WEMOSIO   20
 
     // Extern Namespace Variables (declarations)
