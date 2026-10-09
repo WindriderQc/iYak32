@@ -351,9 +351,14 @@ namespace Mqtt {
     }
 
     void MqttQueue::publish() {
-        while(topics.size() > 0) {
-            Mqtt::mqttClient.publish(topics.front().c_str(), messages.front().c_str() );
-            Serial.print(topics.front().c_str()); Serial.print(", "); Serial.println(messages.front().c_str() );
+        while (!topics.empty() && !messages.empty()) {
+            if (!Mqtt::mqttClient.connected() ||
+                !Mqtt::mqttClient.publish(topics.front().c_str(), messages.front().c_str())) {
+                Serial.println(F("MQTT: Publish failed; keeping queued message for retry."));
+                break;
+            }
+            Serial.print(F("MQTT: Sent queued message on "));
+            Serial.println(topics.front());
             topics.pop_front();
             messages.pop_front();
         }
