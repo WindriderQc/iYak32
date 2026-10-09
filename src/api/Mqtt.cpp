@@ -298,8 +298,7 @@ namespace Mqtt {
         device["manufacturer"] = "iYak32";
         device["model"] = "ESP32 sensor node";
         doc["origin"]["name"] = "iYak32";
-        doc["~"] = baseTopic;
-        doc["availability_topic"] = "~/availability";
+        doc["availability_topic"] = availabilityTopic;
 
         JsonObject components = doc["components"].to<JsonObject>();
         auto addSensor = [&](const char* measure, const char* name, const char* deviceClass,
@@ -311,7 +310,7 @@ namespace Mqtt {
             sensor["device_class"] = deviceClass;
             sensor["state_class"] = "measurement";
             sensor["unit_of_measurement"] = unit;
-            sensor["state_topic"] = String("~/") + measure;
+            sensor["state_topic"] = baseTopic + "/" + measure;
             if (diagnostic) sensor["entity_category"] = "diagnostic";
         };
 
