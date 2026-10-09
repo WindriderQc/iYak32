@@ -90,8 +90,7 @@ namespace Storage {
 
         File file = SPIFFS.open(filename);
         if (!file || file.isDirectory()) {
-            Serial.println("readFile -> failed to open file for reading, maybe corrupt, removing");
-            removeConfigFile(filename);
+            Serial.println("readFile -> failed to open file for reading; leaving it intact");
             return "";
         }
 
