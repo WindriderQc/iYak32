@@ -133,7 +133,7 @@ void WifiManager::loop()
                 for (long sample : rssi_samples_) {
                     sum_rssi += sample;
                 }
-                current_avg_rssi_ = sum_rssi / rssi_samples_.size();
+                current_avg_rssi_ = sum_rssi / static_cast<long>(rssi_samples_.size());
             } else {
                 current_avg_rssi_ = current_rssi;
             }
