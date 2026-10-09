@@ -16,7 +16,7 @@ The files `data/esp32config.json`, `data/config.txt`, and `data/mqtt.txt` are pr
 4. Flash only the active application partition when changing firmware; do not upload the filesystem or rewrite the partition table for an ordinary code change. Verify the image hash, then check the serial boot log and read-only status endpoints.
 5. If the serial log reports a brownout, stop further flashes and check USB power/cable stability. A successful esptool write proves flash transport, not a successful application boot.
 
-The first devX application-only flash completed and esptool verified its hash. Runtime acceptance is pending because the isolated board repeatedly reported a brownout before `BasicMode` finished setup. Later code commits have only passed the PlatformIO build.
+The first devX application-only flash completed and esptool verified its hash. Runtime acceptance is pending because the isolated board repeatedly reported a brownout before `BasicMode` finished setup. Later code commits have only passed the PlatformIO build. The changed `data/setup.html` is not on the device until a deliberate SPIFFS update; do not use `uploadfs` with an incomplete private filesystem image.
 
 ## Top 25 practical improvements
 
@@ -25,14 +25,14 @@ Ordered by risk and usefulness. "Built" means the source compiles; it does not c
 | # | Improvement | State |
 |---:|---|---|
 | 1 | Stabilize USB power and explain the observed boot brownout before more flashing. | Hardware check pending |
-| 2 | Stop serving private config files and credentials through HTTP responses and serial logs. | Open |
+| 2 | Stop serving private config files and credentials through HTTP responses and serial logs. | Partly built; tide-key route still open |
 | 3 | Require an owner credential for HTTP writes, reboot, and OTA; keep it LAN-only. | Open |
 | 4 | Protect MQTT credentials in transit or move the broker onto the private LAN. | Open |
 | 5 | Add a safe stop/interlock and correct ADC-to-8-bit PWM scaling in `BOAT`. | Open; mode disabled |
 | 6 | Never auto-format SPIFFS on mount failure. | Built; device check pending |
 | 7 | Never delete a config file just because opening it failed. | Built; device check pending |
 | 8 | Save config with a temporary file and replace it only after a complete write. | Open |
-| 9 | Give each HTTP request its own bounded body buffer; reject oversized input. | Open |
+| 9 | Give each HTTP request its own bounded body buffer; reject oversized input. | Built; device check pending |
 | 10 | Accept exact device MQTT topics and drive configured digital outputs only. | Built; device check pending |
 | 11 | Validate MQTT `configIOs` and web GPIO settings before touching pins, including reserved and duplicate pins. | Open |
 | 12 | Pin PlatformIO platform and library versions so Windows and devX build the same image. | Open |
@@ -42,12 +42,12 @@ Ordered by risk and usefulness. "Built" means the source compiles; it does not c
 | 16 | Identify whether the device at I2C `0x76` is BMP280 or BME280 and select the right driver. | Hardware check needed |
 | 17 | Represent missing sensor readings as unavailable instead of valid zeroes. | Open |
 | 18 | Produce actual UTC ISO 8601 timestamps for MQTT; keep local time for the UI. | Built; device check pending |
-| 19 | Check MQTT publish results before removing queued messages. | Open |
+| 19 | Check MQTT publish results before removing queued messages. | Built; device check pending |
 | 20 | Initialize `BasicMode` LED outputs without relying on SPIFFS GPIO config. | Flashed; boot marker pending |
-| 21 | Report the real mDNS service registration result and fix the observed registration error. | Open |
-| 22 | Replace the hard-coded OTA IP in `platformio.ini` with a documented device lookup. | Open |
+| 21 | Let ArduinoOTA register mDNS only once; check discovery on a stable device. | Built; device check pending |
+| 22 | Require an explicit OTA target instead of a hard-coded IP. | Built |
 | 23 | Make the hockey score writer and stats page use the same SPIFFS path. | Open; mode disabled |
 | 24 | Bundle required web assets locally so the UI works without Internet access. | Open |
-| 25 | Add a small build gate and hardware smoke checklist for boot, GPIO, web, MQTT, and mode selection. | Open |
+| 25 | Add a small build gate and hardware smoke checklist for boot, GPIO, web, MQTT, and mode selection. | Guide added; automation open |
 
 The older `PEER_REVIEW.md` contains stale claims (for example, it calls the buzzer blocking). Check current source and serial evidence before using it as a task list.
