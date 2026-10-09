@@ -35,7 +35,7 @@ Ordered by risk and usefulness. "Built" means the source compiles; it does not c
 | 9 | Give each HTTP request its own bounded body buffer; reject oversized input. | Built; device check pending |
 | 10 | Accept exact device MQTT topics and drive configured digital outputs only. | Built; device check pending |
 | 11 | Validate MQTT `configIOs` and web GPIO settings before touching pins, including reserved and duplicate pins. | Open |
-| 12 | Pin PlatformIO platform and library versions so Windows and devX build the same image. | Open |
+| 12 | Pin PlatformIO platform and library versions so Windows and devX build the same image. | Done; devX rebuild matched flashed image SHA-256 |
 | 13 | Keep a private full-flash backup and a tested restore procedure. | Backup done; restore drill pending |
 | 14 | Reconcile Button3 GPIO 27 in `BasicMode` with GPIO 34 in tracked `data/io_config.json`. | Wiring check needed |
 | 15 | Reject pull-up/down and output modes on GPIO 34–39; include GPIO 39 in the pin table. | Built; device check pending |
