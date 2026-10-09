@@ -3,10 +3,7 @@
 #include <Arduino.h> // For uint8_t, etc.
 #include <Wire.h>    // For TwoWire
 
-// Keep this macro definition at the top or in a config file if it varies by hardware build
-// Define or undefine USE_BMPvsBME in your platformio.ini build_flags or a global config header
-// For example, in platformio.ini: build_flags = -D USE_BMPvsBME
-// #define USE_BMPvsBME
+// Selects BMP280 or BME280 from the chip ID at runtime.
 
 namespace BMX280 {
     // Configuration
@@ -15,15 +12,16 @@ namespace BMX280 {
     #define SEALEVELPRESSURE_HPA (1013.25)
 
     // Function Declarations
-    bool init(TwoWire* i2c_bus = &Wire, uint8_t i2c_addr = 0x76);
+    bool init(uint8_t i2c_addr = 0x76);
     void setTempUnitCelcius(bool useCelcius); // True for Celcius, False for Fahrenheit
     bool isSuccessfullyInitialized();
+    bool hasHumidity();
     
     void actualizeWeather(bool printResult = false);
     
     float getTemperature();
     float getPressure();
     float getAltitude();
-    float getHumidity(); // Returns 0.0f if BMP280 is used (as it doesn't support humidity)
+    float getHumidity(); // Returns NAN for BMP280 (no humidity sensor)
 
 } // namespace BMX280

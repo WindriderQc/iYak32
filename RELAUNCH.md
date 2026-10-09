@@ -16,7 +16,7 @@ The files `data/esp32config.json`, `data/config.txt`, and `data/mqtt.txt` are pr
 4. Flash only the active application partition when changing firmware; do not upload the filesystem or rewrite the partition table for an ordinary code change. Verify the image hash, check the serial boot log, then run `python3 scripts/smoke_device.py <device-ip>` from devX.
 5. If the serial log reports a brownout, stop further flashes and check USB power/cable stability. A successful esptool write proves flash transport, not a successful application boot.
 
-On 2026-10-09, replacing the USB cable changed the CP210x BUSID to `1-8` (serial `01AB9FF2`). The isolated board then booted without brownout, and the application-only flashes completed with esptool hash verification. The final image SHA-256 is `0f626293035e9f957fc641ac30f56aa850494aad87260d1a4e53ae2c145f1160`; serial shows `BOOT done` and `BasicMode: Setup complete`, while the read-only smoke check passed after a reset. This supports a power/cable cause for the earlier brownouts, but does not prove long-term power margin. The changed `data/setup.html` is not on the device until a deliberate SPIFFS update; do not use `uploadfs` with an incomplete private filesystem image.
+On 2026-10-09, replacing the USB cable changed the CP210x BUSID to `1-8` (serial `01AB9FF2`). The isolated board then booted without brownout, and the application-only flashes completed with esptool hash verification. The current image SHA-256 is `a52d1daa1699bc45fb84d2ec442166b6e488c0e9fdd0e62f8714ee8c47aac5fe`; serial shows `BOOT done` and `BasicMode: Setup complete`, while the read-only smoke check passed after a reset. This supports a power/cable cause for the earlier brownouts, but does not prove long-term power margin. The changed `data/setup.html` is not on the device until a deliberate SPIFFS update; do not use `uploadfs` with an incomplete private filesystem image.
 
 ## Top 25 practical improvements
 
@@ -39,8 +39,8 @@ Ordered by risk and usefulness. "Built" means the source compiles; it does not c
 | 13 | Keep a private full-flash backup and a tested restore procedure. | Backup done; restore drill pending |
 | 14 | Reconcile Button3 GPIO 27 in `BasicMode` with GPIO 34 in tracked `data/io_config.json`. | Wiring check needed |
 | 15 | Reject pull-up/down and output modes on GPIO 34–39; include GPIO 39 in the pin table. | Built; device check pending |
-| 16 | Identify whether the device at I2C `0x76` is BMP280 or BME280 and select the right driver. | Hardware check needed |
-| 17 | Represent missing sensor readings as unavailable instead of valid zeroes. | Done for sensor history; live device returned null for missing BME280 |
+| 16 | Identify whether the device at I2C `0x76` is BMP280 or BME280 and select the right driver. | Done; chip ID `0x58` is BMP280, live temperature and pressure confirmed |
+| 17 | Represent missing sensor readings as unavailable instead of valid zeroes. | Done; BMP280 humidity is null while temperature and pressure are live |
 | 18 | Produce actual UTC ISO 8601 timestamps for MQTT; keep local time for the UI. | Built; device check pending |
 | 19 | Check MQTT publish results before removing queued messages. | Built; device check pending |
 | 20 | Initialize `BasicMode` LED outputs without relying on SPIFFS GPIO config. | Flashed; serial boot marker and HTTP status confirmed |

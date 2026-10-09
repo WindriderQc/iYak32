@@ -1,117 +1,91 @@
 #include "BMX280.h"
+#include <Adafruit_BME280.h>
+#include <Adafruit_BMP280.h>
+#include <Arduino.h>
 #include <Wire.h>
-#include <Arduino.h> // For Serial, float, etc.
-
-#ifdef USE_BMPvsBME
-    #include <Adafruit_BMP280.h>
-#else
-    #include <Adafruit_BME280.h>
-#endif
+#include <cmath>
 
 namespace BMX280 {
-    #ifdef USE_BMPvsBME
-        static Adafruit_BMP280 bmp_sensor_instance;
-        static Adafruit_BMP280& get_sensor_instance() { return bmp_sensor_instance; }
-    #else
-        static Adafruit_BME280 bme_sensor_instance;
-        static Adafruit_BME280& get_sensor_instance() { return bme_sensor_instance; }
-    #endif
+    enum class SensorType { None, BMP280, BME280 };
 
-    static bool _is_initialized = false;
-    static float _current_temp = 0.0f;
-    static float _current_pressure = 0.0f;
-    static float _current_altitude = 0.0f;
-    static float _current_humidity = 0.0f; // Only for BME
-    static bool _is_celcius = true;
-    static uint8_t _i2c_addr = 0x76; // Default address, can be overridden by init()
-    // static TwoWire* _i2c_bus_ptr = &Wire; // Store the bus used
+    static Adafruit_BMP280 bmpSensor;
+    static Adafruit_BME280 bmeSensor;
+    static SensorType sensorType = SensorType::None;
+    static float currentTemp = 0.0f;
+    static float currentPressure = 0.0f;
+    static float currentAltitude = 0.0f;
+    static float currentHumidity = NAN;
+    static bool useCelsius = true;
 
-    // Moved from header, made static internal
-    static void printWeather_internal() {
-        Serial.print(F("BMX280 conditions: "));
-        Serial.print(F(" Temp: ")); Serial.print(_current_temp); Serial.print(_is_celcius ? " C, " : " F, ");
-        Serial.print(F(" Press: ")); Serial.print(_current_pressure); Serial.print(" hPa, ");
-        Serial.print(F(" Alt: ")); Serial.print(_current_altitude); Serial.print(" m");
-        #ifndef USE_BMPvsBME
-            Serial.print(F(", Hum: ")); Serial.print(_current_humidity); Serial.print(" %");
-        #endif
+    static void printWeather() {
+        Serial.print(F("BMX280 conditions: Temp: "));
+        Serial.print(currentTemp);
+        Serial.print(useCelsius ? F(" C, Press: ") : F(" F, Press: "));
+        Serial.print(currentPressure);
+        Serial.print(F(" hPa, Alt: "));
+        Serial.print(currentAltitude);
+        Serial.print(F(" m"));
+        if (hasHumidity()) {
+            Serial.print(F(", Hum: "));
+            Serial.print(currentHumidity);
+            Serial.print(F(" %"));
+        }
         Serial.println();
     }
 
-    bool init(TwoWire* i2c_bus, uint8_t i2c_addr_param) {
-        _i2c_addr = i2c_addr_param; // Store the address
-        // _i2c_bus_ptr = i2c_bus; // Store the bus
-
-        // Note: Adafruit_BME280::begin takes (hex addr, Wire *theWire)
-        // Adafruit_BMP280::begin takes (hex addr, TwoWire *theWire)
-        // Both are compatible with TwoWire*
-        if (!get_sensor_instance().begin(_i2c_addr, i2c_bus)) {
-            #ifdef USE_BMPvsBME
-                Serial.println(F("Could not find a valid BMP280 sensor, check wiring or I2C address!"));
-            #else
-                Serial.println(F("Could not find a valid BME280 sensor, check wiring or I2C address!"));
-            #endif
-            _is_initialized = false;
+    bool init(uint8_t address) {
+        sensorType = SensorType::None;
+        Wire.beginTransmission(address);
+        Wire.write(0xD0); // Bosch chip ID register
+        if (Wire.endTransmission(false) != 0 || Wire.requestFrom(address, static_cast<uint8_t>(1)) != 1) {
+            Serial.printf("BMX280: Could not read chip ID at 0x%02X.\n", address);
             return false;
         }
-        _is_initialized = true;
-        #ifdef USE_BMPvsBME
-            /* Default settings from datasheet. */
-            get_sensor_instance().setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
-                                            Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
-                                            Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
-                                            Adafruit_BMP280::FILTER_X16,      /* Filtering. */
-                                            Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
-            Serial.println(F("BMP280 sensor initialized."));
-        #else
+        const uint8_t chipId = Wire.read();
+        Serial.printf("BMX280: Chip ID at 0x%02X is 0x%02X.\n", address, chipId);
+
+        if (chipId == 0x60 && bmeSensor.begin(address, &Wire)) {
+            sensorType = SensorType::BME280;
             Serial.println(F("BME280 sensor initialized."));
-        #endif
-        actualizeWeather(true); // Initial read and print
+        } else if (chipId == BMP280_CHIPID && bmpSensor.begin(address)) {
+            sensorType = SensorType::BMP280;
+            bmpSensor.setSampling(Adafruit_BMP280::MODE_NORMAL,
+                                  Adafruit_BMP280::SAMPLING_X2,
+                                  Adafruit_BMP280::SAMPLING_X16,
+                                  Adafruit_BMP280::FILTER_X16,
+                                  Adafruit_BMP280::STANDBY_MS_500);
+            Serial.println(F("BMP280 sensor initialized (humidity unavailable)."));
+        } else {
+            Serial.println(F("BMX280: Unsupported chip ID or sensor initialization failed."));
+            return false;
+        }
+        actualizeWeather(true);
         return true;
     }
 
-    void setTempUnitCelcius(bool useCelcius) {
-        _is_celcius = useCelcius;
-    }
-
-    bool isSuccessfullyInitialized() {
-        return _is_initialized;
-    }
+    void setTempUnitCelcius(bool value) { useCelsius = value; }
+    bool isSuccessfullyInitialized() { return sensorType != SensorType::None; }
+    bool hasHumidity() { return sensorType == SensorType::BME280; }
 
     void actualizeWeather(bool printResult) {
-        if (!_is_initialized) {
-            // Serial.println(F("BMX280: Not initialized, cannot actualize weather.")); // Optional log
-            return;
+        if (!isSuccessfullyInitialized()) return;
+        if (sensorType == SensorType::BME280) {
+            currentTemp = bmeSensor.readTemperature();
+            currentPressure = bmeSensor.readPressure() / 100.0f;
+            currentAltitude = bmeSensor.readAltitude(SEALEVELPRESSURE_HPA);
+            currentHumidity = bmeSensor.readHumidity();
+        } else {
+            currentTemp = bmpSensor.readTemperature();
+            currentPressure = bmpSensor.readPressure() / 100.0f;
+            currentAltitude = bmpSensor.readAltitude(SEALEVELPRESSURE_HPA);
+            currentHumidity = NAN;
         }
-
-        _current_temp = get_sensor_instance().readTemperature();
-        _current_pressure = get_sensor_instance().readPressure() / 100.0F; // hPa
-        _current_altitude = get_sensor_instance().readAltitude(SEALEVELPRESSURE_HPA);
-
-        #ifndef USE_BMPvsBME
-            _current_humidity = get_sensor_instance().readHumidity();
-        #else
-            _current_humidity = 0.0f; // BMP280 does not have humidity
-        #endif
-
-        if (!_is_celcius) {
-            _current_temp = (_current_temp * 9.0 / 5.0) + 32.0; // Convert to Fahrenheit
-        }
-
-        if (printResult) {
-            printWeather_internal();
-        }
+        if (!useCelsius) currentTemp = currentTemp * 9.0f / 5.0f + 32.0f;
+        if (printResult) printWeather();
     }
 
-    float getTemperature() { return _current_temp; }
-    float getPressure() { return _current_pressure; }
-    float getAltitude() { return _current_altitude; }
-    float getHumidity() {
-        #ifndef USE_BMPvsBME
-            return _current_humidity;
-        #else
-            return 0.0f; // BMP280 does not support humidity
-        #endif
-    }
-
+    float getTemperature() { return currentTemp; }
+    float getPressure() { return currentPressure; }
+    float getAltitude() { return currentAltitude; }
+    float getHumidity() { return currentHumidity; }
 } // namespace BMX280

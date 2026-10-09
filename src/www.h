@@ -486,7 +486,7 @@ namespace www
             if (BMX280::isSuccessfullyInitialized()) {
                 doc["bmx_temp"] = BMX280::getTemperature();
                 doc["bmx_pressure"] = BMX280::getPressure();
-                doc["bmx_humidity"] = BMX280::getHumidity();
+                if (BMX280::hasHumidity()) doc["bmx_humidity"] = BMX280::getHumidity();
             }
             String response;
             serializeJson(doc, response);

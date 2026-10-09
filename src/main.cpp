@@ -100,8 +100,7 @@ void sendData() {
         payload_doc["bmx_temp_c"] = BMX280::getTemperature();
         payload_doc["bmx_pressure_hpa"] = BMX280::getPressure();
         payload_doc["bmx_altitude_m"] = BMX280::getAltitude();
-        // USE_BMPvsBME is handled by BMX280::getHumidity() which returns 0.0 for BMP
-        payload_doc["bmx_humidity_pct"] = BMX280::getHumidity();
+        if (BMX280::hasHumidity()) payload_doc["bmx_humidity_pct"] = BMX280::getHumidity();
     }
     // Add other sensor data here if any
     /*names.push_back("co2");         values.push_back(String(Weather::co2));
