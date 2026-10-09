@@ -73,17 +73,8 @@ void WifiManager::setupOTA()
    
     relaunchOTA(); // Start OTA
 
-    // Start mDNS for OTA discovery if WiFi is connected
-    if (WiFi.status() == WL_CONNECTED) {
-        if (MDNS.begin(hostname)) { // Pass only hostname
-            MDNS.addService("arduino", "tcp", 3232); // 3232 is default ESP32 OTA port. "arduino" is service type for PlatformIO
-            Serial.printf("mDNS responder started for OTA: http://%s.local. OTA on port 3232\n", hostname);
-        } else {
-            Serial.println(F("Error setting up MDNS responder for OTA!"));
-        }
-    } else {
-        Serial.println(F("WiFi not connected, MDNS for OTA not started."));
-    }
+    // ArduinoOTA.begin() already starts mDNS and advertises its Arduino service.
+    Serial.printf("OTA discovery is managed by ArduinoOTA for %s.local on port 3232.\n", hostname);
 }
 
 void WifiManager::relaunchOTA() 
