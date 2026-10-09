@@ -8,6 +8,8 @@ Add to platformio.ini:
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 #include <HTTPClient.h>
+#include <cstdlib>
+#include <cstring>
 #include <SPIFFS.h>      // Added for SPIFFS object usage
 #include "api/Mqtt.h"    // Added for Mqtt namespace usage
 #include "api/Esp32.h"
@@ -39,6 +41,34 @@ namespace www
             if (!doc[key].isNull()) doc[key] = "";
         }
         doc["tides_api_key_set"] = tidesKeySet;
+    }
+
+    bool receiveBody(AsyncWebServerRequest* request, uint8_t* data, size_t len,
+                     size_t index, size_t total, size_t maxSize, String& result) {
+        if (total > maxSize || index > total || len > total - index) {
+            if (index == 0) request->send(413, "application/json", "{\"error\":\"Payload too large\"}");
+            return false;
+        }
+        if (index == 0) {
+            if (request->_tempObject != nullptr) {
+                request->send(500, "application/json", "{\"error\":\"Request state error\"}");
+                return false;
+            }
+            request->_tempObject = malloc(total + 1);
+            if (request->_tempObject == nullptr) {
+                request->send(503, "application/json", "{\"error\":\"Out of memory\"}");
+                return false;
+            }
+        }
+        char* buffer = static_cast<char*>(request->_tempObject);
+        if (buffer == nullptr) return false;
+        if (len > 0) memcpy(buffer + index, data, len);
+        if (index + len != total) return false;
+        buffer[total] = '\0';
+        result = String(buffer);
+        free(buffer);
+        request->_tempObject = nullptr;
+        return true;
     }
 
     const uint serverPort = 80;
@@ -272,28 +302,18 @@ namespace www
             },
             NULL, // onUpload handler
             [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
-                static String body_content_post_io; // Distinct static variable
-
-                if (index == 0) {
-                    body_content_post_io = "";
-                    if (request->contentType() != "application/json") {
-                       request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Invalid Content-Type, must be application/json\"}");
-                       // To fully stop processing for this request, you might need more, like request->client()->stop();
-                       // For simplicity, we'll let it try to parse, which will likely fail if not JSON.
-                    }
+                if (!request->contentType().startsWith("application/json")) {
+                    if (index == 0) request->send(400, "application/json", "{\"error\":\"JSON required\"}");
+                    return;
                 }
-
-                for (size_t i = 0; i < len; i++) {
-                    body_content_post_io += (char)data[i];
-                }
-
-                if (index + len == total) {
+                String body_content_post_io;
+                if (!receiveBody(request, data, len, index, total, 4096, body_content_post_io)) return;
+                {
                     Serial.println(F("WWW: Received new I/O config via POST /api/io/config:"));
                     Serial.println(body_content_post_io);
 
                     JsonDocument doc; // V7 uses dynamic allocation by default
                     DeserializationError error = deserializeJson(doc, body_content_post_io);
-                    body_content_post_io = ""; // Clear static buffer
 
                     if (error) {
                         Serial.print(F("WWW Error: deserializeJson() failed for /api/io/config: "));
@@ -383,25 +403,11 @@ namespace www
         // General config endpoint - accumulates chunked body before parsing
         server.on("/config", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL,
             [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
-                static String body_content_config;
-
-                if (index == 0) {
-                    body_content_config = "";
-                    if (total > (size_t)Esp32::CONFIG_FILE_MAX_SIZE) {
-                        request->send(413, "application/json", "{\"error\":\"Config payload too large\"}");
-                        return;
-                    }
-                    body_content_config.reserve(total);
-                }
-
-                for (size_t i = 0; i < len; i++) {
-                    body_content_config += (char)data[i];
-                }
-
-                if (index + len == total) {
+                String body_content_config;
+                if (!receiveBody(request, data, len, index, total, Esp32::CONFIG_FILE_MAX_SIZE, body_content_config)) return;
+                {
                     JsonDocument jsonBuffer;
                     auto error = deserializeJson(jsonBuffer, body_content_config);
-                    body_content_config = "";
 
                     if (error) {
                         Serial.print(F("deserializeJson() failed: "));
@@ -560,13 +566,11 @@ namespace www
         // 8. WiFi Connect
         server.on("/api/wifi/connect", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL,
             [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
-                static String wifi_body;
-                if (index == 0) wifi_body = "";
-                for (size_t i = 0; i < len; i++) wifi_body += (char)data[i];
-                if (index + len == total) {
+                String wifi_body;
+                if (!receiveBody(request, data, len, index, total, 256, wifi_body)) return;
+                {
                     JsonDocument doc;
                     auto err = deserializeJson(doc, wifi_body);
-                    wifi_body = "";
                     if (err) {
                         request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid JSON\"}");
                         return;
@@ -712,14 +716,12 @@ namespace www
         // 12. BasicMode Sound Toggle
         server.on("/api/basicmode/sound", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL,
             [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
-                static String sound_body;
-                if (index == 0) sound_body = "";
-                for (size_t i = 0; i < len; i++) sound_body += (char)data[i];
-                if (index + len == total) {
+                String sound_body;
+                if (!receiveBody(request, data, len, index, total, 128, sound_body)) return;
+                {
                     #ifdef BASIC_MODE
                         JsonDocument doc;
                         auto err = deserializeJson(doc, sound_body);
-                        sound_body = "";
                         if (err) {
                             request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid JSON\"}");
                             return;
@@ -728,7 +730,6 @@ namespace www
                         BasicMode::basicMode.setSoundEnabled(enabled);
                         request->send(200, "application/json", "{\"status\":\"ok\",\"enabled\":" + String(enabled ? "true" : "false") + "}");
                     #else
-                        sound_body = "";
                         request->send(404, "application/json", "{\"error\":\"Basic Mode not active\"}");
                     #endif
                 }
@@ -738,14 +739,12 @@ namespace www
         // 13. BasicMode Threshold Control
         server.on("/api/basicmode/threshold", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL,
             [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
-                static String thresh_body;
-                if (index == 0) thresh_body = "";
-                for (size_t i = 0; i < len; i++) thresh_body += (char)data[i];
-                if (index + len == total) {
+                String thresh_body;
+                if (!receiveBody(request, data, len, index, total, 128, thresh_body)) return;
+                {
                     #ifdef BASIC_MODE
                         JsonDocument doc;
                         auto err = deserializeJson(doc, thresh_body);
-                        thresh_body = "";
                         if (err) {
                             request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid JSON\"}");
                             return;
@@ -762,7 +761,6 @@ namespace www
                         }
                         request->send(200, "application/json", "{\"status\":\"ok\",\"channel\":" + String(channel) + ",\"value\":" + String(value) + "}");
                     #else
-                        thresh_body = "";
                         request->send(404, "application/json", "{\"error\":\"Basic Mode not active\"}");
                     #endif
                 }
