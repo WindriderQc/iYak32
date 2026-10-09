@@ -16,7 +16,7 @@ The files `data/esp32config.json`, `data/config.txt`, and `data/mqtt.txt` are pr
 4. Flash only the active application partition when changing firmware; do not upload the filesystem or rewrite the partition table for an ordinary code change. Verify the image hash, then check the serial boot log and read-only status endpoints.
 5. If the serial log reports a brownout, stop further flashes and check USB power/cable stability. A successful esptool write proves flash transport, not a successful application boot.
 
-The first devX application-only flash completed and esptool verified its hash. Runtime acceptance is pending because the isolated board repeatedly reported a brownout before `BasicMode` finished setup. Later code commits have only passed the PlatformIO build. The changed `data/setup.html` is not on the device until a deliberate SPIFFS update; do not use `uploadfs` with an incomplete private filesystem image.
+The first devX application-only flash completed and esptool verified its hash. Runtime acceptance is pending because the isolated board repeatedly reported a brownout before `BasicMode` finished setup. The same failure occurred over USB/IP and native Windows COM3, so the tunnel is not required to reproduce it. Later code commits have only passed the PlatformIO build. The changed `data/setup.html` is not on the device until a deliberate SPIFFS update; do not use `uploadfs` with an incomplete private filesystem image.
 
 ## Top 25 practical improvements
 
