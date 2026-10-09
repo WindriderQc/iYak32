@@ -40,7 +40,7 @@ Ordered by risk and usefulness. "Built" means the source compiles; it does not c
 | 14 | Reconcile Button3 GPIO 27 in `BasicMode` with GPIO 34 in tracked `data/io_config.json`. | Wiring check needed |
 | 15 | Reject pull-up/down and output modes on GPIO 34–39; include GPIO 39 in the pin table. | Built; device check pending |
 | 16 | Identify whether the device at I2C `0x76` is BMP280 or BME280 and select the right driver. | Hardware check needed |
-| 17 | Represent missing sensor readings as unavailable instead of valid zeroes. | Open |
+| 17 | Represent missing sensor readings as unavailable instead of valid zeroes. | Done for sensor history; live device returned null for missing BME280 |
 | 18 | Produce actual UTC ISO 8601 timestamps for MQTT; keep local time for the UI. | Built; device check pending |
 | 19 | Check MQTT publish results before removing queued messages. | Built; device check pending |
 | 20 | Initialize `BasicMode` LED outputs without relying on SPIFFS GPIO config. | Flashed; boot marker pending |

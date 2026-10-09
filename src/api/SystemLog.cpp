@@ -1,4 +1,5 @@
 #include "SystemLog.h"
+#include <cmath>
 
 namespace SystemLog {
 
@@ -55,9 +56,12 @@ namespace SystemLog {
             int idx = (start + i) % SENSOR_LOG_SIZE;
             JsonObject obj = arr.add<JsonObject>();
             obj["t"] = sensorLog_[idx].timestamp;
-            obj["temp"] = serialized(String(sensorLog_[idx].temp, 1));
-            obj["pres"] = serialized(String(sensorLog_[idx].pressure, 1));
-            obj["hum"] = serialized(String(sensorLog_[idx].humidity, 1));
+            if (std::isfinite(sensorLog_[idx].temp)) obj["temp"] = serialized(String(sensorLog_[idx].temp, 1));
+            else obj["temp"] = nullptr;
+            if (std::isfinite(sensorLog_[idx].pressure)) obj["pres"] = serialized(String(sensorLog_[idx].pressure, 1));
+            else obj["pres"] = nullptr;
+            if (std::isfinite(sensorLog_[idx].humidity)) obj["hum"] = serialized(String(sensorLog_[idx].humidity, 1));
+            else obj["hum"] = nullptr;
             obj["batt"] = serialized(String(sensorLog_[idx].battery, 2));
             obj["heap"] = sensorLog_[idx].heap;
             obj["rssi"] = sensorLog_[idx].rssi;

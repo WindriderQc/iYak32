@@ -280,9 +280,9 @@ void loop()
 
                 // Log sensor data to circular buffer for /api/logs/sensors
                 SystemLog::logSensor(
-                    isBMXConnected ? BMX280::getTemperature() : 0.0f,
-                    isBMXConnected ? BMX280::getPressure() : 0.0f,
-                    isBMXConnected ? BMX280::getHumidity() : 0.0f,
+                    isBMXConnected ? BMX280::getTemperature() : NAN,
+                    isBMXConnected ? BMX280::getPressure() : NAN,
+                    isBMXConnected ? BMX280::getHumidity() : NAN,
                     Esp32::getBattRemaining(false),
                     Esp32::getRemainingHeap(),
                     Esp32::wifiManager.getWiFiStrength()
