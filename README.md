@@ -111,6 +111,14 @@ In addition to the existing JSON envelope on `esp32/data/<DEVICE_NAME>`, the fir
 
 Set `mqtturl`, `mqttport`, `mqttuser`, and `mqttpass` in the private `/esp32config.json` on the device. Keep the broker address and credentials out of tracked examples.
 
+## Home Assistant MQTT discovery
+
+When connected to MQTT, the firmware publishes one retained device discovery message to `homeassistant/device/<DEVICE_NAME>/config` and a retained `online` status to `sensors/<DEVICE_NAME>/availability`. The broker publishes `offline` on that availability topic if the board disconnects unexpectedly. Discovery is republished after a reconnect.
+
+The device groups temperature and pressure from a detected BMP280/BME280, humidity from a BME280 only, and battery voltage, Wi-Fi signal, and CPU temperature as diagnostics. The pressure-derived altitude remains on its scalar topic but is omitted from the room device because it is not a useful indoor elevation measurement. The current board keeps the name `ESP_15605` in discovery; assign its room and a friendly name in Home Assistant until per-board naming is implemented.
+
+Home Assistant must have its MQTT integration connected to the same private broker with discovery enabled. It will then create the iYak32 device from the retained configuration. Scalar readings remain on `sensors/<DEVICE_NAME>/<measure>`; the existing JSON envelope remains unchanged.
+
 ## Local config files (gitignored) and examples
 
 The following runtime files are intentionally gitignored (local secrets / per-device settings):

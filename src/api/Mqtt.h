@@ -76,6 +76,7 @@ namespace Mqtt
     void loop();
     void sendJson(std::vector<String> names, std::vector<String> values, String topic, bool print2console = false);
     void publishSensorReading(const char* measure, float value, unsigned int decimals);
+    void publishHomeAssistantDiscovery(bool hasClimateSensor, bool hasHumidity);
 
     // New standardized message publishing function
     void publishStandardMessage(

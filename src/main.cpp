@@ -90,6 +90,8 @@ void sendData() {
         bool printToConsole = false;
     #endif
 
+    Mqtt::publishHomeAssistantDiscovery(isBMXConnected, isBMXConnected && BMX280::hasHumidity());
+
     JsonDocument payload_doc;
 
     payload_doc["cpu_temp_c"] = Esp32::getCPUTemp();

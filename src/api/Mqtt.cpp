@@ -24,6 +24,7 @@ namespace Mqtt {
     int backoffMultiplier_ = 0;
     unsigned long backoffDuration_ = BACKOFF_BASE_MS;
     String pendingDeviceName_ = "";
+    static bool discoveryPublished_ = false;
 
     // State machine API
     MqttState getState() { return currentState_; }
@@ -212,13 +213,17 @@ namespace Mqtt {
         lastConnectAttempt_ = millis();
         connectAttemptCount_++;
 
-        String clientId = "ESP32Client-" + String(random(0xffff), HEX);
+        char clientId[32];
+        snprintf(clientId, sizeof(clientId), "iYak32-%012llX", static_cast<unsigned long long>(ESP.getEfuseMac()));
+        const String availabilityTopic = "sensors/" + pendingDeviceName_ + "/availability";
         Serial.printf("MQTT: Attempt %d/%d... ", connectAttemptCount_, MAX_ATTEMPTS_PER_BURST);
 
-        if (mqttClient.connect(clientId.c_str(), mqttUser.c_str(), mqttPass.c_str())) {
+        if (mqttClient.connect(clientId, mqttUser.c_str(), mqttPass.c_str(),
+                               availabilityTopic.c_str(), 0, true, "offline")) {
             Serial.println(F("connected"));
             mqttClient.publish("esp32", String("hello from " + pendingDeviceName_).c_str());
             subscription(pendingDeviceName_);
+            discoveryPublished_ = false;
             currentState_ = MqttState::CONNECTED;
             connectAttemptCount_ = 0;
             backoffMultiplier_ = 0;
@@ -247,6 +252,7 @@ namespace Mqtt {
                 } else {
                     Serial.println(F("MQTT: Connection lost!"));
                     SystemLog::logError("MQTT: Connection lost", 2);
+                    discoveryPublished_ = false;
                     connectAttemptCount_ = 0;
                     lastConnectAttempt_ = 0;
                     currentState_ = MqttState::CONNECTING;
@@ -276,6 +282,61 @@ namespace Mqtt {
             Serial.print(F("MQTT: Sensor publish failed on "));
             Serial.println(topic);
         }
+    }
+
+    void publishHomeAssistantDiscovery(bool hasClimateSensor, bool hasHumidity) {
+        if (!isEnabled || !mqttClient.connected() || discoveryPublished_) return;
+
+        const String baseTopic = "sensors/" + Esp32::DEVICE_NAME;
+        const String configTopic = "homeassistant/device/" + Esp32::DEVICE_NAME + "/config";
+        const String availabilityTopic = baseTopic + "/availability";
+
+        JsonDocument doc;
+        JsonObject device = doc["device"].to<JsonObject>();
+        device["identifiers"].to<JsonArray>().add(Esp32::DEVICE_NAME);
+        device["name"] = Esp32::DEVICE_NAME;
+        device["manufacturer"] = "iYak32";
+        device["model"] = "ESP32 sensor node";
+        doc["origin"]["name"] = "iYak32";
+        doc["~"] = baseTopic;
+        doc["availability_topic"] = "~/availability";
+
+        JsonObject components = doc["components"].to<JsonObject>();
+        auto addSensor = [&](const char* measure, const char* name, const char* deviceClass,
+                             const char* unit, bool diagnostic) {
+            JsonObject sensor = components[measure].to<JsonObject>();
+            sensor["platform"] = "sensor";
+            sensor["unique_id"] = Esp32::DEVICE_NAME + "_" + measure;
+            sensor["name"] = name;
+            sensor["device_class"] = deviceClass;
+            sensor["state_class"] = "measurement";
+            sensor["unit_of_measurement"] = unit;
+            sensor["state_topic"] = String("~/") + measure;
+            if (diagnostic) sensor["entity_category"] = "diagnostic";
+        };
+
+        if (hasClimateSensor) {
+            addSensor("temperature", "Temperature", "temperature", "°C", false);
+            addSensor("pressure", "Pressure", "atmospheric_pressure", "hPa", false);
+            if (hasHumidity) addSensor("humidity", "Humidity", "humidity", "%", false);
+        }
+        addSensor("battery_voltage", "Battery voltage", "voltage", "V", true);
+        addSensor("wifi_rssi", "Wi-Fi signal", "signal_strength", "dBm", true);
+        addSensor("cpu_temperature", "CPU temperature", "temperature", "°C", true);
+
+        char payload[MQTT_MAX_PACKET_SIZE];
+        const size_t payloadLength = serializeJson(doc, payload, sizeof(payload));
+        if (payloadLength == 0 || payloadLength >= sizeof(payload) - 1) {
+            Serial.println(F("MQTT: Home Assistant discovery payload is too large."));
+            return;
+        }
+        if (!mqttClient.publish(configTopic.c_str(), payload, true) ||
+            !mqttClient.publish(availabilityTopic.c_str(), "online", true)) {
+            Serial.println(F("MQTT: Home Assistant discovery publish failed; will retry."));
+            return;
+        }
+        discoveryPublished_ = true;
+        Serial.println(F("MQTT: Home Assistant discovery published."));
     }
 
     void sendJson(std::vector<String> names, std::vector<String> values, String topic, bool print2console) {
