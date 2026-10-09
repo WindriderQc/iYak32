@@ -50,4 +50,6 @@ A mix of kayak, ESP32 bench, and hockey experiences. `BASIC_MODE` is the active 
 | 24 | Hockey | Tournament board | Track a small round robin with wins and goal differences. |
 | 25 | Hockey | Shareable match card | Export the final score and key moments from the browser. |
 
+Feature #4 is live: the isolated board published six numeric measurements on `sensors/ESP_15605/<measure>` and a LAN broker subscriber received all six. The BMP280 has no humidity reading, so no humidity topic is sent.
+
 First wave: #1–5 on the isolated board, then pick one tactile bench feature and one hockey feature for the relevant hardware. Boat motor controls follow input preview, calibration, and a neutral/failsafe check. A virtual anchor remains a later experiment once GPS and motor control are proven. Maintenance tasks and flash evidence live in `MAINTENANCE.md`. Web-page changes require a deliberate SPIFFS update that preserves private files.

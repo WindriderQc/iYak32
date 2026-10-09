@@ -11,7 +11,7 @@ Ordered by risk and usefulness. "Built" means the source compiles; it does not c
 | 1 | Stabilize USB power and explain the observed boot brownout before more flashing. | New cable: repeated clean boots and verified flashes; long-term margin untested |
 | 2 | Stop serving private config files and credentials through HTTP responses and serial logs. | Partly built; tide-key route still open |
 | 3 | Require an owner credential for HTTP writes, reboot, and OTA; keep it LAN-only. | Open |
-| 4 | Protect MQTT credentials in transit or move the broker onto the private LAN. | Open |
+| 4 | Protect MQTT credentials in transit or move the broker onto the private LAN. | Moved to LAN broker; device connected and six topics received; credentials private |
 | 5 | Add a safe stop/interlock and correct ADC-to-8-bit PWM scaling in `BOAT`. | Open; mode disabled |
 | 6 | Never auto-format SPIFFS on mount failure. | Built; device check pending |
 | 7 | Never delete a config file just because opening it failed. | Built; device check pending |
