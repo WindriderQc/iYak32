@@ -31,7 +31,15 @@ extern const char* ver; // Firmware version string from main.cpp
 namespace www
 {
 
-    HTTPClient http;  
+    HTTPClient http;
+
+    void redactConfigSecrets(JsonDocument& doc) {
+        bool tidesKeySet = !doc["tides_api_key"].as<String>().isEmpty();
+        for (const char* key : {"pass", "wifi_password", "mqttuser", "mqtt_user", "mqttpass", "mqtt_pass", "tides_api_key"}) {
+            if (!doc[key].isNull()) doc[key] = "";
+        }
+        doc["tides_api_key_set"] = tidesKeySet;
+    }
 
     const uint serverPort = 80;
     
@@ -104,7 +112,7 @@ namespace www
         }
         if (processedVar.indexOf("%CONFIG%") >= 0) {
             JsonDocument d = Esp32::configJson_;
-            d["pass"] = ""; // Suppress password for security
+            redactConfigSecrets(d);
             processedVar.replace("%CONFIG%", JsonTools::getJsonString(d)); // Changed to JsonTools
         }
      
@@ -131,7 +139,7 @@ namespace www
        
         if(var == "CONFIG")   {
             JsonDocument d = Esp32::configJson_;
-            d["pass"] = "";   //  suppress password for security.  this forces user to enter it back everytime.
+            redactConfigSecrets(d);
             return JsonTools::getJsonString(d); // Changed to JsonTools
         }
 
@@ -197,9 +205,8 @@ namespace www
                 String cnfStr = "";
                 Serial.println("Loading config from json: ");
                 if(Esp32::loadConfig(false, &cnf)) {  
-                    cnf["pass"] = ""; // Blank out the password for security
-                    cnfStr = JsonTools::getJsonString(cnf, true); // Changed to JsonTools
-                    Serial.println(Esp32::configString_);
+                    redactConfigSecrets(cnf);
+                    cnfStr = JsonTools::getJsonString(cnf, true);
                     request->send(200, "application/json", cnfStr); // Send the JSON response with the appropriate content type
                 } else {
                     request->send(500, "text/plain", "Error loading config"); // Handle the case when loading the config fails
@@ -209,10 +216,6 @@ namespace www
 
         server.on("/data", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
             
-                String strCnf = Esp32::configString_; 
-                Serial.print("Sending data to client: ");
-                Serial.println(strCnf);
-               
                 request->send(SPIFFS, "/setup.html", String(), false, processor);
           
         });
@@ -442,12 +445,11 @@ namespace www
                         }
                     }
 
-                    Serial.println(F("Saving received config:"));
-                    String strCnf = JsonTools::getJsonString(jsonBuffer, true);
-                    Serial.println(strCnf);
-                    Esp32::saveConfig(jsonBuffer);
-
-                    request->send(200, "application/json", strCnf);
+                    if (!Esp32::saveConfig(jsonBuffer)) {
+                        request->send(500, "application/json", "{\"status\":\"error\",\"message\":\"Config save failed\"}");
+                        return;
+                    }
+                    request->send(200, "application/json", "{\"status\":\"ok\"}");
                 }
             }
         );
@@ -942,7 +944,11 @@ namespace www
             .serveStatic("/", SPIFFS, "/")
             .setDefaultFile("index.html")
             .setCacheControl("no-cache")
-            .setTemplateProcessor(processor);
+            .setTemplateProcessor(processor)
+            .setFilter([](AsyncWebServerRequest* request) {
+                String path = request->url();
+                return !path.endsWith(".json") && !path.endsWith(".txt");
+            });
 
 
         // Send 404 for not Found

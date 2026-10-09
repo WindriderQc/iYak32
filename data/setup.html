@@ -157,13 +157,11 @@
             data.tides_api_key = tidesApiKey;
         }
 
-        console.log("Saving:", data);
         const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
 
         try {
             const response = await fetch('/config', options);
-            const respjson = await response.json();
-            console.log(respjson);
+            if (!response.ok) throw new Error(`Config save failed: ${response.status}`);
 
             saveBtn.textContent = 'Saved! Rebooting...';
             saveBtn.style.background = 'var(--accent-success)';
@@ -207,7 +205,7 @@
         document.getElementById("mqttDataInterval").value = dataJson["mqttDataIntervalSec"] !== undefined ? dataJson["mqttDataIntervalSec"] : 5;
         document.getElementById("tidesLat").value = dataJson["tides_lat"] !== undefined ? dataJson["tides_lat"] : 46.8139;
         document.getElementById("tidesLon").value = dataJson["tides_lon"] !== undefined ? dataJson["tides_lon"] : -71.2082;
-        document.getElementById("tidesApiKey").value = dataJson["tides_api_key"] ? '***' : '';
+        document.getElementById("tidesApiKey").value = dataJson["tides_api_key_set"] ? '***' : '';
     }
     </script>
 
