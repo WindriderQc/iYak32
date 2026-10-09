@@ -127,7 +127,7 @@ For a new Home Assistant installation:
 4. Look for one device named `ESP_15605` with temperature, pressure, battery voltage, Wi-Fi signal, and CPU temperature. Assign it to a Home Assistant area after choosing its physical room.
 5. Confirm that the device is online and its temperature/pressure values update. The BMP280 on this board cannot report humidity.
 
-On 2026-10-09, a separate MQTT v5 client connected to this broker and received the retained discovery and availability messages plus live readings. That verifies the broker path, but the Home Assistant device registry still needs a live UI check.
+On 2026-10-09, Home Assistant accepted the corrected retained discovery payload and created `ESP_15605` as one MQTT device. Its device page showed live temperature and pressure plus numeric battery voltage, Wi-Fi signal, and CPU temperature diagnostics. The board's BMP280 has no humidity measurement.
 
 ## Local config files (gitignored) and examples
 
