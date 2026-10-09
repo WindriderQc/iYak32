@@ -119,6 +119,16 @@ The device groups temperature and pressure from a detected BMP280/BME280, humidi
 
 Home Assistant must have its MQTT integration connected to the same private broker with discovery enabled. It will then create the iYak32 device from the retained configuration. Scalar readings remain on `sensors/<DEVICE_NAME>/<measure>`; the existing JSON envelope remains unchanged.
 
+For a new Home Assistant installation:
+
+1. Open **Settings → Devices & services → Add integration → MQTT**.
+2. Configure the existing LAN broker using the `mqtturl` and `mqttport` values in the board's private `/esp32config.json`, with its private MQTT account and password. Keep those settings outside Git and setup notes.
+3. Leave MQTT discovery enabled with the default `homeassistant` prefix.
+4. Look for one device named `ESP_15605` with temperature, pressure, battery voltage, Wi-Fi signal, and CPU temperature. Assign it to a Home Assistant area after choosing its physical room.
+5. Confirm that the device is online and its temperature/pressure values update. The BMP280 on this board cannot report humidity.
+
+On 2026-10-09, a separate MQTT v5 client connected to this broker and received the retained discovery and availability messages plus live readings. That verifies the broker path, but the Home Assistant device registry still needs a live UI check.
+
 ## Local config files (gitignored) and examples
 
 The following runtime files are intentionally gitignored (local secrets / per-device settings):
