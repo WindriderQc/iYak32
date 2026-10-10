@@ -6,7 +6,7 @@ This is one ESP32 firmware built with PlatformIO and Arduino. `src/main.cpp` sel
 
 `src/api/Esp32.cpp` mounts SPIFFS, reads `/io_config.json` and `/esp32config.json`, applies GPIO settings, and starts Wi-Fi, time sync, buzzer, and MQTT. `src/api/WifiManager.cpp` handles station/AP fallback and OTA. `src/api/Mqtt.cpp` handles reconnect and publishing; `MqttCommandRouter.cpp` receives commands. `src/www.h` defines the HTTP API and serves the files in `data/` from SPIFFS. `src/api/devices/` contains sensors, display, and buzzer code. `BasicMode.h`, `Boat.h`, and `Hockey.h` are the mode implementations.
 
-The files `data/esp32config.json`, `data/config.txt`, and `data/mqtt.txt` are private local inputs and are ignored by Git. The tracked `*.example.*` files are templates. A firmware flash and a filesystem upload are different operations: `uploadfs` can replace the device's private SPIFFS contents.
+The gitignored `data/esp32config.json` holds per-device settings; `data/config.txt` is an optional fallback Wi-Fi list. The old `data/mqtt.txt` is ignored but is not read by the current MQTT client. A firmware flash and a filesystem upload are different operations: `uploadfs` can replace the device's private SPIFFS contents.
 
 ## Build and device workflow on devX
 
@@ -20,9 +20,15 @@ On 2026-10-09, replacing the USB cable changed the CP210x BUSID to `1-8` (serial
 
 ## Product direction
 
-iYak32 is a small family of ESP32 projects, starting with repeatable room sensor nodes for the garage, basement, and attic. The next uses are the iGrow garden and a small proximity/camera robot. The kayak controller and nearly finished hockey prototype remain real projects, but no longer dictate the first features. Keep one shared MQTT/sensor foundation and small, explicit device profiles; do not make every board load every feature.
+iYak32 is a small family of ESP32 projects. The first verified board is a room sensor node; repeatable nodes for the garage, basement, and attic remain planned. The next physical build is an indoor iGrow shelf, followed later by a small proximity/camera robot. The kayak controller and nearly finished hockey prototype remain real projects. Keep one shared MQTT/sensor foundation and small, explicit device modes; do not make every board load every feature.
 
-The first isolated board already publishes six numeric measurements on `sensors/ESP_15605/<measure>` to the LAN broker. Its BMP280 does not measure humidity. Home Assistant can consume these topics through its MQTT integration and discovery, once connected to the same private broker. Each physical board needs a stable unique identity and a friendly room name; `ESP_15605` is the current board's existing identity.
+The first isolated board publishes six numeric measurements on `sensors/ESP_15605/<measure>` to the private broker. Its BMP280 does not measure humidity. Home Assistant has accepted its MQTT discovery payload and displayed the sensor device. Each physical board needs a stable unique identity and a friendly room name; `ESP_15605` is the current board's existing identity.
+
+## Indoor iGrow pilot
+
+Start with two or three bins on one shelf: one shared light and fan, one air temperature/humidity measurement, and a soil moisture probe plus watering line per bin. The older iGrow/iGrow32 project and the existing Arduino board and relay module provide hardware clues, but their current wiring, voltages, and sensor models have not been verified. The old pin labels are not a wiring plan.
+
+First inventory and reconnect the hardware, then publish calibrated sensor readings to MQTT/Home Assistant. Test one pump with a locally bounded run time and measured water volume before extending watering to the other bins or enabling automatic rules. A dedicated grow mode can reuse iYak32's MQTT and device discovery without changing the working room node. No grow actuators have been connected or tested on the current board.
 
 ## Top 25 features worth building
 
@@ -56,6 +62,6 @@ These are product slices, not claims that the current hardware supports them. Pr
 | 24 | Hockey | Finish live scoreboard | Complete physical goal detection, timer, score display, and phone view. |
 | 25 | Hockey | Goal celebration and recap | Add side-specific LED/sound themes and a shareable match summary. |
 
-Build the first installed room node with #1–3 and #8, then use the second board to prove identities, room labels, and comparison. Garden actuators and robot drive controls need their own physical tests. Maintenance tasks and flash evidence live in `MAINTENANCE.md`. Web-page changes require a deliberate SPIFFS update that preserves private files.
+Home Assistant discovery is accepted for one room node; physical placement and multi-board naming are still open. The indoor shelf is the next hardware pilot. Garden actuators and robot drive controls need their own physical tests. Maintenance tasks and flash evidence live in `MAINTENANCE.md`. Web-page changes require a deliberate SPIFFS update that preserves private files.
 
-On 2026-10-09, Home Assistant discovery was built and flashed to the isolated `ESP_15605` board in active `app0` at `0x10000`. The initial retained payload reached the broker, but Home Assistant rejected its root `~` topic shortcut. Commit `78635da` replaced the shortcut with full state and availability topics. The corrected app image SHA-256 was `fc9a2d21ec45e8463a0a2594dd03c06eecf121381cf64cfb618bc943071e21e0`, and esptool verified the written hash. Serial showed a clean BMP280 boot, MQTT connection, and discovery publication; the HTTP smoke check passed. Home Assistant then created `ESP_15605` as one MQTT device and displayed current temperature and pressure plus battery voltage, Wi-Fi signal, and CPU temperature diagnostics. Humidity is absent because this board has a BMP280.
+On 2026-10-09, Home Assistant discovery was built and flashed to the isolated `ESP_15605` board in active `app0` at `0x10000`. The initial retained payload reached the broker, but Home Assistant rejected its root `~` topic shortcut. Commit `6792584` replaced the shortcut with full state and availability topics. The corrected app image SHA-256 was `fc9a2d21ec45e8463a0a2594dd03c06eecf121381cf64cfb618bc943071e21e0`, and esptool verified the written hash. Serial showed a clean BMP280 boot, MQTT connection, and discovery publication; the HTTP smoke check passed. Home Assistant then created `ESP_15605` as one MQTT device and displayed current temperature and pressure plus battery voltage, Wi-Fi signal, and CPU temperature diagnostics. Humidity is absent because this board has a BMP280.

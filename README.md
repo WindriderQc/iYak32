@@ -1,250 +1,53 @@
 # iYak32
 
-Kayak ESP32 controller with 270 deg servo, BTS7960 PWM to control electric motor direction and speed, controls available on physical controller via 2 potentiometers and BCK/FWD switch.
+PlatformIO/Arduino firmware for a small family of ESP32 projects. The active build runs `BASIC_MODE` as a local sensor node. The next physical project is an indoor iGrow shelf with two or three plant bins. The kayak controller and hockey scoreboard remain separate, unfinished modes.
 
-This project is to control a Minn Kota 30 trolling motor at the back of an OldTown Predator 13 fishing kayak.
+- [RELAUNCH.md](RELAUNCH.md) explains the code, device workflow, and product roadmap.
+- [MAINTENANCE.md](MAINTENANCE.md) tracks technical work and distinguishes built code from real-device checks.
 
+## Verified sensor node
 
+On 2026-10-09, the isolated board `ESP_15605` booted cleanly after an application-only flash. Its BMP280 sent temperature and pressure to the private MQTT broker, and Home Assistant created one MQTT device with those readings and battery, Wi-Fi, and CPU diagnostics. A BMP280 cannot measure humidity. The board's room placement and a second node have not been tested yet.
 
--------------------------------------------------------------------------------
+`src/main.cpp` enables `BASIC_MODE` at compile time. The `BOAT` and `HOCKEY_MODE` definitions are disabled. The firmware mounts SPIFFS, loads private configuration, starts Wi-Fi/MQTT/HTTP, and publishes telemetry. Files in `data/` are served by the ESP32 web server.
 
+## Build and configuration
 
+Build on the active devX checkout with `~/.venvs/iyak32/bin/pio run -e esp32dev`. There is no unit test suite yet. `scripts/smoke_device.py` performs a read-only HTTP check against a reachable board.
 
-Available features:
-- BMP280/BME280 supported on I2C channel
-- OLED display supported on I2C channel to display wifi IP address, speed, direction and atmospherical pressure
-- Async web server to provide interface with atmospheric data and controls in addition to physical controller
-- WifiManager trying to connect to a list of preferred SSID, launching access Point server if no wifi connections are available.  
-    a) config.txt file must be added to /data folder to list your preferred SSID:password 
-    b) numPreferredNetworks in WifiManager.h must be adjusted accordingly to number of lines/SSID in config.txt
-- ACS712 Current sensor library implemented
-- 4 digits 7-segments Display library based on TM1637Display to show String, Char and Int implemented  
-- Over The Air programming capabilities with platform.io implemented
-    a) ESP IP address must be configured in platformio.ini and ESP must be connected a preferred wifi to be on the same network as the intended programming computer.  A first USB connection is obviously required  
-- **Hockey Scoreboard Application:**
-    - Implements a fully functional air hockey or table hockey scoreboard.
-    - Utilizes a TM1637 4-digit 7-segment display (via `SevenSegmentAscii.h`) to show game time and scores.
-    - Features goal detection using analog light sensors (`AnLux.h`) connected to analog pins.
-    - Manages game state including period tracking, game timer (configurable length), pause/reset functionality.
-    - Includes basic sounds for goals/period end via the buzzer.
-    - Saves game scores with timestamps to a file (`game_scores.txt`) on the ESP32's filesystem.
-    - Provides a web interface component under `/hockey/Scoreboard.html` for viewing scores (though primary display is the 7-segment).
+Copy `data/esp32config.example.json` to the gitignored `data/esp32config.json` for device-specific settings. Set `ssid`/`pass`, `mqtturl`/`mqttport`, and `mqttuser`/`mqttpass` there. The optional gitignored `data/config.txt`, based on `data/config.example.txt`, lists fallback Wi-Fi networks as `SSID:PASSWORD`. The old `mqtt.txt` file is not used by the current MQTT client.
 
-## Generic I/O Configuration Web Interface
+Keep passwords and per-device files outside Git. An application flash and a SPIFFS filesystem upload are different operations: `uploadfs` can replace private files already on the board. The OTA environment requires an explicit device target. See [RELAUNCH.md](RELAUNCH.md) for the verified USB/IP and flash workflow.
 
-The iYak32 firmware includes a powerful web interface that allows for generic configuration and real-time status monitoring of the ESP32's GPIO pins. This feature makes it easy to adapt the ESP32 for various custom projects without needing to recompile the firmware for basic I/O changes.
+## MQTT and Home Assistant
 
-You can access this interface via the `io_control.html` page on the ESP32's web server (e.g., `http://<ESP32_IP>/io_control.html`).
-
-**Key Functionalities:**
-
-*   **Dynamic Status Display:** View the current state (HIGH/LOW or analog value) of configured I/O pins, updated periodically.
-*   **Pin Configuration:** For a list of available GPIOs, you can:
-    *   Assign custom **labels** (names).
-    *   Set the **mode:** `OUTPUT`, `INPUT`, `INPUT_PULLUP`, `INPUT_PULLDOWN`.
-    *   Define the **type:** `DIGITAL` or `ANALOG_INPUT`.
-    *   Specify an **initial state** for output pins (`LOW` or `HIGH`).
-*   **Configuration Management:**
-    *   Save the entire I/O pin configuration to the ESP32. These settings are stored in `/io_config.json` on the device's SPIFFS filesystem and are applied at boot.
-    *   View the current configuration in JSON format directly in the UI.
-*   **Real-time Graphing:** Select pins to visualize their status over time on a line graph, powered by Chart.js.
-
-**I/O Configuration JSON Structure:**
-
-The I/O settings are stored in a JSON file named `/io_config.json`. The structure is as follows:
-
-```json
-{
-  "io_pins": [
-    {
-      "gpio": 21,
-      "label": "Builtin LED",
-      "mode": "OUTPUT",
-      "type": "DIGITAL",
-      "initial_state": "LOW",
-      "graph": false
-    },
-    {
-      "gpio": 34,
-      "label": "Light Sensor",
-      "mode": "INPUT",
-      "type": "ANALOG_INPUT",
-      "graph": true
-    }
-  ]
-}
-```
-Each object in the `io_pins` array defines a single GPIO pin's configuration.
-
-**Supporting API Endpoints:**
-
-The web interface interacts with the ESP32 through the following HTTP API endpoints:
-
-*   `GET /api/io/status`: Retrieves the current status (values) of all configured pins.
-*   `GET /api/io/config`: Retrieves the currently saved `/io_config.json`.
-*   `POST /api/io/config`: Accepts a new I/O configuration JSON payload, saves it to `/io_config.json`, and applies the settings to the ESP32's GPIOs.
-
-
-
- // Set the SSID (name) and password of the Access Point
-    const char* apSsid = "iYak32";
-    const char* apPassword = "12345678";
--------------------------------------------------------------------------------
-
-- MQTT
-    mqtt.txt  file must be in the data folder with a simple line:
-user:password
-
-## Local sensor MQTT topics
-
-In addition to the existing JSON envelope on `esp32/data/<DEVICE_NAME>`, the firmware publishes plain numeric readings every `mqttDataIntervalSec` seconds to `sensors/<DEVICE_NAME>/<measure>`. The current board identifies as `ESP_15605`. No reading is sent for an unavailable sensor.
+The JSON envelope is published on `esp32/data/<DEVICE_NAME>`; scalar readings are published on `sensors/<DEVICE_NAME>/<measure>` every `mqttDataIntervalSec` seconds. The envelope includes a UTC timestamp, sender, message type, and payload.
 
 | Measure | Unit | Source |
 |---|---|---|
-| `temperature` | °C | BMP280/BME280 |
-| `pressure` | hPa | BMP280/BME280 |
-| `altitude` | m | BMP280/BME280 estimate |
+| `temperature` | °C | Detected BMP280/BME280 |
+| `pressure` | hPa | Detected BMP280/BME280 |
+| `altitude` | m | Pressure estimate |
 | `humidity` | % | BME280 only |
 | `battery_voltage` | V | Battery ADC estimate |
 | `wifi_rssi` | dBm | Wi-Fi |
 | `cpu_temperature` | °C | ESP32 |
 
-Set `mqtturl`, `mqttport`, `mqttuser`, and `mqttpass` in the private `/esp32config.json` on the device. Keep the broker address and credentials out of tracked examples.
+The firmware publishes retained discovery to `homeassistant/device/<DEVICE_NAME>/config` and retained availability to `sensors/<DEVICE_NAME>/availability`. Add Home Assistant's MQTT integration with the same private broker and leave discovery enabled. It groups the available readings into one device. Assign a friendly name and area in Home Assistant when the physical location is known. The pressure-derived altitude stays on MQTT but is omitted from the HA room device.
 
-## Home Assistant MQTT discovery
+## Local UI and code map
 
-When connected to MQTT, the firmware publishes one retained device discovery message to `homeassistant/device/<DEVICE_NAME>/config` and a retained `online` status to `sensors/<DEVICE_NAME>/availability`. The broker publishes `offline` on that availability topic if the board disconnects unexpectedly. Discovery is republished after a reconnect.
+The ESP32 serves a local UI from SPIFFS. `/io_control.html` displays configured GPIO values and uses `GET /api/io/status`, `GET /api/io/config`, and `POST /api/io/config`. The I/O configuration is stored in `/io_config.json`. Check the actual board wiring before changing GPIO roles; the general I/O API is not yet the controller for pumps or lights.
 
-The device groups temperature and pressure from a detected BMP280/BME280, humidity from a BME280 only, and battery voltage, Wi-Fi signal, and CPU temperature as diagnostics. The pressure-derived altitude remains on its scalar topic but is omitted from the room device because it is not a useful indoor elevation measurement. The current board keeps the name `ESP_15605` in discovery; assign its room and a friendly name in Home Assistant until per-board naming is implemented.
+- `src/api/Esp32.cpp`: boot, configuration, GPIO setup, and shared services.
+- `src/api/WifiManager.cpp`: Wi-Fi fallback and OTA.
+- `src/api/Mqtt.cpp` and `MqttCommandRouter.cpp`: telemetry, discovery, reconnect, and commands.
+- `src/www.h`: HTTP routes; `data/`: SPIFFS web assets.
+- `src/api/devices/`: BMP280/BME280, display, and buzzer.
+- `src/BasicMode.h`, `src/Boat.h`, `src/Hockey.h`: compile-time application modes.
 
-Home Assistant must have its MQTT integration connected to the same private broker with discovery enabled. It will then create the iYak32 device from the retained configuration. Scalar readings remain on `sensors/<DEVICE_NAME>/<measure>`; the existing JSON envelope remains unchanged.
+## Next: indoor iGrow
 
-For a new Home Assistant installation:
+The agreed pilot is one shelf with two or three bins, a shared light and fan, shared air temperature/humidity sensing, and soil moisture plus watering for each bin. The original iGrow/iGrow32 hardware includes an Arduino board and a relay module; its wiring and component voltages still need to be identified. First bring sensor readings into HA, then test one bounded pump run and measure delivered water before extending control to every bin. The legacy iGrow and iGrow32 code are references, not the active firmware.
 
-1. Open **Settings → Devices & services → Add integration → MQTT**.
-2. Configure the existing LAN broker using the `mqtturl` and `mqttport` values in the board's private `/esp32config.json`, with its private MQTT account and password. Keep those settings outside Git and setup notes.
-3. Leave MQTT discovery enabled with the default `homeassistant` prefix.
-4. Look for one device named `ESP_15605` with temperature, pressure, battery voltage, Wi-Fi signal, and CPU temperature. Assign it to a Home Assistant area after choosing its physical room.
-5. Confirm that the device is online and its temperature/pressure values update. The BMP280 on this board cannot report humidity.
-
-On 2026-10-09, Home Assistant accepted the corrected retained discovery payload and created `ESP_15605` as one MQTT device. Its device page showed live temperature and pressure plus numeric battery voltage, Wi-Fi signal, and CPU temperature diagnostics. The board's BMP280 has no humidity measurement.
-
-## Local config files (gitignored) and examples
-
-The following runtime files are intentionally gitignored (local secrets / per-device settings):
-
-- `data/esp32config.json`
-- `data/config.txt`
-- `data/mqtt.txt`
-
-Use these tracked templates to initialize local files:
-
-- `data/esp32config.example.json` -> copy to `data/esp32config.json`
-- `data/config.example.txt` -> copy to `data/config.txt`
-- `data/mqtt.example.txt` -> copy to `data/mqtt.txt`
-
-Quick setup (PowerShell):
-
-```powershell
-Copy-Item data/esp32config.example.json data/esp32config.json
-Copy-Item data/config.example.txt data/config.txt
-Copy-Item data/mqtt.example.txt data/mqtt.txt
-```
-
-Then edit the copied local files with your real SSID/password/MQTT settings before upload.
-
-    ### Standard MQTT Message Format
-
-    For many data-rich outgoing messages (such as sensor data updates and heartbeats), the ESP32 device publishes data to MQTT topics using a standardized JSON structure. This provides consistency for client applications consuming these messages.
-
-    **Key Fields in the Standard JSON Wrapper:**
-
-    *   `timestamp` (String, Required): ISO 8601 formatted UTC timestamp (e.g., `YYYY-MM-DDTHH:MM:SS.sssZ`). Indicates when the message was generated.
-    *   `sender` (String, Required): The unique identifier of the ESP32 device (e.g., "ESP_XXXXXX" from `Esp32::DEVICE_NAME`).
-    *   `message_type` (String, Required): Defines the general category of the message. Common types include:
-        *   `"sensor_data"`: For regular transmissions of sensor readings and device status.
-        *   `"heartbeat"`: For keep-alive messages indicating the device is online.
-        *   `"event"`: For discrete events (e.g., button press, specific trigger). (Future use)
-        *   `"log"`: For debug or operational log messages. (Future use)
-        *   `"command_response"`: For acknowledging or replying to a received command. (Future use)
-    *   `status` (String, Optional): Provides additional context, especially for responses or logs. Values can include `"info"`, `"success"`, `"warning"`, `"error"`. Often defaults to `"info"` for data packets.
-    *   `command_id` (String, Optional): Used to correlate a message (typically a response) with a specific command that was received.
-    *   `payload_type` (String, Optional but Recommended for complex payloads): A string that specifically describes the content/schema of the `payload` object, helping clients interpret it (e.g., `"sensor_readings_v1"`, `"system_info"`).
-    *   `payload` (JSON Object, Required): Contains the actual data specific to the `message_type`. The structure of this object can vary.
-
-    **Example: `message_type: "sensor_data"`**
-
-    Topic: `esp32/data/<DEVICE_NAME>`
-    Payload Wrapper Example:
-    ```json
-    {
-      "timestamp": "2023-12-05T12:30:00.123Z",
-      "sender": "ESP_ABCDEF",
-      "message_type": "sensor_data",
-      "status": "info",
-      "payload_type": "sensor_readings_v1",
-      "payload": {
-        "cpu_temp_c": 35.5,
-        "wifi_rssi": -60,
-        "battery_v": 3.85,
-        "bmx_temp_c": 22.1,
-        "bmx_pressure_hpa": 1012.5,
-        "bmx_altitude_m": 123.0,
-        "bmx_humidity_pct": 45.2
-      }
-    }
-    ```
-
-    **Example: `message_type: "heartbeat"`**
-
-    Topic: `esp32/alive/<DEVICE_NAME>`
-    Payload Wrapper Example:
-    ```json
-    {
-      "timestamp": "2023-12-05T12:31:00.456Z",
-      "sender": "ESP_ABCDEF",
-      "message_type": "heartbeat",
-      "status": "info",
-      "payload_type": "simple_status",
-      "payload": {
-        "status": "online"
-      }
-    }
-    ```
-    (Note: for heartbeat, the payload could also be an empty object `{}` if `payload_type` is omitted or indicates no specific data.)
-
-
-    **Note on Simpler Messages:** Some specific system messages (like initial device registration on `esp32/register` or config requests on `esp32/config`) may use simpler string payloads for compatibility with specific backend expectations and are not currently wrapped in this full JSON structure.
-
-
-
-Upcoming intentions:
-- Add directions and speed control from webInterface
-- Autolock button on webInterface to Use cellphone GPS via the Javascript within the webServer to send auto command to motor to stay in position 
-- Add SEALEVELPRESSURE_HPA variable on webInterface to allow for proper altitude detection.  Possibly get it from meteorological API if internet access is available otherwise fall back on manual entry
-
-
-
-
-data/esp32config.json
-{
-  "profileName": "default_ESP32",
-  
-  "wifi_ssid": "SSID",
-  "wifi_password": "Password",
-  
-  "isMqtt": true,
-  "mqtt_server": "mqtt.yourserver.com",
-  "mqtt_port": 1883,
-  "mqtt_user": "user",
-  "mqtt_pass": "pass",
-  "mqttDataIntervalSec": 5,
-  
-  "gmtOffset_sec": -18000,
-  "daylightOffset_sec": 3600,
-  
-  "isConfigFromServer": true,
-  
-  "buzzer_enabled": true,
-  "buzzer_pin": 14
-}
+The original kayak design used a servo and BTS7960 motor driver for a Minn Kota trolling motor. The hockey prototype has a TM1637 display, goal sensors, timing, and sounds. Both need their own hardware acceptance before being treated as working modes.

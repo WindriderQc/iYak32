@@ -1,3 +1,0 @@
-# MQTT credentials
-# Format: user:password
-mqtt_user:mqtt_password

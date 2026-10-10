@@ -8,12 +8,10 @@
 
 
 /*
-Auto connect to wifi using a list of preferred network in SPIFF /config.txt containing lines of "SSID:PASSWORD"  
-Access point will be created if wifi connection fail.    ssid = "iYak32"  apPassword = "12345678"
-OTA esp32 reprogramming setup and handle; IP address must be set in platformio.ini
-esp32 time is configured upon NTP server
-
-TODO: possibility to have a fixed IP address configured from EEPROM?  and adapt time configuration to handle accessPoint mode
+Connect using the configured Wi-Fi network or optional SPIFFS /config.txt fallback
+entries in SSID:PASSWORD format. Start a local access point if all attempts fail.
+The AP password comes from ap_password or a per-device fallback.
+OTA uploads require an explicit target address at upload time.
 */
 
 class WifiManager {
