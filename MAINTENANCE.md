@@ -34,6 +34,4 @@ Ordered by risk and usefulness. "Built" means the source compiles; it does not c
 | 24 | Bundle required web assets locally so the UI works without Internet access. | Open |
 | 25 | Add a small build gate and hardware smoke checklist for boot, GPIO, web, MQTT, and mode selection. | Read-only BasicMode smoke script added and passed on device; serial and other modes remain manual |
 
-The older `PEER_REVIEW.md` contains stale claims (for example, it calls the buzzer blocking). Check current source and serial evidence before using it as a task list.
-
 Live follow-up: Wi-Fi RSSI averaging used unsigned division and reported `429496679` instead of a negative dBm value. Commit `bac92a8` was flashed; `/api/wifi/status`, `/api/status`, and sensor history then reported `-77 dBm`.
