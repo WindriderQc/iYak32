@@ -33,7 +33,9 @@ Un démarrage sans heure valide attend sa synchronisation.
 
 Après un redémarrage, les sorties qui ont une minuterie activée commencent à
 OFF, même si leur ancien état initial était HIGH. Le firmware attend le
-prochain début de créneau; il ne rattrape pas un créneau déjà commencé. Une
+prochain début de créneau; il ne rattrape pas un créneau déjà commencé.
+L’alarme quotidienne de fin reste indépendante : elle remet aussi à OFF une
+sortie activée manuellement entre-temps, comme le faisait SBQC. Une
 perte d’heure ou un recul d’horloge arrête une activation détenue par la
 minuterie et recalcule le prochain début. La déclaration MQTT montre les
 horaires, leur prochain début, l’heure locale et les niveaux logiques lus.

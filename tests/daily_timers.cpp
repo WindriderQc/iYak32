@@ -26,6 +26,9 @@ int main() {
     Runtime run; schedule = {21600, 82800, true};
     run.tick(schedule, at(2026,1,1,12), true, true, write);
     assert(writes.empty() && run.onAt == at(2026,1,2,6)); // mid-window reboot stays OFF
+    run.tick(schedule, at(2026,1,1,23), true, true, write);
+    assert(writes == std::vector<bool>({false})); // daily OFF still stops a manual ON after boot
+    writes.clear();
     run.tick(schedule, at(2026,1,2,6), true, true, write);
     run.tick(schedule, at(2026,1,2,7), true, true, write);
     assert(writes == std::vector<bool>({true}));
@@ -33,7 +36,9 @@ int main() {
     assert(writes == std::vector<bool>({true,false}));
     run.reset(); writes.clear(); schedule = {82800,21600,true};
     run.tick(schedule, at(2026,1,2,1), true,true,write);
-    assert(run.onAt == at(2026,1,2,23) && run.offAt == at(2026,1,3,6));
+    assert(run.onAt == at(2026,1,2,23) && run.offAt == at(2026,1,2,6));
+    run.tick(schedule,at(2026,1,2,6),true,true,write);
+    assert(writes == std::vector<bool>({false})); writes.clear();
     run.tick(schedule,at(2026,1,2,23),true,true,write);
     run.tick(schedule,at(2026,1,3,5),true,true,write);
     run.tick(schedule,at(2026,1,3,6),true,true,write);

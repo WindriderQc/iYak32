@@ -71,11 +71,16 @@ struct Runtime {
             if (!clockValid || !available || !schedule.enabled) return;
         }
         last = now;
-        if (!onAt) { onAt = nextStart(now, schedule.on); offAt = stopAfter(onAt, schedule.on, schedule.off); return; }
+        if (!onAt) { onAt = nextStart(now, schedule.on); offAt = nextStart(now, schedule.off); return; }
         if (now >= offAt) {
-            if (active) write(false);
-            active = false; onAt = nextStart(now, schedule.on); offAt = stopAfter(onAt, schedule.on, schedule.off);
-        } else if (!active && now >= onAt) active = write(true);
+            // The daily OFF alarm also stops an intervening manual ON, just as
+            // SBQC's independent nightfall callback did after a mid-window boot.
+            write(false); active = false;
+            const time_t previousStop = offAt;
+            offAt = nextStart(now, schedule.off);
+            if (onAt <= previousStop || now >= stopAfter(onAt,schedule.on,schedule.off)) onAt = nextStart(now,schedule.on);
+        }
+        if (!active && now >= onAt && now < stopAfter(onAt,schedule.on,schedule.off)) active = write(true);
     }
 };
 } // namespace DailyTimers
