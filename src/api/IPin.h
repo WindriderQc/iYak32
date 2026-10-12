@@ -8,7 +8,7 @@ namespace Esp32
     {
         byte pinMode = OUTPUT;
         unsigned int gpio = 21;
-        const char* label = "GPIO21";
+        String label = "GPIO21";
         bool isAnalog = 0;
         String preConfig = "none"; 
     };

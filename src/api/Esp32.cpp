@@ -1,3 +1,4 @@
+#include "IOControl.h"
 #include "Esp32.h"
 #include "JsonTools.h" // Added for JsonTools::getJsonString
 #include <ArduinoJson.h>
@@ -432,61 +433,11 @@ namespace Esp32 {
     }
 
     void loadAndApplyIOConfig() {
-        if (!Esp32::spiffsMounted) {
-            Serial.println(F("Esp32: SPIFFS not mounted, cannot load I/O config."));
-            return;
-        }
-        if (SPIFFS.exists(Esp32::CONFIG_IO_FILENAME)) {
-            Serial.printf("Esp32: Loading I/O config from %s\n", Esp32::CONFIG_IO_FILENAME.c_str());
-            String file_content = Storage::readFile(Esp32::CONFIG_IO_FILENAME);
-            if (file_content.length() > 0) {
-                JsonDocument doc;
-                DeserializationError error = deserializeJson(doc, file_content);
-
-        Serial.print(F("Esp32: deserializeJson error code: "));
-        Serial.println(error.c_str()); // Print the error code regardless
-
-        if (doc.isNull()) {
-            Serial.println(F("Esp32: Parsed JsonDocument is null!"));
-        } else {
-            Serial.println(F("Esp32: Parsed JsonDocument is NOT null."));
-            Serial.print(F("Esp32: !doc[\"io_pins\"].isNull(): "));
-            Serial.println(!doc["io_pins"].isNull() ? "true" : "false");
-            // The is<JsonArray>() check can remain as is, or be combined:
-            if (!doc["io_pins"].isNull()) { // First check if the key exists and is not null
-                Serial.print(F("Esp32: doc[\"io_pins\"].is<JsonArray>(): "));
-                Serial.println(doc["io_pins"].is<JsonArray>() ? "true" : "false");
-            } else {
-                Serial.println(F("Esp32: doc[\"io_pins\"] is null, cannot check if it's an array."));
-            }
-            String serializedDoc;
-            serializeJsonPretty(doc, serializedDoc); // Using Pretty for readability
-            Serial.println(F("Esp32: Content of parsed 'doc' after deserializeJson:"));
-            Serial.println(serializedDoc);
-        }
-
-                if (!error) { // If no error from deserializeJson
-            Serial.println(F("Esp32: deserializeJson successful. Preparing to call applyIOConfiguration.")); // Added for clarity
-
-            String jsonStringForApply;
-            serializeJson(doc, jsonStringForApply); // Serialize the good doc to a new string
-            Serial.println(F("Esp32: loadAndApplyIOConfig - Serialized 'doc' to jsonStringForApply:"));
-            Serial.println(jsonStringForApply);
-
-            Esp32::applyIOConfiguration(jsonStringForApply); // Pass the string
-                } else {
-                    Serial.print(F("Esp32: Failed to parse "));
-                    Serial.print(Esp32::CONFIG_IO_FILENAME);
-                    Serial.print(F(" - Error: "));
-                    Serial.println(error.c_str()); // Print the actual error code string
-                    Serial.println(F("Applying no I/O config from file."));
-                }
-            } else {
-                Serial.printf("Esp32: Failed to read %s or file is empty. Applying no I/O config from file.\n", Esp32::CONFIG_IO_FILENAME.c_str());
-            }
-        } else {
-            Serial.printf("Esp32: %s not found. No I/O pins configured by this system initially.\n", Esp32::CONFIG_IO_FILENAME.c_str());
-        }
+        JsonDocument doc;
+        if (!IOControl::loadBootIOConfiguration(doc)) return;
+        String json;
+        serializeJson(doc, json);
+        applyIOConfiguration(json);
     }
 
     String getIOStatusJsonString() {
