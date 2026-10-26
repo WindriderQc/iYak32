@@ -79,6 +79,7 @@ namespace Esp32 {
     String getIOAlertsStatusJson();
     void processIOAlerts();
     bool setPinActive(int gpio, bool active, uint32_t duration = 0, IOEvents::Source source = IOEvents::Source::WEB, const char* scene = nullptr, uint32_t trace = 0);
+    const char* applyDailyTimerOutput(int gpio, bool active);
     String runIOSceneJson(const String& id, const String& expectedRevision, IOEvents::Source source = IOEvents::Source::WEB, bool* conflict = nullptr, uint32_t trace = 0);
     String getIOAutomationStatusJson();
     String getFriendlyName();

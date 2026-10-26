@@ -80,7 +80,13 @@ struct Runtime {
             offAt = nextStart(now, schedule.off);
             if (onAt <= previousStop || now >= stopAfter(onAt,schedule.on,schedule.off)) onAt = nextStart(now,schedule.on);
         }
-        if (!active && now >= onAt && now < stopAfter(onAt,schedule.on,schedule.off)) active = write(true);
+        if (!active && now >= onAt) {
+            const time_t start = onAt;
+            // An attempted start is consumed even if the native operator gate
+            // refuses it. Releasing a pause/hold never replays that occurrence.
+            onAt = nextStart(now, schedule.on);
+            if (now < stopAfter(start,schedule.on,schedule.off)) active = write(true);
+        }
     }
 };
 } // namespace DailyTimers

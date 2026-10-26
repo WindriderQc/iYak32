@@ -6,6 +6,11 @@
 namespace IOOperator {
 constexpr uint32_t MAX_OVERRIDE_MS = 86400000;
 inline bool validOverride(uint32_t ms) { return ms == 0 || (ms >= 1000 && ms <= MAX_OVERRIDE_MS); }
+inline const char* dailyStartBlock(JsonVariantConst automation, uint32_t held) {
+    if (automation.isNull() || (automation["paused"] | true)) return "Début quotidien ignoré : automatismes en pause.";
+    if (held) return "Début quotidien ignoré : priorité manuelle.";
+    return nullptr;
+}
 inline const char* mdi(const char* icon) {
     if (!std::strcmp(icon, "light")) return "mdi:lightbulb";
     if (!std::strcmp(icon, "fan")) return "mdi:fan";

@@ -39,8 +39,15 @@ Après un redémarrage, les sorties qui ont une minuterie activée commencent à
 OFF, même si leur ancien état initial était HIGH. Le firmware attend le
 prochain début de créneau; il ne rattrape pas un créneau déjà commencé.
 L’alarme quotidienne de fin reste indépendante : elle remet aussi à OFF une
-sortie activée manuellement entre-temps, comme le faisait SBQC. Une
-perte d’heure ou un recul d’horloge arrête une activation détenue par la
+sortie activée manuellement entre-temps, comme le faisait SBQC. La pause générale
+des automatismes et la priorité manuelle de la sortie bloquent les allumages
+quotidiens. Un début bloqué est consommé : libérer la pause ou attendre la fin
+de la priorité ne rattrape pas ce début. Le prochain début reste le suivant
+prévu par l’horaire. L’arrêt quotidien, la désactivation et les commandes
+manuelles restent possibles. Une absence de réglage de pause vaut une pause,
+comme pour les autres automatismes natifs. Un refus apparaît dans `lastError`.
+La vérification des protections et la commande partagent le verrou GPIO natif.
+Une perte d’heure ou un recul d’horloge arrête une activation détenue par la
 minuterie et recalcule le prochain début. La déclaration MQTT montre les
 horaires, leur prochain début, l’heure locale et les niveaux logiques lus.
 Elle ne confirme pas le mouvement d’un moteur ou l’état physique d’un relais.
@@ -51,6 +58,7 @@ Elle ne confirme pas le mouvement d’un moteur ou l’état physique d’un rel
 Après l’installation des dépendances PlatformIO, `tests/run-native.sh` lance
 les tests CPU avec les contrôles d’accès mémoire et de comportement indéfini.
 Ils couvrent les horaires de SBQC, minuit, le redémarrage, les pertes d’heure,
+la pause, la priorité manuelle, leur libération sans rattrapage, l’arrêt maintenu,
 les journées de 23/25 heures et les interruptions de sauvegarde.
 Ces essais ne qualifient ni SPIFFS sur un appareil réel ni les sorties physiques.
 Un téléversement et chaque essai sur un appareil installé demandent un accord

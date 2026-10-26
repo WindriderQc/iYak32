@@ -27,6 +27,10 @@ static JsonDocument report() {
 int main() {
     setenv("TZ", "UTC0", 1); tzset(); at(1,12);
     assert(!deserializeJson(IOTest::config,R"({"io_pins":[{"gpio":15,"label":"Old","mode":"OUTPUT","type":"DIGITAL","inverted":true,"initial_state":"HIGH"},{"gpio":21,"label":"Reserved","mode":"OUTPUT","type":"DIGITAL"}]})"));
+    IOTest::config["automation"]["paused"] = false;
+    IOTest::config["automation"]["timezone"] = "UTC";
+    IOTest::config["automation"]["schedules"].to<JsonArray>();
+    IOTest::config["automation"]["rules"].to<JsonArray>();
     IOTest::outputs[15] = true; IOTest::outputs[21] = false;
     IOTest::files["/io_timers.json"] = R"([{"io":15,"tStart":"06:00:00","tStop":"23:00:00","enabled":true}])";
     assert(IOControl::loadBootTimers() && IOControl::bootOff(15) && !IOControl::bootOff(21));
@@ -58,6 +62,26 @@ int main() {
     IOTest::connected = true; IOControl::tick();
     assert(IOTest::publications.size() == offlineCount + 2);
     at(2,23); IOControl::tick(); assert(IOTest::outputs[15]);
+    // Pause does not erase the independent OFF deadline, even after a manual ON.
+    IOTest::config["automation"]["paused"] = true;
+    IOTest::overrides[15].start(millis(),10000);
+    at(3,6); IOControl::tick(); assert(!IOTest::outputs[15]);
+    at(3,23); const unsigned pausedAttempts = IOTest::startAttempts;
+    IOControl::tick(); assert(!IOTest::outputs[15] && IOTest::startAttempts == pausedAttempts + 1);
+    assert(report()["lastError"].as<std::string>().find("pause") != std::string::npos);
+    IOTest::config["automation"]["paused"] = false; IOTest::overrides[15].cancel();
+    at(4,1); IOControl::tick(); assert(!IOTest::outputs[15] && IOTest::startAttempts == pausedAttempts + 1);
+    IOTest::outputs[15] = true; // An intervening manual command still has a daily OFF.
+    at(4,6); IOControl::tick(); assert(!IOTest::outputs[15]);
+    IOTest::overrides[15].start(millis(),10000);
+    at(4,23); const unsigned heldAttempts = IOTest::startAttempts;
+    IOControl::tick(); assert(!IOTest::outputs[15] && IOTest::startAttempts == heldAttempts + 1);
+    assert(report()["lastError"].as<std::string>().find("manuelle") != std::string::npos);
+    IOTest::milliseconds += 10000; at(5,1); IOControl::tick();
+    assert(!IOTest::outputs[15] && IOTest::startAttempts == heldAttempts + 1);
+    at(5,6); IOControl::tick();
+    IOTest::overrides[4].start(millis(),10000); // A different output's priority is isolated.
+    at(5,23); IOControl::tick(); assert(IOTest::outputs[15] && report()["lastError"].isNull());
     IOTest::failSave = true; receive("io/timer/disable","15");
     assert(IOTest::outputs[15]); // A failed durable cancellation does not pretend to apply.
     IOTest::failSave = false; receive("io/timer/disable","15"); IOControl::tick();

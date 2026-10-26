@@ -55,6 +55,17 @@ int main() {
     assert(!run.active && writes.back() == false);
     run.tick(schedule,at(2026,1,4,23),true,false,write);
     assert(!run.onAt); // reconfigured/reserved pins cannot execute
+    // A refused daily ON is attempted once, including overnight intervals.
+    run.reset(); writes.clear(); schedule = {82800,21600,true};
+    auto blocked = [&](bool value) { writes.push_back(value); return !value; };
+    run.tick(schedule,at(2026,1,5,12),true,true,blocked);
+    run.tick(schedule,at(2026,1,5,23),true,true,blocked);
+    run.tick(schedule,at(2026,1,6,1),true,true,write); // Gate released; no replay.
+    assert(writes == std::vector<bool>({true}) && !run.active);
+    run.tick(schedule,at(2026,1,6,6),true,true,blocked);
+    assert(writes == std::vector<bool>({true,false}));
+    run.tick(schedule,at(2026,1,6,23),true,true,write);
+    assert(writes == std::vector<bool>({true,false,true}) && run.active);
     schedule = {21600,82800,true}; run.reset();
     const time_t spring = at(2026,3,7,6);
     assert(nextStart(spring,21600)-spring == 23*3600);

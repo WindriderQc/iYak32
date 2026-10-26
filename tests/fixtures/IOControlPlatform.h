@@ -7,6 +7,8 @@
 namespace IOTest {
 inline JsonDocument config;
 inline std::map<int,bool> outputs;
+inline std::map<int,IOOutput::Timer> overrides;
+inline unsigned startAttempts = 0;
 inline std::map<std::string,std::string> files;
 inline bool failSave = false, connected = true;
 inline unsigned writes = 0;
@@ -32,6 +34,14 @@ inline bool isPinOutputAvailable(int gpio) { return IOTest::outputs.count(gpio) 
 inline bool setPinActive(int gpio, bool active, uint32_t, IOEvents::Source) {
     if (!isPinOutputAvailable(gpio)) return false;
     IOTest::outputs[gpio] = active; IOTest::commands.emplace_back(gpio, active); return true;
+}
+inline const char* applyDailyTimerOutput(int gpio, bool active) {
+    if (!isPinOutputAvailable(gpio)) return "Minuterie quotidienne : sortie indisponible.";
+    if (active) {
+        ++IOTest::startAttempts;
+        if (const char* reason = IOOperator::dailyStartBlock(IOTest::config["automation"],IOTest::overrides[gpio].remaining(millis()))) return reason;
+    }
+    return setPinActive(gpio,active,0,IOEvents::Source::TIMER) ? nullptr : "Minuterie quotidienne : sortie refusée.";
 }
 inline bool mergeLegacyIOConfiguration(const JsonDocument& input) {
     JsonDocument next = IOTest::config;

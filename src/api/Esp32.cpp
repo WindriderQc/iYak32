@@ -286,6 +286,17 @@ namespace Esp32 {
         return true;
     }
 
+    const char* applyDailyTimerOutput(int gpio, bool active) {
+        IOGuard guard;
+        if (!isPinOutputAvailable(gpio)) return "Minuterie quotidienne : sortie indisponible.";
+        if (active) {
+            if (const char* reason = IOOperator::dailyStartBlock(ioDocument["automation"], ioOverrides[gpio].remaining(millis()))) return reason;
+        }
+        // Check permissions and write under the same native GPIO lock. OFF,
+        // pulse expiry and ordinary manual commands retain their own behavior.
+        return setPinActive(gpio, active, 0, IOEvents::Source::TIMER) ? nullptr : "Minuterie quotidienne : sortie refusée.";
+    }
+
     bool getPinActive(int gpio) {
         IOGuard guard;
         const auto* pin = findPin(gpio);

@@ -19,9 +19,11 @@ char bootId[17] = {};
 String lastError;
 
 bool writeOutput(int io, bool active) {
-    const bool written = Esp32::setPinActive(io, active, 0, IOEvents::Source::TIMER);
-    if (written) dirty = true;
-    return written;
+    const char* reason = Esp32::applyDailyTimerOutput(io, active);
+    dirty = true;
+    if (reason) { lastError = reason; return false; }
+    if (active) lastError = "";
+    return true;
 }
 bool saveTimer(unsigned io, const DailyTimers::Schedule& schedule) {
     JsonDocument doc;

@@ -21,6 +21,12 @@ int main() {
  JsonArray many=d["scenes"][0]["actions"].to<JsonArray>();for(int gpio=0;gpio<26;++gpio){JsonObject action=many.add<JsonObject>();action["gpio"]=gpio;action["active"]=true;action["duration_ms"]=1000;}
  IODiscovery::scene(payload,"ESP_1","Atelier","http://board",d["scenes"][0]);assert(measureJson(payload)<1800);assert(payload["availability"].size()==2);assert(payload["availability"][1]["topic"]=="esp32/ESP_1/io/scene/fan/state");
  IODiscovery::build(payload,"ESP_1",15,"Ventilateur","switch","http://board",JsonVariantConst(),"Atelier","fan");assert(payload["icon"]=="mdi:fan");assert(payload["unique_id"]=="ESP_1_gpio15");
+ // Daily ON uses the same fail-closed pause and the selected output's hold.
+ assert(IOOperator::dailyStartBlock(d["automation"],0));
+ d["automation"]["paused"]=true;assert(IOOperator::dailyStartBlock(d["automation"],0));
+ d["automation"]["paused"]=false;assert(!IOOperator::dailyStartBlock(d["automation"],0));
+ assert(IOOperator::dailyStartBlock(d["automation"],1000));
+ d["automation"]["paused"]="false";assert(IOOperator::dailyStartBlock(d["automation"],0));
  // A stable edge consumed while an actuator is held never fires after its release.
  JsonDocument rule;deserializeJson(rule,R"({"operator":"above","threshold":30,"hysteresis":5,"stable_ms":500,"cooldown_ms":1000})");IOAutomation::RuleState state;
  assert(!IOAutomation::evaluate(rule,state,20,0));assert(!IOAutomation::evaluate(rule,state,40,1));assert(IOAutomation::evaluate(rule,state,40,501));assert(!IOAutomation::evaluate(rule,state,40,2000));
