@@ -1,3 +1,5 @@
+#include "IOControl.h"
+#include "IOProfile.h"
 #include "Esp32.h"
 #include "IOConfig.h"
 #include "IOOutput.h"
@@ -152,6 +154,7 @@ namespace Esp32 {
         return ioJournal.latest();
     }
     static const char* reservedPin(int gpio) {
+        if (buzzer_enabled_ && gpio == configured_buzzer_pin_) return "Buzzer";
         for (const auto& usage : pinUsages) {
             if (usage.gpio == gpio && (usage.mode == "I2C" || usage.mode == "SERIAL")) return usage.label.c_str();
         }
@@ -940,7 +943,11 @@ namespace Esp32 {
                 ioTimerScenes[gpio] = ""; ioTimerTraces[gpio] = 0;
                 // Explicit startup values remain electrical LOW/HIGH for old configurations.
                 if (!reservedPin(gpio)) {
-                    if (actual == OUTPUT) digitalWrite(gpio, initial.isEmpty() ? (inverted ? HIGH : LOW) : (initial == "HIGH" ? HIGH : LOW));
+                    if (actual == OUTPUT) {
+                        const bool high = source == IOEvents::Source::BOOT && IOControl::bootOff(gpio) ? inverted :
+                            initial.isEmpty() ? inverted : initial == "HIGH";
+                        digitalWrite(gpio, high ? HIGH : LOW);
+                    }
                     configPin(gpio, pinModeName, label.c_str(), type == "ANALOG_INPUT");
                 }
             }
@@ -1004,86 +1011,25 @@ namespace Esp32 {
     bool mergeLegacyIOConfiguration(const JsonDocument& incoming) {
         IOGuard guard;
         if (!incoming.is<JsonArrayConst>()) return saveAndApplyIOConfiguration(incoming, nullptr, IOEvents::Source::MQTT);
-        // Old MQTT arrays are patches. Preserve every other pin and document field.
         JsonDocument merged = ioDocument;
-        JsonArray pins = merged["io_pins"].as<JsonArray>();
-        bool seen[40] = {};
-        for (JsonVariantConst item : incoming.as<JsonArrayConst>()) {
-            if (!item.is<JsonObjectConst>() || !item["io"].is<int>()) return false;
-            int gpio = item["io"].as<int>();
-            if (!IOConfig::available(gpio) || seen[gpio]) return false;
-            seen[gpio] = true;
-            const char* oldMode = item["mode"] | "";
-            const char* mode = !strcmp(oldMode, "OUT") ? "OUTPUT" : !strcmp(oldMode, "IN") ? "INPUT" :
-                               !strcmp(oldMode, "INPULL") ? "INPUT_PULLUP" : !strcmp(oldMode, "INPULLD") ? "INPUT_PULLDOWN" : oldMode;
-            JsonObject entry;
-            for (JsonObject pin : pins) if (pin["gpio"].as<int>() == gpio) { entry = pin; break; }
-            if (entry.isNull()) entry = pins.add<JsonObject>();
-            entry["gpio"] = gpio; entry["mode"] = mode;
-            entry["label"] = item["lbl"] | "";
-            entry["type"] = (item["isA"] | false) ? "ANALOG_INPUT" : "DIGITAL";
-            if (!item["inverted"].isNull()) entry["inverted"] = item["inverted"];
-            if (!item["initial_state"].isNull()) entry["initial_state"] = item["initial_state"];
-        }
+        if (!IOProfile::merge(merged, incoming, [](int gpio) { return reservedPin(gpio) != nullptr; })) return false;
         return saveAndApplyIOConfiguration(merged, nullptr, IOEvents::Source::MQTT);
     }
 
+    void getIOControlSnapshot(JsonDocument& config, JsonDocument& status) {
+        IOGuard guard;
+        config = ioDocument;
+        deserializeJson(status, getIOStatusJsonString());
+    }
+
     void loadAndApplyIOConfig() {
-        if (!Esp32::spiffsMounted) {
-            Serial.println(F("Esp32: SPIFFS not mounted, cannot load I/O config."));
-            return;
-        }
-        if (SPIFFS.exists(Esp32::CONFIG_IO_FILENAME) || SPIFFS.exists(Esp32::CONFIG_IO_FILENAME + ".bak")) {
-            Serial.printf("Esp32: Loading I/O config from %s\n", Esp32::CONFIG_IO_FILENAME.c_str());
-            String file_content = Storage::readConfigFile(Esp32::CONFIG_IO_FILENAME);
-            if (file_content.length() > 0) {
-                JsonDocument doc;
-                DeserializationError error = deserializeJson(doc, file_content);
-
-        Serial.print(F("Esp32: deserializeJson error code: "));
-        Serial.println(error.c_str()); // Print the error code regardless
-
-        if (doc.isNull()) {
-            Serial.println(F("Esp32: Parsed JsonDocument is null!"));
-        } else {
-            Serial.println(F("Esp32: Parsed JsonDocument is NOT null."));
-            Serial.print(F("Esp32: !doc[\"io_pins\"].isNull(): "));
-            Serial.println(!doc["io_pins"].isNull() ? "true" : "false");
-            // The is<JsonArray>() check can remain as is, or be combined:
-            if (!doc["io_pins"].isNull()) { // First check if the key exists and is not null
-                Serial.print(F("Esp32: doc[\"io_pins\"].is<JsonArray>(): "));
-                Serial.println(doc["io_pins"].is<JsonArray>() ? "true" : "false");
-            } else {
-                Serial.println(F("Esp32: doc[\"io_pins\"] is null, cannot check if it's an array."));
-            }
-            String serializedDoc;
-            serializeJsonPretty(doc, serializedDoc); // Using Pretty for readability
-            Serial.println(F("Esp32: Content of parsed 'doc' after deserializeJson:"));
-            Serial.println(serializedDoc);
-        }
-
-                if (!error) { // If no error from deserializeJson
-            Serial.println(F("Esp32: deserializeJson successful. Preparing to call applyIOConfiguration.")); // Added for clarity
-
-            String jsonStringForApply;
-            serializeJson(doc, jsonStringForApply); // Serialize the good doc to a new string
-            Serial.println(F("Esp32: loadAndApplyIOConfig - Serialized 'doc' to jsonStringForApply:"));
-            Serial.println(jsonStringForApply);
-
-            Esp32::applyIOConfiguration(jsonStringForApply, IOEvents::Source::BOOT);
-                } else {
-                    Serial.print(F("Esp32: Failed to parse "));
-                    Serial.print(Esp32::CONFIG_IO_FILENAME);
-                    Serial.print(F(" - Error: "));
-                    Serial.println(error.c_str()); // Print the actual error code string
-                    Serial.println(F("Applying no I/O config from file."));
-                }
-            } else {
-                Serial.printf("Esp32: Failed to read %s or file is empty. Applying no I/O config from file.\n", Esp32::CONFIG_IO_FILENAME.c_str());
-            }
-        } else {
-            Serial.printf("Esp32: %s not found. No I/O pins configured by this system initially.\n", Esp32::CONFIG_IO_FILENAME.c_str());
-        }
+        if (!spiffsMounted) return;
+        const String json = Storage::readConfigFile(CONFIG_IO_FILENAME);
+        JsonDocument doc;
+        if (json.isEmpty() || deserializeJson(doc, json) || IOConfig::validate(doc)) return;
+        // Load schedules before BOOT applies any electrical startup values.
+        if (!IOControl::loadBootTimers()) return;
+        applyIOConfiguration(json, IOEvents::Source::BOOT);
     }
 
     String getIOStatusJsonString() {

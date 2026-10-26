@@ -72,6 +72,7 @@ namespace Esp32 {
     bool saveAndApplyIOConfiguration(const JsonDocument& doc, bool* conflict = nullptr, IOEvents::Source source = IOEvents::Source::WEB);
     bool mergeLegacyIOConfiguration(const JsonDocument& doc);
     String getIOConfigurationJsonString();
+    void getIOControlSnapshot(JsonDocument& config, JsonDocument& status);
     String setIOOutputJson(int gpio, bool value, bool logical, uint32_t duration = 0);
     String getIOEventsJsonString(uint32_t after = 0, const String& session = "");
     String getIOActivityJson(uint32_t after = 0, const String& session = "");
