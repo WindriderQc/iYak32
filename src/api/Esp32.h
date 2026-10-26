@@ -72,12 +72,14 @@ namespace Esp32 {
     bool saveAndApplyIOConfiguration(const JsonDocument& doc, bool* conflict = nullptr, IOEvents::Source source = IOEvents::Source::WEB);
     bool mergeLegacyIOConfiguration(const JsonDocument& doc);
     String getIOConfigurationJsonString();
+    void getIOControlSnapshot(JsonDocument& config, JsonDocument& status);
     String setIOOutputJson(int gpio, bool value, bool logical, uint32_t duration = 0);
     String getIOEventsJsonString(uint32_t after = 0, const String& session = "");
     String getIOActivityJson(uint32_t after = 0, const String& session = "");
     String getIOAlertsStatusJson();
     void processIOAlerts();
     bool setPinActive(int gpio, bool active, uint32_t duration = 0, IOEvents::Source source = IOEvents::Source::WEB, const char* scene = nullptr, uint32_t trace = 0);
+    const char* applyDailyTimerOutput(int gpio, bool active);
     String runIOSceneJson(const String& id, const String& expectedRevision, IOEvents::Source source = IOEvents::Source::WEB, bool* conflict = nullptr, uint32_t trace = 0);
     String getIOAutomationStatusJson();
     String getFriendlyName();

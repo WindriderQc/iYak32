@@ -9,6 +9,7 @@
 #include "IOOperator.h"
 #include "IOAlerts.h"
 #include "IOHomeAssistant.h"
+#include "IOText.h"
 
 namespace IOConfig {
 inline bool available(int gpio) {
@@ -55,7 +56,7 @@ inline const char* validate(const JsonDocument& doc) {
         const char* initial = entry["initial_state"] | "";
         if (*initial && std::strcmp(initial, "LOW") && std::strcmp(initial, "HIGH")) return "État au démarrage inconnu.";
         if (!entry["inverted"].isNull() && !entry["inverted"].is<bool>()) return "La polarité inversée doit être un booléen.";
-        if (!entry["label"].is<const char*>() || std::strlen(entry["label"].as<const char*>()) > 64) return "Le nom doit contenir de 1 à 64 caractères.";
+        if (!IOText::bounded(entry["label"], 64)) return "Le nom doit contenir de 1 à 64 caractères.";
         if (!entry["zone"].isNull() && (!entry["zone"].is<const char*>() || std::strlen(entry["zone"].as<const char*>()) > 64)) return "Une zone peut contenir jusqu'à 64 caractères.";
         if (!entry["pulse_presets_ms"].isNull()) {
             if (!output || !entry["pulse_presets_ms"].is<JsonArrayConst>() || entry["pulse_presets_ms"].size() > 5)

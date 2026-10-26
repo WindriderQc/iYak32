@@ -1,21 +1,10 @@
+#include "IOControl.h"
 #include "MqttCommandRouter.h"
 #include "Esp32.h"
 #include "Mqtt.h"
 #include <ArduinoJson.h>
 
 namespace MqttCommandRouter {
-
-    static void handleConfigIOs(byte* message, unsigned int length) {
-        JsonDocument config;
-        DeserializationError error = deserializeJson(config, message, length);
-        if (error) {
-            Serial.print(F("deserializeJson() failed: "));
-            Serial.println(error.c_str());
-            return;
-        }
-        Serial.println(Esp32::mergeLegacyIOConfiguration(config)
-            ? F("IO Config saved and applied") : F("MQTT Error: I/O config rejected; current config retained."));
-    }
 
     static void handleIOCommand(byte* message, unsigned int length, bool turnOn) {
         // The first payload field is a decimal GPIO number; later fields are ignored.
@@ -44,6 +33,7 @@ namespace MqttCommandRouter {
     void handleIncoming(char* topic, byte* message, unsigned int length) {
         Mqtt::recordIncoming(topic, message, length);
         String topicStr = String(topic);
+        if (IOControl::receive(topicStr, message, length)) return;
         #ifdef VERBOSE
         Serial.println(topicStr);
         Serial.print("Msg bytes: "); Serial.println(length);
@@ -54,9 +44,8 @@ namespace MqttCommandRouter {
             return;
         }
         const String deviceTopic = String("esp32/") + Esp32::DEVICE_NAME;
-        if (topicStr == deviceTopic + "/configIOs") {
-            handleConfigIOs(message, length);
-        } else if (topicStr == deviceTopic + "/automation/pause/set") {
+        bool handled = true;
+        if (topicStr == deviceTopic + "/automation/pause/set") {
             bool on = length == 2 && !memcmp(message, "ON", 2), off = length == 3 && !memcmp(message, "OFF", 3);
             if ((!on && !off) || !Esp32::setAutomationPaused(on)) Serial.println(F("MQTT Error: automation pause rejected."));
         } else if (topicStr == deviceTopic + "/io/override") {
@@ -90,7 +79,8 @@ namespace MqttCommandRouter {
                 Serial.println(F("MQTT Error: unavailable output or invalid ON/OFF command."));
         } else if (topicStr == deviceTopic + "/reboot") {
             Esp32::reboot();
-        }
+        } else handled = false;
+        if (handled) IOControl::changed();
     }
 
 } // namespace MqttCommandRouter

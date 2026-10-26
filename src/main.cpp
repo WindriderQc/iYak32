@@ -1,4 +1,4 @@
-const char* ver = "v1:20-ha";
+const char* ver = "v1:21-iot";
 
 //#define VERBOSE
 //#define HOCKEY_MODE
@@ -8,6 +8,7 @@ const char* ver = "v1:20-ha";
 #include <Arduino.h>
 #include "api/Esp32.h"
 #include "api/Mqtt.h"    // Added for direct Mqtt namespace usage
+#include "api/IOControl.h"
 #include "api/SystemLog.h" // For sensor history & error logging
 #include "api/devices/BMX280.h"  //  TODO : devrait etre encaps dans un device...   device = gestion IO = main config n feature focus
 #include "api/devices/Oled.h"
@@ -195,6 +196,7 @@ void setup()
 
     isBMXConnected  = BMX280::init();                       
  
+    IOControl::begin();
     SystemLog::logError("System boot complete", 0);
     Serial.println(F("Setup completed. - Launching State Machine...\n"));
 }
@@ -204,6 +206,7 @@ void setup()
 void loop() 
 {
     Esp32::loop(); //  Handle OTA,  MQTT,  NTP,  etc...
+    IOControl::tick();
     
 
     switch(state) // Reverted to original name
