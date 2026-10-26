@@ -8,14 +8,14 @@ ConfigManager::ConfigManager() : isLoaded_(false) {
 }
 
 bool ConfigManager::loadConfig(const String& filename) {
-    if (!SPIFFS.exists(filename)) {
+    if (!SPIFFS.exists(filename) && !SPIFFS.exists(filename + ".bak")) {
         Serial.print("ConfigManager: File not found: ");
         Serial.println(filename);
         isLoaded_ = false;
         return false;
     }
 
-    String file_content = Storage::readFile(filename);
+    String file_content = Storage::readConfigFile(filename);
     if (file_content.isEmpty()) {
         Serial.print("ConfigManager: File is empty: ");
         Serial.println(filename);
@@ -41,7 +41,7 @@ bool ConfigManager::loadConfig(const String& filename) {
 
 bool ConfigManager::saveConfig(const String& filename, const JsonDocument& doc) {
     String content = JsonTools::getJsonString(doc, true); // Save pretty
-    if (Storage::writeFile(filename, content)) {
+    if (Storage::writeConfigFile(filename, content)) {
         // Also update the internal state to match what was just saved
         configDoc_ = doc;
         isLoaded_ = true;

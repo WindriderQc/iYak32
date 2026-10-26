@@ -34,6 +34,7 @@ namespace SystemLog {
     String getSensorLogJson();
     String getErrorLogJson();
     int getSensorCount();
+    unsigned long getLastSensorMillis();
     int getErrorCount();
 
 } // namespace SystemLog

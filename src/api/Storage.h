@@ -14,4 +14,6 @@ namespace Storage {
     void dumpFile(String config_filename, int max_char_dump = 1024);
     String readFile(String filename);
     bool writeFile(String filename, String message);
+    String readConfigFile(const String& filename);
+    bool writeConfigFile(const String& filename, const String& content);
 }

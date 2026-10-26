@@ -1,4 +1,4 @@
-const char* ver = "v1:9 ";
+const char* ver = "v1:20-ha";
 
 //#define VERBOSE
 //#define HOCKEY_MODE
@@ -176,6 +176,16 @@ void setup()
 
     Esp32::configPin(LED_BUILTIN, "OUT", "Builtin LED");   //  TODO :  devrait retourner la pin ou ios [].  comme ca on utiliserait ca sinon pointless on dirait....  on prends encore LED_BUILTIN dans la next commant... :)
     Esp32::ioBlink(LED_BUILTIN,200, 200, 4);
+    #ifdef BASIC_MODE
+        Esp32::registerPinUsage(12, "BasicMode · bouton 1", "INPUT");
+        Esp32::registerPinUsage(13, "BasicMode · bouton 2", "INPUT");
+        Esp32::registerPinUsage(27, "BasicMode · bouton 3", "INPUT");
+        Esp32::registerPinUsage(34, "BasicMode · bouton analogique 1", "ANALOG_INPUT");
+        Esp32::registerPinUsage(39, "BasicMode · bouton analogique 2", "ANALOG_INPUT");
+        Esp32::registerPinUsage(21, "BasicMode · LED 1", "OUTPUT");
+        Esp32::registerPinUsage(4, "BasicMode · LED 2", "OUTPUT");
+        Esp32::registerPinUsage(15, "BasicMode · LED 3", "OUTPUT");
+    #endif
     
     Esp32::setup();   // SPIFFS,  WifiManager,  OTA,  NTP,  MQTT,  Config,  GPIO,  ADC,  I2C,  SPI,  UART,  GPS,  Hourglass,  Buzzer,  etc...
 
@@ -200,8 +210,8 @@ void loop()
     {
     case SYS_state::BOOT:
             
-            if(Mqtt::isEnabled)             Mqtt::mqttClient.publish("esp32/register", Esp32::DEVICE_NAME.c_str() ); //Once connected, publish an announcement...    
-            if(Esp32::isConfigFromServer)   Mqtt::mqttClient.publish("esp32/config", Esp32::DEVICE_NAME.c_str());  // Request IO config and profile from server
+            if(Mqtt::isEnabled)             Mqtt::publish("esp32/register", Esp32::DEVICE_NAME.c_str());
+            if(Esp32::isConfigFromServer)   Mqtt::publish("esp32/config", Esp32::DEVICE_NAME.c_str());
             
             Serial.println("BOOT done");
             state = SYS_state::DEVICES_CONFIG; 

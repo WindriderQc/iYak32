@@ -4,6 +4,7 @@
 #include <ArduinoJson.h> // For JsonDocument (declaration needed for extern)
 //#include "SystemState.h"  // Added for SYS_state enum visibility
 #include <vector>       // For std::vector
+#include "IOEvents.h"
 
 // Full header includes for classes used in Esp32 namespace extern declarations
 #include "WifiManager.h"    // Provides definition for WifiManager
@@ -58,16 +59,40 @@ namespace Esp32 {
         String type_str;      // e.g., "DIGITAL", "ANALOG_INPUT"
         String initial_state_str; // e.g., "LOW", "HIGH", or empty
         bool graph;
+        bool inverted;
 
         // Constructor for easier initialization
-        IO_Pin_Detail(int g = -1, String l = "", String ms = "", byte am = 0, String ts = "", String iss = "", bool gr = false) :
-            gpio(g), label(l), mode_str(ms), actual_mode(am), type_str(ts), initial_state_str(iss), graph(gr) {}
+        IO_Pin_Detail(int g = -1, String l = "", String ms = "", byte am = 0, String ts = "", String iss = "", bool gr = false, bool inv = false) :
+            gpio(g), label(l), mode_str(ms), actual_mode(am), type_str(ts), initial_state_str(iss), graph(gr), inverted(inv) {}
     };
     extern std::vector<IO_Pin_Detail> configured_pins;
 
     // I/O Configuration Core Logic
-    void applyIOConfiguration(const String& jsonConfigString); // Pass JsonDocument by const reference
-    bool saveAndApplyIOConfiguration(const JsonDocument& doc); // Pass JsonDocument by const reference
+    void applyIOConfiguration(const String& jsonConfigString, IOEvents::Source source = IOEvents::Source::CONFIG);
+    bool saveAndApplyIOConfiguration(const JsonDocument& doc, bool* conflict = nullptr, IOEvents::Source source = IOEvents::Source::WEB);
+    bool mergeLegacyIOConfiguration(const JsonDocument& doc);
+    String getIOConfigurationJsonString();
+    String setIOOutputJson(int gpio, bool value, bool logical, uint32_t duration = 0);
+    String getIOEventsJsonString(uint32_t after = 0, const String& session = "");
+    String getIOActivityJson(uint32_t after = 0, const String& session = "");
+    String getIOAlertsStatusJson();
+    void processIOAlerts();
+    bool setPinActive(int gpio, bool active, uint32_t duration = 0, IOEvents::Source source = IOEvents::Source::WEB, const char* scene = nullptr, uint32_t trace = 0);
+    String runIOSceneJson(const String& id, const String& expectedRevision, IOEvents::Source source = IOEvents::Source::WEB, bool* conflict = nullptr, uint32_t trace = 0);
+    String getIOAutomationStatusJson();
+    String getFriendlyName();
+    String setIOOverrideJson(int gpio, uint32_t duration, IOEvents::Source source = IOEvents::Source::WEB);
+    String stopIOZoneJson(const String& zone, const String& expectedRevision, uint32_t duration, bool* conflict = nullptr);
+    String resumeIOZoneJson(const String& zone, const String& expectedRevision, bool* conflict = nullptr);
+    bool setAutomationPaused(bool paused, IOEvents::Source source = IOEvents::Source::MQTT);
+    String previewIOAutomationJson(const JsonDocument& config, const String& id);
+    void processIOAutomation();
+    bool getPinActive(int gpio);
+    bool isPinOutputAvailable(int gpio);
+    void registerPinUsage(int gpio, const char* label, const char* mode);
+    void initializeModeInput(int gpio, byte mode);
+    bool isModeInput(int gpio);
+    void initializeModeOutput(int gpio, const char* label);
     void loadAndApplyIOConfig();
     String getIOStatusJsonString(); // Added declaration
 
@@ -80,9 +105,11 @@ namespace Esp32 {
     bool validIO(String ioStr);
     void ioSwitch(int pin);
     void ioBlink(int pin, int timeon, int timeoff, int iteration);
-    bool togglePin(int gpio); // Added declaration
+    bool togglePin(int gpio, IOEvents::Source source = IOEvents::Source::WEB);
+    bool setPin(int gpio, bool high, IOEvents::Source source = IOEvents::Source::WEB);
     Esp32::Pin* configPin(int gpio, const char* pinModeStr, const char* label = "", bool isAnalog = false); // Changed return type
     void reboot();
+    void requestReboot();
     int i2cScanner();
     float getBatteryVoltage();
     float getBattRemaining(bool print = false);

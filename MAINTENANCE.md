@@ -35,3 +35,19 @@ Ordered by risk and usefulness. "Built" means the source compiles; it does not c
 | 25 | Add a small build gate and hardware smoke checklist for boot, GPIO, web, MQTT, and mode selection. | Read-only BasicMode smoke script added and passed on device; serial and other modes remain manual |
 
 Live follow-up: Wi-Fi RSSI averaging used unsigned division and reported `429496679` instead of a negative dBm value. Commit `bac92a8` was flashed; `/api/wifi/status`, `/api/status`, and sensor history then reported `-77 dBm`.
+
+
+## Shared I/O runtime and operator UI
+
+The runtime uses one guarded logical GPIO API for web, MQTT, physical controls,
+pulses, scenes and automation. Versioned configuration preserves unrelated
+fields, output polarity and live pulse deadlines. Reserved pins remain visible
+but unavailable to output commands. Configuration persistence retains a
+recoverable backup across interrupted writes.
+
+Local operator pages cover live values, GPIO editing, scenes, calibration,
+manual priority, daily scene schedules, threshold rules/alerts, activity and
+optional Home Assistant links. Native tests are in `tests/*.cpp`; browser
+fixtures are in `tests/*browser.cjs`. Tests use synthetic settings and loopback
+HTTP servers. Native device receipts and installation details stay outside
+public Git. These source checks do not grant firmware upload or device testing.

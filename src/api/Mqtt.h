@@ -77,6 +77,11 @@ namespace Mqtt
     void sendJson(std::vector<String> names, std::vector<String> values, String topic, bool print2console = false);
     void publishSensorReading(const char* measure, float value, unsigned int decimals);
     void publishHomeAssistantDiscovery(bool hasClimateSensor, bool hasHumidity);
+    void publishIOHomeAssistantDiscovery(const JsonDocument& status);
+    void requestHomeAssistantDiscovery();
+    extern bool ioDiscoveryReady;
+    extern unsigned int ioDiscoveryCount;
+    extern unsigned int automationDiscoveryCount;
 
     // New standardized message publishing function
     void publishStandardMessage(
@@ -93,5 +98,8 @@ namespace Mqtt
     MqttState getState();
     const char* getStateString();
     void forceReconnect();
+    bool publish(const char* topic, const char* payload, bool retained = false);
+    void recordIncoming(const char* topic, const byte* payload, unsigned int length);
+    String getTrafficJson();
 
 } // namespace Mqtt
