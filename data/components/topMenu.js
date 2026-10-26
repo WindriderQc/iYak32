@@ -1,95 +1,62 @@
-// Theme management - must run early to prevent flash
-(function() {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'light') document.documentElement.dataset.theme = 'light';
-})();
-
-class Header extends HTMLElement {
-    constructor() {
-      super();
-    }
-
-    connectedCallback() {
-      const isLight = document.documentElement.dataset.theme === 'light';
-      this.innerHTML = `
-        <header>
-          <div class="topnav card-4" id="topNav">
-            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
-              <span></span><span></span><span></span>
-            </button>
-            <div class="nav-links" id="navLinks">
-              <a href="/index.html">Home</a>
-              <a href="/setup.html">Setup</a>
-              <a href="/io_control.html">I/O Control</a>
-              <div class="dropdown-hover">
-                <a class="dropdown-trigger">Web Apps &#9662;</a>
-                <div class="dropdown-content">
-                  <a href="/hockey/Scoreboard.html">Hockey</a>
-                  <a href="/boat/index.html">Boat</a>
-                  <a href="/tides.html">Tides</a>
-                  <a href="/basic_mode/">Basic Mode</a>
-                </div>
+(() => {
+    if (localStorage.getItem('theme') === 'light') document.documentElement.dataset.theme = 'light';
+    class Header extends HTMLElement {
+        connectedCallback() {
+            this.innerHTML = `
+            <header><nav class="topnav" aria-label="Navigation principale">
+              <button class="nav-toggle" id="navToggle" aria-label="Ouvrir le menu" aria-expanded="false"><span></span><span></span><span></span></button>
+              <div class="nav-links" id="navLinks">
+                <a href="/index.html">Tableau de bord</a>
+                <a href="/io_control.html">I/O</a>
+                <a href="/automation.html">Automatismes</a>
+                <a href="/alerts.html">Alertes</a>
+                <a href="/mqtt.html">MQTT</a>
+                <a href="/history.html">Historique</a>
+                <a href="/wifi.html">Wi-Fi</a>
+                <details class="nav-tools">
+                  <summary>Outils</summary><div class="dropdown-content">
+                    <a href="/basic_mode/" id="modeLink" hidden>Basic Mode</a>
+                    <a href="/setup.html">Réglages</a>
+                    <a href="/status.html">État système</a>
+                    <a href="/activity.html">Activité I/O</a>
+                    <a href="/errors.html">Journal système</a>
+                    <a href="/commission.html">Mise en service</a>
+                    <a href="/selftest.html">Diagnostics</a>
+                    <a href="/tides.html">Marées</a>
+                    <a href="/about.html">À propos</a>
+                  </div>
+                </details>
+                <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème"></button>
               </div>
-              <div class="dropdown-hover">
-                <a class="dropdown-trigger">System &#9662;</a>
-                <div class="dropdown-content">
-                  <a href="/status.html">Status</a>
-                  <a href="/history.html">History</a>
-                  <a href="/errors.html">Errors</a>
-                  <a href="/wifi.html">WiFi</a>
-                  <a href="/selftest.html">Diagnostics</a>
-                </div>
-              </div>
-              <a href="/mqtt.html">MQTT</a>
-              <a href="/about.html">About</a>
-              <button class="theme-toggle" id="themeToggle" title="Toggle theme">${isLight ? '\u{1F319}' : '\u{2600}'}</button>
-            </div>
-          </div>
-        </header>
-      `;
-
-      // Hamburger toggle
-      const toggle = this.querySelector('#navToggle');
-      const links = this.querySelector('#navLinks');
-      if (toggle && links) {
-        toggle.addEventListener('click', () => {
-          links.classList.toggle('nav-open');
-          toggle.classList.toggle('active');
-        });
-      }
-
-      // Theme toggle
-      const themeBtn = this.querySelector('#themeToggle');
-      if (themeBtn) {
-        themeBtn.addEventListener('click', () => {
-          const current = document.documentElement.dataset.theme;
-          if (current === 'light') {
-            delete document.documentElement.dataset.theme;
-            localStorage.setItem('theme', 'dark');
-            themeBtn.textContent = '\u{2600}';
-          } else {
-            document.documentElement.dataset.theme = 'light';
-            localStorage.setItem('theme', 'light');
-            themeBtn.textContent = '\u{1F319}';
-          }
-        });
-      }
-    }
-}
-
-customElements.define('header-component', Header);
-
-// Set active link based on current URL
-function setActiveLink() {
-    const currentUrl = window.location.href;
-    const links = document.querySelectorAll('.topnav a');
-    links.forEach(link => {
-        if (link.href && link.href === currentUrl) {
-            link.classList.add('active');
-        } else {
-            link.classList.remove('active');
+            </nav></header>`;
+            const links = this.querySelector('#navLinks'), toggle = this.querySelector('#navToggle');
+            toggle.addEventListener('click', () => {
+                const open = links.classList.toggle('nav-open'); toggle.classList.toggle('active', open);
+                toggle.setAttribute('aria-expanded', String(open));
+            });
+            const theme = this.querySelector('#themeToggle');
+            const updateTheme = () => {
+                const light = document.documentElement.dataset.theme === 'light';
+                theme.textContent = light ? '☾' : '☀';
+                theme.setAttribute('aria-label', light ? 'Passer au thème sombre' : 'Passer au thème clair');
+            };
+            theme.addEventListener('click', () => {
+                const light = document.documentElement.dataset.theme !== 'light';
+                if (light) document.documentElement.dataset.theme = 'light'; else delete document.documentElement.dataset.theme;
+                localStorage.setItem('theme', light ? 'light' : 'dark'); updateTheme();
+            }); updateTheme();
+            const path = location.pathname === '/' ? '/index.html' : location.pathname;
+            this.querySelectorAll('a').forEach(a => {
+                if (a.getAttribute('href') === path) { a.classList.add('active'); a.setAttribute('aria-current', 'page'); }
+            });
+            fetch('/api/status').then(r => r.ok ? r.json() : null).then(data => {
+                const link = this.querySelector('#modeLink');
+                const modes = { basic: ['/basic_mode/', 'Basic Mode'], boat: ['/boat/', 'Boat'], hockey: ['/hockey/Scoreboard.html', 'Hockey'] };
+                if (data && modes[data.mode]) {
+                    [link.href, link.textContent] = modes[data.mode]; link.hidden = false;
+                }
+            }).catch(() => {});
         }
-    });
-}
-
-window.addEventListener('load', setActiveLink);
+    }
+    customElements.define('header-component', Header);
+})();

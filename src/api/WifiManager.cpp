@@ -12,6 +12,8 @@
 
 void WifiManager::setup(bool enableOTA, String ssid, String password) 
 {    
+    ssid.trim();
+    password.trim();
     WiFi.mode(WIFI_STA); // Start ESP32 in Station mode (client mode) 
     WiFi.disconnect();
     isWifiConnected_ = false;
@@ -249,6 +251,7 @@ bool WifiManager::tryConnectToPreferredNetworks()
         if (WiFi.status() == WL_CONNECTED) {
             isWifiConnected_ = true;
             ssid_ = candidateSsid;
+            password_ = candidatePassword;
             ipAddress_ = WiFi.localIP();
 
             Serial.print("Connected to ");  Serial.println(candidateSsid);
@@ -319,6 +322,7 @@ bool WifiManager::tryReconnectStep() {
                 ipAddress_ = WiFi.localIP();
                 if (preferred_network_index_ > 0 && preferred_network_index_ <= (int)preferredSsids_.size()) {
                     ssid_ = preferredSsids_[preferred_network_index_ - 1];
+                    password_ = preferredPasswords_[preferred_network_index_ - 1];
                 }
                 reconnect_state_ = ReconnectState::IDLE;
                 Serial.print(F("WiFi: Reconnected. IP: ")); Serial.println(ipAddress_);

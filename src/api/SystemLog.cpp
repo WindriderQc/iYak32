@@ -91,6 +91,9 @@ namespace SystemLog {
     }
 
     int getSensorCount() { return sensorCount_; }
+    unsigned long getLastSensorMillis() {
+        return sensorCount_ ? sensorLog_[(sensorHead_ + SENSOR_LOG_SIZE - 1) % SENSOR_LOG_SIZE].timestamp : 0;
+    }
     int getErrorCount() { return errorCount_; }
 
 } // namespace SystemLog

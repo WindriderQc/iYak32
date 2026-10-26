@@ -1,74 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iYak32 Dashboard</title>
-    <link rel="stylesheet" type="text/css" href="esp32.css">
-    <script src="components/topMenu.js" type="text/javascript" defer></script>
-    <script src="components/footer.js" type="text/javascript" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iYak32 · Tableau de bord</title>
+<link rel="stylesheet" href="/esp32.css">
+<link rel="stylesheet" href="/components/live.css">
+<link rel="stylesheet" href="/components/control.css?v=20">
+<script src="/components/topMenu.js?v=20" defer></script>
+<script src="/components/footer.js" defer></script>
+<script src="/components/live.js?v=20" defer></script>
+<script src="/components/io-model.js?v=20" defer></script>
+<script src="/components/io-insights.js?v=20" defer></script>
+<script src="/components/ha-links.js?v=20" defer></script>
+<script src="/components/dashboard.js?v=20" defer></script>
 </head>
-<body>
-    <header-component></header-component>
-
-    <h1>iYak32 Dashboard</h1>
-
-    <p>GPIO state: <strong id="gpioState">%STATE%</strong></p>
-    <p>
-        <a href="/on"><button class="btn bigButton" type="button">ON</button></a>
-        <a href="/off"><button class="btn bigButton red" type="button">OFF</button></a>
-    </p>
-
-    <div class="content-center">
-        <form class="info-form card-4">
-            <div class="info-row">
-                <label class="info-label">Current Time:</label>
-                <span class="info-data" id="dTime">%TIME%</span>
-            </div>
-            <div class="info-row">
-                <label class="info-label">CPU Temp:</label>
-                <span class="info-data" id="dCpuTemp">%TEMP%</span>
-            </div>
-            <div class="info-row">
-                <label class="info-label">WiFi:</label>
-                <span class="info-data" id="dWifi">--</span>
-            </div>
-            <div class="info-row">
-                <label class="info-label">MQTT:</label>
-                <span class="info-data" id="dMqtt">--</span>
-            </div>
-        </form>
-
-        <form class="info-form card-4">
-            <h3>Weather</h3>
-            <div class="info-row">
-                <label class="info-label">Pressure:</label>
-                <span class="info-data" id="dPressure">%PRESSION% hPa</span>
-            </div>
-            <div class="info-row">
-                <label class="info-label">Temperature:</label>
-                <span class="info-data" id="dBmxTemp">--</span>
-            </div>
-        </form>
+<body class="live-page control-page">
+<header-component></header-component>
+<main>
+<div class="page-heading">
+  <div><p class="eyebrow">iYak32 · En direct</p><h1 id="dashboardTitle">Tableau de bord</h1><p class="subtitle" id="deviceSubtitle">Connexion au board…</p></div>
+  <div class="toolbar"><a class="btn secondary" href="/commission.html">Mise en service</a><button class="btn secondary" id="personalizeButton">Personnaliser</button><button class="btn secondary" id="refreshButton" type="button">Actualiser</button></div>
+</div>
+<div class="connection-strip" aria-live="polite">
+  <span class="status-pill" id="boardBadge">Connexion…</span><span class="status-pill" id="wifiBadge">Wi-Fi…</span>
+  <span class="status-pill" id="mqttBadge">MQTT…</span><span class="updated" id="lastUpdated">En attente de données</span>
+</div>
+<div class="action-notice" id="actionNotice" role="status" hidden></div>
+<section class="panel dashboard-personalize" id="personalizePanel" hidden><div class="panel-head"><h2>Mes raccourcis</h2><button class="btn secondary" id="closePersonalize">Terminé</button></div><div class="toolbar"><label>Ajouter une lecture ou une scène<select id="favoriteChoice"></select></label><button class="btn secondary" id="addFavorite">Épingler</button><button class="btn secondary" id="resetFavorites">Réinitialiser</button></div><form id="boardNameForm" class="control-form control-section"><label>Nom du board<input id="boardFriendlyName" maxlength="64" required placeholder="Atelier"></label><label>Icône<select id="boardIcon"></select></label><div class="toolbar"><button class="btn secondary" id="saveBoardName" type="submit">Enregistrer le nom</button><button class="btn secondary" id="reloadBoardName" type="button">Recharger le nom</button><span class="panel-note">Le nom est partagé avec Home Assistant.</span></div></form><ol class="personalize-list" id="favoriteList"></ol><p class="panel-note">L’ordre et les raccourcis sont mémorisés dans ce navigateur pour ce board.</p></section>
+<section class="panel control-section" id="alertsPanel"><div class="panel-head"><h2>À surveiller</h2><a href="/alerts.html">Configurer les seuils →</a><span class="status-pill" id="alertsBadge">Vérification…</span></div><ul class="control-list" id="dashboardAlerts" aria-live="polite"></ul><p id="alertsEmpty" class="panel-note" hidden>Aucune alerte détectée dans les dernières réponses du board.</p><p class="panel-note">Les refus d’automatismes restent visibles 10 min, ou jusqu’à une tentative réussie. Ces alertes sont affichées dans cette page.</p></section>
+<section class="panel control-section"><div class="panel-head"><h2>Mes zones</h2><a href="/io_control.html">Organiser les I/O →</a></div><div class="control-grid" id="zoneCards"></div></section>
+<div class="dashboard-grid">
+  <section class="panel climate-panel">
+    <div class="panel-head"><h2>Climat ambiant</h2><span class="status-pill" id="sampleBadge">En attente</span></div>
+    <div class="climate-reading"><strong id="temperature">—</strong><span>°C</span></div>
+    <p class="subtitle" id="climateDescription">Lecture du capteur</p>
+    <div class="climate-details">
+      <div><span class="metric-label">Pression</span><span class="metric-number" id="pressure">—</span></div>
+      <div id="humidityMetric" hidden><span class="metric-label">Humidité</span><span class="metric-number" id="humidity">—</span></div>
     </div>
-
-    <script>
-    async function refreshDashboard() {
-        try {
-            const r = await fetch('/api/status');
-            const d = await r.json();
-            document.getElementById('dTime').textContent = d.time || '--';
-            document.getElementById('dCpuTemp').textContent = (d.cpu_temp?.toFixed(1) || '--') + ' C';
-            document.getElementById('dWifi').textContent = (d.wifi_ssid || 'N/A') + ' (' + (d.wifi_rssi || '--') + ' dBm)';
-            document.getElementById('dMqtt').textContent = d.mqtt_state || '--';
-            if (d.bmx_pressure) document.getElementById('dPressure').textContent = d.bmx_pressure.toFixed(1) + ' hPa';
-            if (d.bmx_temp) document.getElementById('dBmxTemp').textContent = d.bmx_temp.toFixed(1) + ' C';
-        } catch(e) { /* keep server-rendered values on error */ }
-    }
-    refreshDashboard();
-    setInterval(refreshDashboard, 5000);
-    </script>
-
-    <footer-component></footer-component>
+    <div class="mini-chart-title"><span>Température récente</span><a href="/history.html">Voir l’historique →</a></div>
+    <div class="chart" id="temperatureChart"><p class="empty-state">Chargement de la courbe…</p></div>
+    <p class="panel-note" id="historyNote">Les dernières mesures restent disponibles sur le board.</p>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>Connexions</h2><a href="/wifi.html">Wi-Fi →</a></div>
+    <div class="connection-row"><span class="connection-icon">Wi-Fi</span><div><strong id="wifiName">—</strong><span class="connection-detail" id="wifiAddress">—</span></div><span class="muted" id="wifiSignal">—</span></div>
+    <div class="connection-row"><span class="connection-icon">MQTT</span><div><strong id="brokerAddress">—</strong><span class="connection-detail" id="mqttDescription">—</span></div><a href="/mqtt.html">Ouvrir →</a></div>
+    <div class="device-line"><span id="deviceVersion">—</span><span id="deviceUptime">—</span></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>Mes commandes &amp; lectures</h2><a href="/io_control.html">Toutes les I/O →</a></div>
+    <div class="toolbar"><label>Zone<select id="dashboardZone"><option value="">Toutes les zones</option></select></label></div>
+    <div class="quick-controls control-section" id="quickControls"><p class="empty-state">Chargement des sorties…</p></div>
+    <p class="panel-note">La priorité manuelle suspend les automatismes de la sortie pendant la durée choisie. Elle se termine au redémarrage. Les minuteries d’arrêt restent actives.</p><p class="panel-note">Épinglez vos sorties, capteurs et scènes avec « Personnaliser ».</p>
+  </section>
+</div>
+<section class="panel control-section"><div class="panel-head"><h2>Home Assistant</h2><a href="/history.html#haHistoryPanel">Historique long →</a></div><div class="toolbar"><a class="btn secondary" id="dashboardHADevice" hidden>Appareil et commandes</a><a class="btn secondary" id="dashboardHA24" hidden>24 h</a><a class="btn secondary" id="dashboardHA7" hidden>7 jours</a></div><p class="panel-note" id="dashboardHANote">Liens HA en attente.</p></section>
+<section class="panel control-section"><div class="panel-head"><h2>Prochaines actions</h2><a href="/automation.html">Horaires &amp; règles →</a></div><p id="automationSummary" class="control-status">Chargement des automatismes…</p><div class="toolbar"><button class="btn secondary" id="dashboardStop" disabled>Tout OFF + pause</button></div></section>
+<div class="metric-grid">
+  <section class="panel"><span class="metric-label">Batterie</span><span class="metric-number" id="battery">—</span><p class="panel-note">Volts</p></section>
+  <section class="panel"><span class="metric-label">Température CPU</span><span class="metric-number" id="cpuTemperature">—</span><p class="panel-note">°C · puce ESP32</p></section>
+  <section class="panel"><span class="metric-label">Mémoire disponible</span><span class="metric-number" id="freeHeap">—</span><p class="panel-note">Ko</p></section>
+</div>
+</main>
+<footer-component></footer-component>
 </body>
 </html>

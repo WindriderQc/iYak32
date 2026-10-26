@@ -51,9 +51,9 @@ public:
     }
 
     void setup() {
-        pinMode(BUTTON1_PIN, INPUT_PULLUP);
-        pinMode(BUTTON2_PIN, INPUT_PULLUP);
-        pinMode(BUTTON3_PIN, INPUT_PULLUP);
+        Esp32::initializeModeInput(BUTTON1_PIN, INPUT_PULLUP);
+        Esp32::initializeModeInput(BUTTON2_PIN, INPUT_PULLUP);
+        Esp32::initializeModeInput(BUTTON3_PIN, INPUT_PULLUP);
 
         ButtonConfig* buttonConfig = ButtonConfig::getSystemButtonConfig();
         buttonConfig->setEventHandler(handleEvent);
@@ -65,27 +65,23 @@ public:
         // Analog Button 2 Setup
         analogButton2_.setup("AnalogButton2", Esp32::DEVICE_NAME, ANALOG_BUTTON2_PIN, false);
 
-        // Latch LEDs low before enabling outputs, even without an I/O config file.
-        digitalWrite(LED1_PIN, LOW);
-        digitalWrite(LED2_PIN, LOW);
-        digitalWrite(LED3_PIN, LOW);
-        pinMode(LED1_PIN, OUTPUT);
-        pinMode(LED2_PIN, OUTPUT);
-        pinMode(LED3_PIN, OUTPUT);
-        led1_state_ = false;
-        led2_state_ = false;
-        led3_state_ = false;
+        Esp32::initializeModeOutput(LED1_PIN, "Led1");
+        Esp32::initializeModeOutput(LED2_PIN, "Led2");
+        Esp32::initializeModeOutput(LED3_PIN, "Led3");
+        led1_state_ = getLed1State();
+        led2_state_ = getLed2State();
+        led3_state_ = getLed3State();
 
         Serial.println("BasicMode: Setup complete with AceButton and LED outputs.");
     }
 
     void loop() {
-        button1_.check();
-        button2_.check();
-        button3_.check();
+        if (Esp32::isModeInput(BUTTON1_PIN)) button1_.check();
+        if (Esp32::isModeInput(BUTTON2_PIN)) button2_.check();
+        if (Esp32::isModeInput(BUTTON3_PIN)) button3_.check();
 
-        String analog_btn1_msg = analogButton1_.loop();
-        String analog_btn2_msg = analogButton2_.loop();
+        String analog_btn1_msg = Esp32::isModeInput(ANALOG_BUTTON1_PIN) ? analogButton1_.loop() : "";
+        String analog_btn2_msg = Esp32::isModeInput(ANALOG_BUTTON2_PIN) ? analogButton2_.loop() : "";
 
         if (!analog_btn1_msg.isEmpty()) {
             JsonDocument doc;
@@ -103,9 +99,9 @@ public:
     }
 
     // Getter methods
-    bool getLed1State() const { return led1_state_; }
-    bool getLed2State() const { return led2_state_; }
-    bool getLed3State() const { return led3_state_; }
+    bool getLed1State() const { return Esp32::getPinActive(LED1_PIN); }
+    bool getLed2State() const { return Esp32::getPinActive(LED2_PIN); }
+    bool getLed3State() const { return Esp32::getPinActive(LED3_PIN); }
     int getAnalogValue1() const { return analogButton1_.getValue(); }
     int getAnalogThreshold1() const { return analogButton1_.getThreshold(); }
     int getAnalogValue2() const { return analogButton2_.getValue(); }
@@ -135,8 +131,8 @@ public:
             if (pin == BUTTON1_PIN) {
                 Serial.println("BasicMode: Button 1 event detected by BasicModeImpl");
                 if(isSoundActive) BuzzerModule::beep(SOUND1_FREQ, SOUND1_DUR);
-                led1_state_ = !led1_state_;
-                digitalWrite(LED1_PIN, led1_state_ ? HIGH : LOW);
+                if (!Esp32::togglePin(LED1_PIN, IOEvents::Source::BUTTON)) return;
+                led1_state_ = getLed1State();
                 Serial.printf("BasicMode: LED 1 is now %s\n", led1_state_ ? "ON" : "OFF");
                 if (!led1_state_) {
                     if(isSoundActive) BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
@@ -145,8 +141,8 @@ public:
             } else if (pin == BUTTON2_PIN) {
                 Serial.println("BasicMode: Button 2 event detected by BasicModeImpl");
                 if(isSoundActive) BuzzerModule::beep(SOUND2_FREQ, SOUND2_DUR);
-                led2_state_ = !led2_state_;
-                digitalWrite(LED2_PIN, led2_state_ ? HIGH : LOW);
+                if (!Esp32::togglePin(LED2_PIN, IOEvents::Source::BUTTON)) return;
+                led2_state_ = getLed2State();
                 Serial.printf("BasicMode: LED 2 is now %s\n", led2_state_ ? "ON" : "OFF");
                 if (!led2_state_) {
                     if(isSoundActive)   BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
@@ -155,8 +151,8 @@ public:
             } else if (pin == BUTTON3_PIN) {
                 Serial.println("BasicMode: Button 3 event detected by BasicModeImpl");
                 if(isSoundActive) BuzzerModule::beep(SOUND3_FREQ, SOUND3_DUR);
-                led3_state_ = !led3_state_;
-                digitalWrite(LED3_PIN, led3_state_ ? HIGH : LOW);
+                if (!Esp32::togglePin(LED3_PIN, IOEvents::Source::BUTTON)) return;
+                led3_state_ = getLed3State();
                 Serial.printf("BasicMode: LED 3 is now %s\n", led3_state_ ? "ON" : "OFF");
                 if (!led3_state_) {
                     if(isSoundActive) BuzzerModule::beep(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
@@ -183,13 +179,13 @@ private:
         }
     }
     void toggleLed(int ledPin, bool& ledState) {
-        ledState = !ledState;
-        digitalWrite(ledPin, ledState ? HIGH : LOW);
+        if (!Esp32::togglePin(ledPin, IOEvents::Source::BUTTON)) return;
+        ledState = Esp32::getPinActive(ledPin);
         Serial.printf("BasicMode: LED on pin %d is now %s\n", ledPin, ledState ? "ON" : "OFF");
     }
     void shutdownLed(int ledPin, bool& ledState) {
         ledState = false;
-        digitalWrite(ledPin, LOW);
+        Esp32::setPinActive(ledPin, false, 0, IOEvents::Source::BUTTON);
         Serial.printf("BasicMode: LED on pin %d shutdown sound played and turned OFF.\n", ledPin);
         playSound(SHUTDOWN_SOUND_FREQ, SHUTDOWN_SOUND_DUR);
     }

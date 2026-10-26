@@ -7,12 +7,16 @@
     <link rel="stylesheet" href="../esp32.css">
     <script src="../components/topMenu.js" type="text/javascript" defer></script>
     <script src="../components/footer.js" type="text/javascript" defer></script>
+    <script src="../components/live.js" defer></script>
+    <script src="basic_mode.js" defer></script>
 </head>
 <body>
     <header-component></header-component>
 
     <div class="content-center" style="max-width:700px;">
         <h1>Basic Mode Control</h1>
+        <p id="basicConnection" role="status">Connexion au board…</p>
+        <div id="actionNotice" class="action-notice" role="status" hidden></div>
 
         <!-- Sound Toggle -->
         <div class="control-group">
@@ -20,7 +24,7 @@
             <div class="info-row">
                 <span class="info-label">Sound Effects</span>
                 <label class="switch">
-                    <input type="checkbox" id="soundToggle" onchange="toggleSound()">
+                    <input type="checkbox" id="soundToggle" aria-label="Effets sonores" onchange="toggleSound()">
                     <span class="slider"></span>
                 </label>
             </div>
@@ -31,18 +35,21 @@
             <h2>Button 1 / LED 1 (GPIO 21)</h2>
             <div class="button-placeholder">Physical Button 1</div>
             <div class="led-status" id="led1_status"></div>
+            <button class="btn" type="button" data-led="21" onclick="toggleLed(21)" disabled>Changer l’état</button>
         </div>
 
         <div class="control-group">
             <h2>Button 2 / LED 2 (GPIO 4)</h2>
             <div class="button-placeholder">Physical Button 2</div>
             <div class="led-status" id="led2_status"></div>
+            <button class="btn" type="button" data-led="4" onclick="toggleLed(4)" disabled>Changer l’état</button>
         </div>
 
         <div class="control-group">
             <h2>Button 3 / LED 3 (GPIO 15)</h2>
             <div class="button-placeholder">Physical Button 3</div>
             <div class="led-status" id="led3_status"></div>
+            <button class="btn" type="button" data-led="15" onclick="toggleLed(15)" disabled>Changer l’état</button>
         </div>
 
         <!-- Analog with Threshold Sliders -->
@@ -65,7 +72,6 @@
         </div>
     </div>
 
-    <script src="basic_mode.js"></script>
 
     <footer-component></footer-component>
 </body>

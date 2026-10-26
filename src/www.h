@@ -1,4 +1,6 @@
 #pragma once
+#include "api/IOConfig.h"
+#include "api/IOOutput.h"
 /* 
 Add to platformio.ini:
     lib_deps =
@@ -17,6 +19,7 @@ Add to platformio.ini:
 #include "api/SystemLog.h" // For sensor history & error log APIs
 #include "api/devices/BMX280.h" // For self-test and sensor data
 #include "api/WifiManager.h" // For WiFi scan/status APIs
+#include "api/WifiConfig.h"
 
 extern const char* ver; // Firmware version string from main.cpp
 
@@ -180,6 +183,22 @@ namespace www
         return String();
     }
 
+    void sendTemplatePage(AsyncWebServerRequest* request, const char* path) {
+        File file = SPIFFS.open(path, FILE_READ);
+        if (!file) {
+            request->send(404, "text/plain", "Not found");
+            return;
+        }
+        String html = file.readString();
+        file.close();
+        // Replace known tokens only. Ordinary CSS percentages stay untouched.
+        for (const char* token : {"STATE", "TIME", "TEMP", "LON", "LAT", "LOCALIP", "SSID",
+                                  "MQTTURL", "CONFIG", "PRESSION", "SPEED", "DIR"}) {
+            html.replace(String("%") + token + "%", processor(token));
+        }
+        request->send(200, "text/html", html);
+    }
+
 #ifdef HOCKEY_MODE 
     unsigned long startTime;
     unsigned long pausedTime = 0;
@@ -246,30 +265,30 @@ namespace www
 
         server.on("/data", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
             
-                request->send(SPIFFS, "/setup.html", String(), false, processor);
+                sendTemplatePage(request, "/setup.html");
           
         });
 
        
         server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
             Serial.println("Led ON requested");
-            digitalWrite(BUILTIN_LED, HIGH);
+            if (!Esp32::setPinActive(BUILTIN_LED, true)) { request->send(400, "text/plain", "LED GPIO is not a configured output"); return; }
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
         server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
             Serial.println("Led OFF requested");
-            digitalWrite(BUILTIN_LED, LOW);
+            if (!Esp32::setPinActive(BUILTIN_LED, false)) { request->send(400, "text/plain", "LED GPIO is not a configured output"); return; }
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
 
 
 
         server.on("/speedUp", HTTP_GET, [](AsyncWebServerRequest *request){
-            digitalWrite(BUILTIN_LED, LOW);
+            if (!Esp32::setPinActive(BUILTIN_LED, false)) { request->send(400, "text/plain", "LED GPIO is not a configured output"); return; }
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
         server.on("/slowDown", HTTP_GET, [](AsyncWebServerRequest *request){
-            digitalWrite(BUILTIN_LED, LOW);
+            if (!Esp32::setPinActive(BUILTIN_LED, false)) { request->send(400, "text/plain", "LED GPIO is not a configured output"); return; }
             request->send(SPIFFS, "/index.html", String(),false, processor);
         });
 
@@ -279,22 +298,95 @@ namespace www
             request->send(200, "application/json", status_json);
         });
 
-        server.on("/api/io/config", HTTP_GET, [](AsyncWebServerRequest *request){
-            if (SPIFFS.exists(Esp32::CONFIG_IO_FILENAME)) {
-                File file = SPIFFS.open(Esp32::CONFIG_IO_FILENAME, "r");
-                if (file && !file.isDirectory()) {
-                    request->send(file, Esp32::CONFIG_IO_FILENAME, "application/json");
-                    // File is closed by the send() method
-                    return;
-                } else {
-                    Serial.println(F("Error: Failed to open /io_config.json for reading."));
-                    request->send(500, "application/json", "{\"status\":\"error\", \"message\":\"Error reading I/O config file.\"}");
-                }
-            } else {
-                // If no config file exists, send a default valid empty structure
-                request->send(200, "application/json", "{\"io_pins\":[]}");
+        server.on("/api/io/events", HTTP_GET, [](AsyncWebServerRequest *request){
+            String text = request->hasParam("after") ? request->getParam("after")->value() : "0";
+            uint32_t after = strtoul(text.c_str(), nullptr, 10);
+            if (text != String(after)) {
+                request->send(400, "application/json", "{\"message\":\"after doit être un entier positif ou zéro.\"}"); return;
             }
+            String session = request->hasParam("session") ? request->getParam("session")->value() : "";
+            request->send(200, "application/json", Esp32::getIOEventsJsonString(after, session));
         });
+
+        server.on("/api/io/config", HTTP_GET, [](AsyncWebServerRequest *request){
+            request->send(200, "application/json", Esp32::getIOConfigurationJsonString());
+        });
+        server.on("/api/io/alerts/status", HTTP_GET, [](AsyncWebServerRequest* request) {
+            request->send(200, "application/json", Esp32::getIOAlertsStatusJson());
+        });
+        server.on("/api/io/activity", HTTP_GET, [](AsyncWebServerRequest* request) {
+            String text = request->hasParam("after") ? request->getParam("after")->value() : "0";
+            uint32_t after = strtoul(text.c_str(), nullptr, 10);
+            if (text != String(after)) { request->send(400, "application/json", "{\"message\":\"after doit être un entier positif ou zéro.\"}"); return; }
+            request->send(200, "application/json", Esp32::getIOActivityJson(after, request->hasParam("session") ? request->getParam("session")->value() : ""));
+        });
+
+        server.on("/api/io/automation/status", HTTP_GET, [](AsyncWebServerRequest* request) {
+            request->send(200, "application/json", Esp32::getIOAutomationStatusJson());
+        });
+
+        server.on("/api/io/override", HTTP_POST, [](AsyncWebServerRequest *request) {
+            if (!request->hasParam("gpio") || !request->hasParam("duration_ms")) { request->send(400, "application/json", "{\"message\":\"gpio et duration_ms requis.\"}"); return; }
+            String gpioText = request->getParam("gpio")->value(), text = request->getParam("duration_ms")->value();
+            int gpio = gpioText.toInt(); uint32_t ms = strtoul(text.c_str(), nullptr, 10);
+            if (gpioText != String(gpio) || text != String(ms) || !IOConfig::available(gpio)) { request->send(400, "application/json", "{\"message\":\"GPIO et durée entiers requis.\"}"); return; }
+            String json = Esp32::setIOOverrideJson(gpio, ms); JsonDocument result; deserializeJson(result, json);
+            request->send(result["status"] == "success" ? 200 : 400, "application/json", json);
+        });
+
+        server.on("/api/io/zone/off", HTTP_POST, [](AsyncWebServerRequest*) {}, NULL,
+            [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+                String body; if (!receiveBody(request, data, len, index, total, 2048, body)) return;
+                JsonDocument command; bool conflict = false;
+                if (deserializeJson(command, body) || !command["zone"].is<const char*>() || !command["hold_ms"].is<uint32_t>()) { request->send(400, "application/json", "{\"message\":\"Zone et durée de priorité requises.\"}"); return; }
+                String json = Esp32::stopIOZoneJson(command["zone"].as<String>(), command["_revision"] | "", command["hold_ms"], &conflict);
+                JsonDocument result; deserializeJson(result, json); request->send(conflict ? 409 : result["status"] == "success" ? 200 : 400, "application/json", json);
+            });
+
+        server.on("/api/io/zone/resume", HTTP_POST, [](AsyncWebServerRequest*) {}, NULL,
+            [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+                String body; if (!receiveBody(request, data, len, index, total, 2048, body)) return;
+                JsonDocument command; bool conflict = false;
+                if (deserializeJson(command, body) || !command["zone"].is<const char*>()) { request->send(400, "application/json", "{\"message\":\"Zone requise.\"}"); return; }
+                String json = Esp32::resumeIOZoneJson(command["zone"].as<String>(), command["_revision"] | "", &conflict);
+                JsonDocument result; deserializeJson(result, json); request->send(conflict ? 409 : result["status"] == "success" ? 200 : 400, "application/json", json);
+            });
+
+        server.on("/api/io/automation/preview", HTTP_POST, [](AsyncWebServerRequest*) {}, NULL,
+            [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+                String body; if (!receiveBody(request, data, len, index, total, 40000, body)) return;
+                JsonDocument command;
+                if (deserializeJson(command, body) || !command["id"].is<const char*>() || !command["config"].is<JsonObject>()) { request->send(400, "application/json", "{\"message\":\"Identifiant et configuration du brouillon requis.\"}"); return; }
+                JsonDocument config; config.set(command["config"]);
+                String json = Esp32::previewIOAutomationJson(config, command["id"].as<String>()); JsonDocument result; deserializeJson(result, json);
+                request->send(result["status"] == "success" ? 200 : 400, "application/json", json);
+            });
+
+        server.on("/api/io/config/validate", HTTP_POST, [](AsyncWebServerRequest*) {}, NULL,
+            [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+                String body;
+                if (!receiveBody(request, data, len, index, total, 32768, body)) return;
+                JsonDocument doc, result;
+                const char* error = deserializeJson(doc, body) ? "JSON invalide." : IOConfig::validate(doc);
+                result["status"] = error ? "error" : "valid";
+                if (error) result["message"] = error;
+                String json; serializeJson(result, json);
+                request->send(error ? 400 : 200, "application/json", json);
+            });
+
+        server.on("/api/io/scene", HTTP_POST, [](AsyncWebServerRequest*) {}, NULL,
+            [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+                String body;
+                if (!receiveBody(request, data, len, index, total, 2048, body)) return;
+                JsonDocument doc;
+                if (deserializeJson(doc, body) || !doc["id"].is<const char*>() || !doc["_revision"].is<const char*>() || doc["_revision"].as<String>().isEmpty()) {
+                    request->send(400, "application/json", "{\"message\":\"id et _revision sont requis.\"}"); return;
+                }
+                bool conflict = false;
+                String json = Esp32::runIOSceneJson(doc["id"].as<String>(), doc["_revision"].as<String>(), IOEvents::Source::WEB, &conflict);
+                JsonDocument result; deserializeJson(result, json);
+                request->send(conflict ? 409 : result["status"] == "success" ? 200 : 400, "application/json", json);
+            });
 
         server.on("/api/io/config", HTTP_POST,
             [](AsyncWebServerRequest *request){
@@ -307,7 +399,7 @@ namespace www
                     return;
                 }
                 String body_content_post_io;
-                if (!receiveBody(request, data, len, index, total, 4096, body_content_post_io)) return;
+                if (!receiveBody(request, data, len, index, total, 32768, body_content_post_io)) return;
                 {
                     Serial.println(F("WWW: Received new I/O config via POST /api/io/config:"));
                     Serial.println(body_content_post_io);
@@ -322,8 +414,21 @@ namespace www
                         return;
                     }
 
-                    if (Esp32::saveAndApplyIOConfiguration(doc)) {
+                    if (const char* validationError = IOConfig::validate(doc)) {
+                        JsonDocument result;
+                        result["status"] = "error";
+                        result["message"] = validationError;
+                        String json;
+                        serializeJson(result, json);
+                        request->send(400, "application/json", json);
+                        return;
+                    }
+
+                    bool conflict = false;
+                    if (Esp32::saveAndApplyIOConfiguration(doc, &conflict)) {
                         request->send(200, "application/json", "{\"status\":\"success\", \"message\":\"I/O Configuration saved and applied.\"}");
+                    } else if (conflict) {
+                        request->send(409, "application/json", "{\"status\":\"conflict\",\"message\":\"Configuration modifiée ailleurs. Actualisez et vérifiez vos changements.\"}");
                     } else {
                         request->send(500, "application/json", "{\"status\":\"error\", \"message\":\"Failed to save or apply I/O configuration.\"}");
                     }
@@ -331,41 +436,40 @@ namespace www
             }
         );
 
-        server.on("/api/io/toggle", HTTP_POST, [](AsyncWebServerRequest *request){
-            int gpio = -1;
-            if (request->hasParam("gpio")) {
-                gpio = request->getParam("gpio")->value().toInt();
+        server.on("/api/io/set", HTTP_POST, [](AsyncWebServerRequest *request){
+            bool logical = request->hasParam("active");
+            const char* field = logical ? "active" : "value";
+            if (!request->hasParam("gpio") || !request->hasParam(field)) {
+                request->send(400, "application/json", "{\"message\":\"gpio et active (ou value) sont requis.\"}"); return;
             }
+            String gpioText = request->getParam("gpio")->value();
+            String value = request->getParam(field)->value();
+            int gpio = gpioText.toInt();
+            uint32_t duration = 0;
+            if (request->hasParam("duration_ms")) {
+                String text = request->getParam("duration_ms")->value();
+                duration = strtoul(text.c_str(), nullptr, 10);
+                if (!logical || value != "1" || text != String(duration) || !IOOutput::validDuration(duration)) {
+                    request->send(400, "application/json", "{\"message\":\"Durée valide : de 100 à 3600000 ms, avec active=1.\"}"); return;
+                }
+            }
+            if (gpioText != String(gpio) || !IOConfig::available(gpio) || (value != "0" && value != "1")) {
+                request->send(400, "application/json", "{\"message\":\"GPIO entier valide et état 0 ou 1 requis.\"}"); return;
+            }
+            String result = Esp32::setIOOutputJson(gpio, value == "1", logical, duration);
+            if (result.isEmpty()) {
+                request->send(400, "application/json", "{\"message\":\"Cette broche n'est pas une sortie numérique configurée.\"}"); return;
+            }
+            request->send(200, "application/json", result);
+        });
 
-            if (gpio != -1) {
-                // Check if pin exists in configured_pins and provide specific error
-                bool found = false;
-                for (const Esp32::IO_Pin_Detail& pin : Esp32::configured_pins) {
-                    if (pin.gpio == gpio) {
-                        found = true;
-                        if (pin.type_str != "DIGITAL") {
-                            request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"GPIO " + String(gpio) + " is type '" + pin.type_str + "', not DIGITAL. Cannot toggle.\"}");
-                            return;
-                        }
-                        if (pin.mode_str != "OUTPUT") {
-                            request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"GPIO " + String(gpio) + " is mode '" + pin.mode_str + "', not OUTPUT. Cannot toggle.\"}");
-                            return;
-                        }
-                        break;
-                    }
-                }
-                if (!found) {
-                    request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"GPIO " + String(gpio) + " not found in configured pins (" + String(Esp32::configured_pins.size()) + " pins configured).\"}");
-                    return;
-                }
-                if (Esp32::togglePin(gpio)) {
-                    request->send(200, "application/json", "{\"status\":\"success\", \"message\":\"GPIO " + String(gpio) + " toggled.\"}");
-                } else {
-                    request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Failed to toggle GPIO " + String(gpio) + ".\"}");
-                }
-            } else {
-                request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Missing 'gpio' parameter.\"}");
+        server.on("/api/io/toggle", HTTP_POST, [](AsyncWebServerRequest *request){
+            String text = request->hasParam("gpio") ? request->getParam("gpio")->value() : "";
+            int gpio = text.toInt();
+            if (text != String(gpio) || !Esp32::togglePin(gpio)) {
+                request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Sortie numérique configurée requise.\"}"); return;
             }
+            request->send(200, "application/json", "{\"status\":\"success\"}");
         });
 
         server.on("/api/basicmode/analogstatus", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -390,6 +494,9 @@ namespace www
                 statusDoc["led1"] = BasicMode::basicMode.getLed1State();
                 statusDoc["led2"] = BasicMode::basicMode.getLed2State();
                 statusDoc["led3"] = BasicMode::basicMode.getLed3State();
+                if (!Esp32::isPinOutputAvailable(BasicMode::LED1_PIN)) statusDoc["led1"] = nullptr;
+                if (!Esp32::isPinOutputAvailable(BasicMode::LED2_PIN)) statusDoc["led2"] = nullptr;
+                if (!Esp32::isPinOutputAvailable(BasicMode::LED3_PIN)) statusDoc["led3"] = nullptr;
                 statusDoc["sound"] = BasicMode::basicMode.isSoundEnabled();
 
                 String jsonResponse;
@@ -420,16 +527,9 @@ namespace www
                     {
                         JsonDocument currentConfig;
                         if (Esp32::loadConfig(false, &currentConfig)) {
-                            // Preserve WiFi password if posted empty
-                            String postedPass = jsonBuffer["pass"].as<String>();
-                            postedPass.trim();
-                            if (postedPass.isEmpty()) {
-                                String existingPass = currentConfig["pass"].as<String>();
-                                existingPass.trim();
-                                if (!existingPass.isEmpty()) {
-                                    jsonBuffer["pass"] = existingPass;
-                                    Serial.println(F("WWW: Empty pass received; preserving existing saved password."));
-                                }
+                            // Preserve WiFi password if omitted or posted blank.
+                            if (WifiConfig::preservePassword(jsonBuffer, currentConfig)) {
+                                Serial.println(F("WWW: Missing or empty pass received; preserving existing saved password."));
                             }
                             // Preserve tides_api_key (not editable from setup page)
                             if (jsonBuffer["tides_api_key"].isNull()) {
@@ -482,7 +582,20 @@ namespace www
             doc["time"] = Esp32::hourglass.getDateTimeString();
             doc["uptime"] = millis() / 1000;
             doc["device_name"] = Esp32::DEVICE_NAME;
+            doc["friendly_name"] = Esp32::getFriendlyName();
             doc["version"] = ver;
+            doc["sample_interval_sec"] = Esp32::mqtt_data_interval_seconds_;
+            if (SystemLog::getSensorCount()) doc["sensor_age_ms"] = millis() - SystemLog::getLastSensorMillis();
+            else doc["sensor_age_ms"] = nullptr;
+            #ifdef BASIC_MODE
+                doc["mode"] = "basic";
+            #elif defined(BOAT)
+                doc["mode"] = "boat";
+            #elif defined(HOCKEY_MODE)
+                doc["mode"] = "hockey";
+            #else
+                doc["mode"] = "sensor";
+            #endif
             if (BMX280::isSuccessfullyInitialized()) {
                 doc["bmx_temp"] = BMX280::getTemperature();
                 doc["bmx_pressure"] = BMX280::getPressure();
@@ -500,7 +613,10 @@ namespace www
             doc["enabled"] = Mqtt::isEnabled;
             doc["server"] = Mqtt::serverIp;
             doc["port"] = Mqtt::port;
-            doc["connected"] = Mqtt::mqttClient.connected();
+            doc["connected"] = Mqtt::getState() == Mqtt::MqttState::CONNECTED;
+            doc["io_discovery_ready"] = Mqtt::ioDiscoveryReady;
+            doc["io_discovery_count"] = Mqtt::ioDiscoveryCount;
+            doc["automation_discovery_count"] = Mqtt::automationDiscoveryCount;
             doc["rc"] = Mqtt::mqttClient.state();
             doc["attempts"] = Mqtt::connectAttemptCount_;
             doc["backoff_ms"] = Mqtt::backoffDuration_;
@@ -510,6 +626,9 @@ namespace www
         });
 
         // 3. MQTT Force Reconnect
+        server.on("/api/mqtt/traffic", HTTP_GET, [](AsyncWebServerRequest *request){
+            request->send(200, "application/json", Mqtt::getTrafficJson());
+        });
         server.on("/api/mqtt/reconnect", HTTP_POST, [](AsyncWebServerRequest *request){
             Mqtt::forceReconnect();
             request->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Reconnect initiated\"}");
@@ -644,7 +763,7 @@ namespace www
             {
                 JsonObject t = arr.add<JsonObject>();
                 t["name"] = "MQTT Broker";
-                if (Mqtt::mqttClient.connected()) {
+                if (Mqtt::getState() == Mqtt::MqttState::CONNECTED) {
                     t["status"] = "pass";
                     t["detail"] = Mqtt::serverIp + ":" + String(Mqtt::port);
                 } else if (!Mqtt::isEnabled) {
@@ -783,8 +902,7 @@ namespace www
 
         server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request){
             request->send(200, "text/plain", "Rebooting...");
-            delay(200);
-            Esp32::reboot();
+            Esp32::requestReboot();
         });
 
         
@@ -938,14 +1056,23 @@ namespace www
 
         //server.serveStatic("/esp32.css", SPIFFS, "/esp32.css").setCacheControl("no-cache");
 
+        server.on("/setup.html", HTTP_GET, [](AsyncWebServerRequest* request){
+            sendTemplatePage(request, "/setup.html");
+        });
+        server.on("/boat/index.html", HTTP_GET, [](AsyncWebServerRequest* request){
+            sendTemplatePage(request, "/boat/index.html");
+        });
+        server.on("/boat/", HTTP_GET, [](AsyncWebServerRequest* request){
+            sendTemplatePage(request, "/boat/index.html");
+        });
+
         server
             .serveStatic("/", SPIFFS, "/")
             .setDefaultFile("index.html")
             .setCacheControl("no-cache")
-            .setTemplateProcessor(processor)
             .setFilter([](AsyncWebServerRequest* request) {
                 String path = request->url();
-                return !path.endsWith(".json") && !path.endsWith(".txt");
+                return !path.endsWith(".json") && !path.endsWith(".txt") && !path.endsWith(".tmp") && !path.endsWith(".bak");
             });
 
 
@@ -960,5 +1087,4 @@ namespace www
     }
    
 }
-
 
