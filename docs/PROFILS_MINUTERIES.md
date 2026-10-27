@@ -28,6 +28,11 @@ modifie pas la minuterie en cours. La désactivation enregistre l’arrêt et me
 la sortie à OFF. Le chargement des horaires précède l’application des niveaux
 de démarrage, sans réécrire les valeurs initiales enregistrées par l’utilisateur.
 
+Le fichier de minuteries garde une racine JSON de type tableau. Il utilise
+explicitement ce type dans le stockage atomique; les configurations système et
+I/O restent des objets JSON. Le test natif du gestionnaire de minuteries passe
+par ce même stockage, y compris pour la sauvegarde et la reprise sur `.bak`.
+
 Les horaires utilisent l’heure locale de l’horloge SNTP existante, avec les
 réglages GMT/DST de l’appareil. Ils peuvent passer minuit. Aucun second moteur
 d’horloge TimeLib n’est installé. L’algorithme suit les dates locales plutôt

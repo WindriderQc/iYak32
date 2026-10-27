@@ -37,7 +37,7 @@ bool saveTimer(unsigned io, const DailyTimers::Schedule& schedule) {
     }
     if (rows.size() > 32) return false;
     String json; serializeJson(doc,json);
-    if (!Esp32::spiffsMounted || !Storage::writeConfigFile(TIMER_FILE,json)) return false;
+    if (!Esp32::spiffsMounted || !Storage::writeConfigFile(TIMER_FILE,json,ConfigFileStore::Root::Array)) return false;
     schedules[io] = schedule; exists[io] = true; runtimes[io].reset();
     writeOutput(io,false); lastError = ""; dirty = true; return true;
 }
@@ -84,7 +84,7 @@ void report(time_t now, bool clockValid) {
 bool loadBootTimers() {
     if (timersLoaded) return true;
     if (!Esp32::spiffsMounted) return false;
-    const String text = Storage::readConfigFile(TIMER_FILE);
+    const String text = Storage::readConfigFile(TIMER_FILE,ConfigFileStore::Root::Array);
     if (text.isEmpty()) { timersLoaded = true; return true; }
     JsonDocument doc;
     if (deserializeJson(doc,text) || !doc.is<JsonArrayConst>() || doc.size() > 32) { lastError = "Invalid saved timers; I/O boot configuration refused"; return false; }

@@ -1,4 +1,4 @@
-const char* ver = "v1:21-iot";
+const char* ver = "v1:22-iot";
 
 //#define VERBOSE
 //#define HOCKEY_MODE
