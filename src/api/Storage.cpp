@@ -11,14 +11,14 @@ namespace Storage {
         std::string read(const std::string& p) { File f = SPIFFS.open(p.c_str(), FILE_READ); if (!f) return {}; String content = f.readString(); f.close(); return std::string(content.c_str(), content.length()); }
         bool write(const std::string& p, const std::string& content) { File f = SPIFFS.open(p.c_str(), FILE_WRITE); if (!f) return false; size_t n = f.write(reinterpret_cast<const uint8_t*>(content.data()), content.size()); f.flush(); f.close(); return n == content.size(); }
     };
-    String readConfigFile(const String& filename) {
+    String readConfigFile(const String& filename, ConfigFileStore::Root root) {
         xSemaphoreTake(configMutex, portMAX_DELAY); ConfigFS fs;
-        std::string result = ConfigFileStore::read(fs, filename.c_str());
+        std::string result = ConfigFileStore::read(fs, filename.c_str(), root);
         xSemaphoreGive(configMutex); return String(result.c_str());
     }
-    bool writeConfigFile(const String& filename, const String& content) {
+    bool writeConfigFile(const String& filename, const String& content, ConfigFileStore::Root root) {
         xSemaphoreTake(configMutex, portMAX_DELAY); ConfigFS fs;
-        bool result = ConfigFileStore::save(fs, filename.c_str(), std::string(content.c_str(), content.length()));
+        bool result = ConfigFileStore::save(fs, filename.c_str(), std::string(content.c_str(), content.length()), root);
         xSemaphoreGive(configMutex); return result;
     }
 

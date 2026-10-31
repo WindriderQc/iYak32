@@ -1,5 +1,6 @@
 #pragma once
 #include "api/IOProfile.h"
+#include "api/ConfigFileStore.h"
 #include <map>
 #include <vector>
 #include <ctime>
@@ -21,10 +22,21 @@ inline bool reserved(int gpio) { return gpio == 21 || gpio == 22; }
 }
 namespace IOEvents { enum class Source { TIMER }; }
 namespace Storage {
-inline String readConfigFile(const String& path) { return IOTest::files[path]; }
-inline bool writeConfigFile(const String& path, const String& content) {
+struct ConfigFS {
+    bool exists(const std::string& path) { return IOTest::files.count(path); }
+    std::string read(const std::string& path) { auto it = IOTest::files.find(path); return it == IOTest::files.end() ? "" : it->second; }
+    bool write(const std::string& path, const std::string& content) { IOTest::files[path] = content; return true; }
+    bool remove(const std::string& path) { return IOTest::files.erase(path) != 0; }
+    bool rename(const std::string& from, const std::string& to) {
+        if (!exists(from) || exists(to)) return false;
+        IOTest::files[to] = IOTest::files[from]; IOTest::files.erase(from); return true;
+    }
+};
+inline String readConfigFile(const String& path, ConfigFileStore::Root root = ConfigFileStore::Root::Object) { ConfigFS fs; return ConfigFileStore::read(fs, path, root); }
+inline bool writeConfigFile(const String& path, const String& content, ConfigFileStore::Root root = ConfigFileStore::Root::Object) {
     if (IOTest::failSave) return false;
-    IOTest::files[path] = content; ++IOTest::writes; return true;
+    ConfigFS fs; if (!ConfigFileStore::save(fs, path, content, root)) return false;
+    ++IOTest::writes; return true;
 }
 }
 namespace Esp32 {

@@ -2,6 +2,7 @@
 
 #include <EEPROM.h>
 #include "SPIFFS.h"
+#include "ConfigFileStore.h"
 
 namespace Storage {
     extern int startingAddress;
@@ -14,6 +15,6 @@ namespace Storage {
     void dumpFile(String config_filename, int max_char_dump = 1024);
     String readFile(String filename);
     bool writeFile(String filename, String message);
-    String readConfigFile(const String& filename);
-    bool writeConfigFile(const String& filename, const String& content);
+    String readConfigFile(const String& filename, ConfigFileStore::Root root = ConfigFileStore::Root::Object);
+    bool writeConfigFile(const String& filename, const String& content, ConfigFileStore::Root root = ConfigFileStore::Root::Object);
 }
